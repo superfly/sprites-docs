@@ -1,0 +1,13 @@
+---
+import { APIEndpoint as APIEndpointReact, APIBody as APIBodyReact } from './react/APIEndpoint';
+
+interface Props {
+  method: string;
+  path: string;
+  description?: string;
+}
+
+const props = Astro.props;
+---
+
+<APIEndpointReact {...props} client:load><slot /></APIEndpointReact>
