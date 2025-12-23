@@ -1,12 +1,13 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import sitemap from '@astrojs/sitemap';
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://sprites.dev', // Update to your actual domain
+  site: 'https://docs.sprites.dev',
   prefetch: {
     prefetchAll: true,
     defaultStrategy: 'viewport', // Prefetch links when they enter viewport
@@ -26,10 +27,10 @@ export default defineConfig({
       favicon: '/favicon.svg',
       customCss: ['./src/styles/custom.css'],
       social: [
-        { icon: 'github', label: 'GitHub', href: 'https://github.com/superfly/sprites' },
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/superfly/sprites-docs' },
       ],
       editLink: {
-        baseUrl: 'https://github.com/superfly/sprites-docs/edit/main/',
+        baseUrl: 'https://github.com/superfly/sprites-docs/edit/master/',
       },
       sidebar: [
         {
@@ -80,10 +81,14 @@ export default defineConfig({
       ],
       head: [], // Fonts are now self-hosted via fontsource
       components: {
+        Header: './src/components/Header.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
+        PageTitle: './src/components/PageTitle.astro',
+        SiteTitle: './src/components/SiteTitle.astro',
       },
     }),
     react(),
+    sitemap(),
   ],
   vite: {
     plugins: [tailwindcss()],
