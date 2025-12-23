@@ -1,0 +1,17 @@
+---
+import StarlightPageTitle from '@astrojs/starlight/components/PageTitle.astro';
+import CopyPageButton from './CopyPageButton.astro';
+---
+
+<div class="copy-page-row">
+	<CopyPageButton />
+</div>
+<StarlightPageTitle />
+
+<style>
+	.copy-page-row {
+		display: flex;
+		justify-content: flex-end;
+		margin-bottom: 0.5rem;
+	}
+</style>

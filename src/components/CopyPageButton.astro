@@ -1,0 +1,25 @@
+---
+import { CopyPageButton as CopyPageButtonReact } from './react/CopyPageButton'
+
+// Get page data from Starlight's route
+const { entry, slug } = Astro.locals.starlightRoute || {}
+const pageTitle = entry?.data?.title || 'Documentation'
+const pageMarkdown = entry?.body || ''
+const pageUrl = Astro.url.href
+---
+
+<div class="copy-page-button-wrapper">
+  <CopyPageButtonReact
+    client:load
+    pageMarkdown={pageMarkdown}
+    pageUrl={pageUrl}
+    pageTitle={pageTitle}
+  />
+</div>
+
+<style>
+  .copy-page-button-wrapper {
+    display: flex;
+    align-items: center;
+  }
+</style>
