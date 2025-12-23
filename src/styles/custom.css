@@ -1,6 +1,14 @@
 /* Sprites Docs - Custom Starlight Theme with shadcn/ui */
 /* Dark-first theme with OKLCH colors - Teal accent */
 
+/* Fricolage Grotesque - brand font from sprites.dev */
+@font-face {
+  font-family: 'Fricolage Grotesque';
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/fricolage-grotesque.var.woff2') format('woff2');
+}
+
 /* Self-hosted fonts - eliminates external font requests */
 @import "@fontsource/inter/400.css";
 @import "@fontsource/inter/500.css";
@@ -45,7 +53,7 @@
 
 /* shadcn CSS Variables - Light Mode */
 :root {
-  --radius: 0rem;
+  --radius: 0.5rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.15 0.01 285);
   --card: oklch(1 0 0);
@@ -192,8 +200,8 @@
   --sl-font-system-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   --sl-font-headings: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Sharp corners */
-  --sl-border-radius: 0;
+  /* Rounded corners */
+  --sl-border-radius: 0.5rem;
 }
 
 /* Light mode overrides for Starlight */
@@ -293,19 +301,41 @@ pre[data-bash-prompt] > code {
 }
 
 .expressive-code {
-  --ec-brdRad: 0;
+  --ec-brdRad: 0.5rem;
   --ec-brdCol: var(--sl-color-hairline);
 }
 
 :not(pre) > code {
   background: var(--sl-color-bg-inline-code);
   padding: 0.2em 0.4em;
-  border-radius: 0;
+  border-radius: 0.25rem;
   font-size: 0.875em;
 }
 
 header.header {
+  /* Fallback for browsers without backdrop-filter */
+  background: oklch(0.18 0.005 49.25) !important;
   border-bottom-color: var(--sl-color-hairline);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  header.header {
+    background: oklch(0.147 0.004 49.25 / 70%) !important;
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    border-bottom: 1px solid oklch(1 0 0 / 10%);
+  }
+}
+
+[data-theme='light'] header.header {
+  background: oklch(1 0 0) !important;
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  [data-theme='light'] header.header {
+    background: oklch(1 0 0 / 70%) !important;
+    border-bottom: 1px solid oklch(0 0 0 / 10%);
+  }
 }
 
 /* Table styling */
