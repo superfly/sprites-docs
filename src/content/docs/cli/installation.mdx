@@ -1,0 +1,165 @@
+---
+title: CLI Installation
+description: Install the Sprites CLI on macOS, Linux, or Windows
+---
+
+import { Callout } from '@/components/react';
+
+The Sprites CLI (`sprite`) is available for macOS, Linux, and Windows.
+
+## Quick Install (Recommended)
+
+The easiest way to install the CLI is with our install script:
+
+```bash
+curl -fsSL https://sprites.dev/install.sh | sh
+```
+
+The install script automatically:
+- Detects your operating system and architecture
+- Downloads the latest release binary
+- Verifies the SHA256 checksum
+- Installs to `~/.local/bin`
+
+<Callout type="info">
+After installation, you may need to add `~/.local/bin` to your PATH if it's not already included. The script will provide instructions if needed.
+</Callout>
+
+## Manual Installation
+
+For specific versions or manual installation, download binaries from [GitHub Releases](https://github.com/superfly/sprite-env/releases).
+
+### macOS / Linux
+
+```bash
+# Download and extract the appropriate binary for your platform
+tar xzf sprite-<platform>-<arch>.tar.gz
+sudo mv sprite /usr/local/bin/
+```
+
+### Windows
+
+```powershell
+# Download and extract
+Expand-Archive sprite-windows-amd64.zip -DestinationPath $env:USERPROFILE\bin
+
+# Add to PATH (run in PowerShell as Administrator)
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:USERPROFILE\bin", "User")
+```
+
+## Verify Installation
+
+```bash
+sprite --help
+```
+
+You should see the help output with available commands.
+
+## Upgrading
+
+If you installed from the direct download links, upgrade to the latest version:
+
+```bash
+sprite upgrade
+```
+
+To check for updates without installing:
+
+```bash
+sprite upgrade --check
+```
+
+## Configuration
+
+The CLI stores configuration in `~/.sprites/sprites.json`. This includes:
+
+- Organization tokens
+- Current organization selection
+- Current sprite selection
+
+### Config File Location
+
+| Platform | Location |
+|----------|----------|
+| macOS/Linux | `~/.sprites/sprites.json` |
+| Windows | `%USERPROFILE%\.sprites\sprites.json` |
+
+> **Note:** `config.json` is kept for backward compatibility with older clients, but current versions read/write `sprites.json`.
+
+## Optional: Local Directory Context
+
+The CLI supports a `.sprite` file in your project directory to remember which sprite to use:
+
+```bash
+# Set the sprite for current directory
+sprite use my-project-sprite
+```
+
+This creates a `.sprite` file that the CLI reads automatically. Add `.sprite` to your `.gitignore` as it's user-specific.
+
+## Optional: Mount Helper Function
+
+Add this function to your shell configuration (`~/.zshrc` or `~/.bashrc`) to easily mount your Sprite's filesystem locally:
+
+```bash
+sc() {
+  local sprite_name="${1:-$(sprite use)}"
+  local mount_point="/tmp/sprite-${sprite_name}"
+  mkdir -p "$mount_point"
+  sshfs -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
+    "sprite@${sprite_name}.sprites.dev:" "$mount_point"
+  cd "$mount_point"
+}
+```
+
+Usage:
+
+```bash
+sc my-sprite  # Mount and cd to sprite's home directory
+```
+
+<Callout type="info">
+This requires `sshfs` to be installed. On macOS, install with `brew install macfuse sshfs`. On Linux, use your package manager: `apt install sshfs` or `yum install fuse-sshfs`.
+</Callout>
+
+## Troubleshooting
+
+### Permission Denied
+
+If you get a permission denied error on macOS or Linux:
+
+```bash
+chmod +x sprite
+sudo mv sprite /usr/local/bin/
+```
+
+### Command Not Found
+
+Ensure the binary is in your PATH:
+
+```bash
+# Check if sprite is in PATH
+which sprite
+
+# If not, add /usr/local/bin to PATH
+export PATH="/usr/local/bin:$PATH"
+```
+
+### macOS Security Warning
+
+On macOS, you may see a security warning when first running the CLI. To allow it:
+
+1. Open System Preferences > Security & Privacy
+2. Click "Allow Anyway" next to the message about `sprite`
+3. Run `sprite` again and click "Open"
+
+Or use the command line:
+
+```bash
+xattr -d com.apple.quarantine /usr/local/bin/sprite
+```
+
+## Next Steps
+
+- [Authentication](/cli/authentication) - Set up your Fly.io account
+- [Commands Reference](/cli/commands) - Full CLI documentation

@@ -1,0 +1,587 @@
+---
+title: Checkpoints
+description: Save and restore Sprite state with checkpoints
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Snippet } from '@/components/react';
+
+Checkpoints allow you to save the complete state of a Sprite and restore it later. This is useful for creating clean states, recovering from errors, or sharing environment configurations.
+
+## Overview
+
+Checkpoints are **live** and **fast**. Creating one takes about 300ms and your Sprite environment won't even notice—no downtime, no interruption.
+
+A checkpoint captures:
+
+- **Complete filesystem** - All files, directories, and data
+- **Installed packages** - System and language-specific packages
+- **Services and policies** - Any services or network policies you've configured
+- **Configuration files** - Environment setup, dotfiles, etc.
+
+Checkpoints do **not** capture:
+
+- Running processes (services are reconfigured, not snapshotted)
+- Network connections
+- In-memory state
+
+## Creating Checkpoints
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# Create a checkpoint of the current sprite
+sprite checkpoint create
+
+# Output: Checkpoint created: v1
+```
+</TabItem>
+<TabItem label="Go">
+```go
+ctx := context.Background()
+
+// Create a checkpoint
+stream, err := sprite.CreateCheckpoint(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+defer stream.Close()
+
+// Process streaming progress messages
+stream.ProcessAll(func(msg *sprites.StreamMessage) error {
+    fmt.Println(msg.Data)
+    return nil
+})
+```
+</TabItem>
+<TabItem label="JavaScript">
+```javascript
+// Create a checkpoint
+const response = await sprite.createCheckpoint();
+
+// Process NDJSON stream
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  console.log(decoder.decode(value));
+}
+```
+</TabItem>
+</Tabs>
+
+### When to Create Checkpoints
+
+Common use cases:
+
+1. **Clean environment** - After initial setup, before experimentation
+2. **Known good state** - After tests pass, before risky changes
+3. **Shareable base** - Standard environment for team use
+4. **Before experiments** - Easy rollback if things break
+
+### Example Workflow
+
+```bash
+# Create and set up a sprite
+sprite create dev-env
+sprite exec "pip install -r requirements.txt"
+sprite exec "npm install"
+
+# Save the clean state
+sprite checkpoint create
+# Output: Checkpoint created: v1
+
+# Now experiment freely
+sprite exec "pip install experimental-package"
+sprite exec "rm -rf node_modules"  # Oops!
+
+# Restore to clean state
+sprite restore v1
+# Everything is back to normal
+```
+
+## Listing Checkpoints
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# List all checkpoints for the current sprite
+sprite checkpoint list
+
+# Output:
+# ID                             CREATED             COMMENT
+# ------------------------------ ------------------- ------------------------
+# v1                             2024-01-15 10:30:00 After npm install
+# v0                             2024-01-14 15:45:00 Base (clean) state
+```
+</TabItem>
+<TabItem label="Go">
+```go
+ctx := context.Background()
+
+checkpoints, err := sprite.ListCheckpoints(ctx, "")
+if err != nil {
+    log.Fatal(err)
+}
+
+for _, cp := range checkpoints {
+    fmt.Printf("%s  %s  %s\n", cp.ID, cp.CreateTime.Format(time.RFC3339), cp.Comment)
+}
+```
+</TabItem>
+<TabItem label="JavaScript">
+```javascript
+const checkpoints = await sprite.listCheckpoints();
+
+for (const cp of checkpoints) {
+  console.log(`${cp.id}  ${cp.createTime.toISOString()}  ${cp.comment}`);
+}
+```
+</TabItem>
+</Tabs>
+
+### Checkpoint Information
+
+Get details about a specific checkpoint:
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+sprite checkpoint info v1
+
+# Output:
+# ID: v1
+# Created: 2024-01-15T10:30:00Z
+# Comment: After npm install
+# History: (none)
+```
+</TabItem>
+<TabItem label="Go">
+```go
+ctx := context.Background()
+
+cp, err := sprite.GetCheckpoint(ctx, "v1")
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("ID: %s\n", cp.ID)
+fmt.Printf("Created: %s\n", cp.CreateTime.Format(time.RFC3339))
+fmt.Printf("Comment: %s\n", cp.Comment)
+```
+</TabItem>
+<TabItem label="JavaScript">
+```javascript
+const cp = await sprite.getCheckpoint("v1");
+
+console.log(`ID: ${cp.id}`);
+console.log(`Created: ${cp.createTime.toISOString()}`);
+console.log(`Comment: ${cp.comment}`);
+```
+</TabItem>
+</Tabs>
+
+## Restoring from Checkpoints
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# Restore from a checkpoint
+sprite restore v1
+```
+</TabItem>
+<TabItem label="Go">
+```go
+ctx := context.Background()
+
+stream, err := sprite.RestoreCheckpoint(ctx, "v1")
+if err != nil {
+    log.Fatal(err)
+}
+defer stream.Close()
+
+// Process streaming progress messages
+stream.ProcessAll(func(msg *sprites.StreamMessage) error {
+    fmt.Println(msg.Data)
+    return nil
+})
+```
+</TabItem>
+<TabItem label="JavaScript">
+```javascript
+const response = await sprite.restoreCheckpoint("v1");
+
+// Process NDJSON stream
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  console.log(decoder.decode(value));
+}
+```
+</TabItem>
+</Tabs>
+
+### What Happens During Restore
+
+1. Current filesystem state is replaced with checkpoint state
+2. Any running processes are terminated
+3. Sprite restarts with the restored filesystem
+4. New processes need to be started manually
+
+### Restore Performance
+
+Restores are fast—typically completing in under a second:
+
+1. Current filesystem is backed up
+2. Checkpoint is cloned to active state
+3. Services restart with restored filesystem
+
+The restore command streams progress in real-time, so you'll see status updates as the operation completes.
+
+### Restore Considerations
+
+- **Destructive operation** - Current state is replaced (but backed up automatically)
+- **Process restart** - All running processes are terminated
+- **CLI retry** - Subsequent `sprite exec` commands automatically retry if the sprite is still restarting
+
+## Deleting Checkpoints
+
+You can delete individual checkpoints by their ID. Deleted checkpoints cannot be recovered.
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# Delete a specific checkpoint
+sprite checkpoint delete v3
+
+# Output: Deleted
+```
+</TabItem>
+<TabItem label="cURL">
+```bash
+# Delete via internal API (from inside the Sprite)
+curl-sprite-api -X DELETE /v1/checkpoints/v3
+```
+</TabItem>
+</Tabs>
+
+### Delete Restrictions
+
+You cannot delete the currently active checkpoint. Attempting to do so returns an error:
+
+```bash
+sprite checkpoint delete v2
+# Error: cannot delete active checkpoint
+```
+
+To delete an active checkpoint, first restore to a different checkpoint, then delete the original.
+
+### Cleanup Considerations
+
+- **Deleted checkpoints cannot be recovered** - Make sure you don't need it before deleting
+- **Storage costs decrease immediately** - Billing stops once the checkpoint is deleted
+- **Keep at least one stable checkpoint** - Always maintain a known-good fallback
+- **Review old checkpoints periodically** - Remove unused checkpoints to manage storage costs
+
+## Manage Checkpoints from Inside Your Sprite
+
+You can create and restore checkpoints from within the Sprite itself using the internal API. This is particularly useful for LLMs and automation scripts.
+
+### Using curl-sprite-api
+
+The `curl-sprite-api` command simplifies access to the internal API:
+
+```bash
+# List all checkpoints
+curl-sprite-api /v1/checkpoints
+
+# Get details for a specific checkpoint
+curl-sprite-api /v1/checkpoints/v2
+
+# Create a new checkpoint (streams progress)
+curl-sprite-api -X POST /v1/checkpoint
+
+# Restore from a checkpoint
+curl-sprite-api -X POST /v1/checkpoints/v1/restore
+
+# Delete a checkpoint
+curl-sprite-api -X DELETE /v1/checkpoints/v3
+```
+
+### Direct API Access
+
+If you prefer using curl directly:
+
+```bash
+# List checkpoints
+curl --unix-socket /.sprite/api.sock \
+  -H "Content-Type: application/json" \
+  http://sprite/v1/checkpoints
+
+# Create checkpoint
+curl --unix-socket /.sprite/api.sock \
+  -H "Content-Type: application/json" \
+  -X POST http://sprite/v1/checkpoint
+
+# Delete checkpoint
+curl --unix-socket /.sprite/api.sock \
+  -X DELETE http://sprite/v1/checkpoints/v3
+```
+
+### Checkpoint Creation Response
+
+Creating a checkpoint streams progress in NDJSON format:
+
+```json
+{"status": "starting", "message": "Creating checkpoint..."}
+{"status": "progress", "percent": 50}
+{"status": "complete", "id": "v3"}
+```
+
+### Restore Behavior
+
+Restore requests return immediately with HTTP 202 (Accepted) and trigger the restore asynchronously. This is because the restore operation restarts the environment—the connection won't survive to receive a response.
+
+```bash
+# This returns immediately, then the sprite restarts with restored state
+curl-sprite-api -X POST /v1/checkpoints/v1/restore
+```
+
+### LLM Self-Checkpointing
+
+AI coding agents can checkpoint their own work. Point your LLM at `/.sprite/llm.txt` and it can:
+
+```bash
+# Before risky operations
+curl-sprite-api -X POST /v1/checkpoint
+# Output: {"status": "complete", "id": "v4"}
+
+# Try something risky...
+rm -rf node_modules && npm install
+
+# If things go wrong, restore
+curl-sprite-api -X POST /v1/checkpoints/v4/restore
+
+# Clean up old checkpoints when done
+curl-sprite-api -X DELETE /v1/checkpoints/v3
+```
+
+This enables autonomous recovery when experiments fail.
+
+## Checkpoint Storage
+
+Checkpoints are stored in durable object storage using [Tigris Standard tier](https://www.tigrisdata.com/docs/objects/tiers/#standard-tier):
+
+- **Copy-on-write** - Only blocks that have changed are copied, keeping incremental checkpoints small
+- **Geographically redundant** - Data replicated across regions
+- **Highly durable** - High durability, availability and performance for frequently accessed data
+- **Compressed** - Efficient storage usage
+
+### Storage Costs
+
+Checkpoints are billed as regular storage at $0.50/GB/month. Because of copy-on-write, incremental checkpoints don't use much space—you're only billed for changed blocks. See [Billing](/reference/billing) for details.
+
+### Browsing Checkpoints
+
+The last 5 checkpoints are mounted read-only at `/.sprite/checkpoints/` inside your Sprite, allowing you to browse or diff previous states without restoring.
+
+## Common Patterns
+
+### Environment Templates
+
+Create a "gold standard" Sprite with all your standard tools and dependencies, then checkpoint it. Use this checkpoint as a starting point for new projects or team members.
+
+```bash
+# Create the gold standard
+sprite create gold-standard
+sprite exec "install-base-tools.sh"
+sprite exec "configure-defaults.sh"
+sprite checkpoint create --comment "Gold standard v1.0"
+
+# New team member onboarding
+sprite use gold-standard
+sprite restore v1  # Start from identical baseline
+```
+
+### Automated Checkpointing
+
+Build safety nets into your workflows by programmatically creating checkpoints before risky operations:
+
+```bash
+#!/bin/bash
+# deployment.sh - Safe deployment with automatic rollback
+
+# Create safety checkpoint
+sprite checkpoint create --comment "Pre-deploy $(date +%Y%m%d-%H%M)"
+
+# Try deployment
+if ! sprite exec "deploy.sh"; then
+  echo "Deployment failed, rolling back..."
+  sprite restore v$(sprite checkpoint list | head -2 | tail -1 | awk '{print $1}')
+  exit 1
+fi
+
+echo "Deployment successful"
+```
+
+### A/B Testing Configurations
+
+Checkpoint a base configuration, then restore it to multiple Sprites for parallel testing:
+
+```bash
+# Create base configuration
+sprite use base-config
+sprite exec "setup-base.sh"
+sprite checkpoint create --comment "Base config for A/B test"
+
+# Create variant A
+sprite create variant-a
+sprite restore v1
+sprite exec "apply-config-a.sh"
+
+# Create variant B
+sprite create variant-b
+sprite restore v1
+sprite exec "apply-config-b.sh"
+
+# Run tests in parallel
+sprite use variant-a && sprite exec "run-tests.sh" &
+sprite use variant-b && sprite exec "run-tests.sh" &
+wait
+```
+
+## Best Practices
+
+### Using Comments
+
+Checkpoints use sequential version IDs (v0, v1, v2, etc.). Add comments to describe what each represents:
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# Create checkpoint with a descriptive comment
+sprite checkpoint create --comment "Clean Python 3.11 + Node 20 setup"
+# Output: Checkpoint created: v1
+
+# List checkpoints to see comments
+sprite checkpoint list
+# ID    CREATED              COMMENT
+# v1    2024-01-15 10:30:00  Clean Python 3.11 + Node 20 setup
+```
+</TabItem>
+<TabItem label="Go">
+```go
+ctx := context.Background()
+
+// Create checkpoint with comment
+stream, err := sprite.CreateCheckpointWithComment(ctx, "Clean Python 3.11 + Node 20 setup")
+if err != nil {
+    log.Fatal(err)
+}
+defer stream.Close()
+stream.ProcessAll(func(msg *sprites.StreamMessage) error {
+    fmt.Println(msg.Data)
+    return nil
+})
+```
+</TabItem>
+<TabItem label="JavaScript">
+```javascript
+// Create checkpoint with comment
+const response = await sprite.createCheckpoint("Clean Python 3.11 + Node 20 setup");
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  console.log(decoder.decode(value));
+}
+```
+</TabItem>
+</Tabs>
+
+### Checkpoint Frequency
+
+- **Daily** for active development
+- **Before risky operations** (upgrades, experiments)
+- **After successful milestones** (tests passing, features complete)
+
+### Cleanup Old Checkpoints
+
+Checkpoints consume storage. Periodically review and delete old ones:
+
+```bash
+# List all checkpoints
+sprite checkpoint list
+
+# Delete checkpoints you no longer need
+sprite checkpoint delete v1
+sprite checkpoint delete v2
+```
+
+See [Deleting Checkpoints](#deleting-checkpoints) for details.
+
+### LLM Integration
+
+Point your LLM at `/.sprite/llm.txt` inside your Sprite and it can manage checkpoints for you—creating snapshots before risky operations and restoring when things go wrong.
+
+### Don't Rely on Checkpoints Alone
+
+Checkpoints are for environment state. Use proper version control (Git) for code:
+
+```bash
+# Good: Use both
+sprite exec "git commit -am 'Save progress'"
+sprite checkpoint create
+
+# Bad: Only using checkpoints for code
+sprite checkpoint create  # Don't do this for code changes
+```
+
+## Limitations
+
+### Not Captured
+
+- Running processes (must restart after restore)
+- Network connections (must reconnect)
+- In-memory state (must reinitialize)
+- External state (databases on other systems)
+
+### Restore Time
+
+Restores typically complete in under a second. See [Restore Performance](#restore-performance) for details.
+
+### Compatibility
+
+Checkpoints are specific to the Sprite they were created from. You cannot restore a checkpoint to a different Sprite (yet).
+
+## Troubleshooting
+
+### Restore Fails
+
+1. Verify checkpoint ID is correct
+2. Check if checkpoint still exists: `sprite checkpoint list`
+3. Ensure sufficient quota for restore operation
+
+### Missing Data After Restore
+
+Remember that checkpoints capture the filesystem at a point in time. Any data created after the checkpoint was made will not be present after restore.
+
+### Process Not Running After Restore
+
+Processes are not captured in checkpoints. Restart any services:
+
+```bash
+sprite restore v1
+sprite exec -detachable "npm run dev"  # Restart services
+```
+
+## Related Documentation
+
+- [Lifecycle and Persistence](/concepts/lifecycle) - How persistence works
+- [CLI Commands](/cli/commands) - Checkpoint commands
+- [Billing](/reference/billing) - Storage costs

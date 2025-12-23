@@ -1,0 +1,449 @@
+---
+title: CLI Commands Reference
+description: Complete reference for all Sprites CLI commands
+---
+
+import { Callout } from '@/components/react';
+
+Complete reference for all `sprite` CLI commands.
+
+## Global Options
+
+These options work with any command:
+
+| Option | Description |
+|--------|-------------|
+| `--debug[=<file>]` | Enable debug logging (optionally to file) |
+| `-o, --org <name>` | Specify organization |
+| `-s, --sprite <name>` | Specify sprite |
+| `-h, --help` | Show help |
+
+## Authentication Commands
+
+### `sprite login`
+
+Simplified authentication with Fly.io.
+
+```bash
+sprite login
+```
+
+### `sprite logout`
+
+Remove all Sprites configuration.
+
+```bash
+sprite logout
+```
+
+### `sprite org auth`
+
+Add API tokens for an organization.
+
+```bash
+sprite org auth [options]
+```
+
+**Options:**
+- `--org <name>` - Specify organization
+
+If an organization requires an invite code, the CLI will prompt you during the flow.
+
+**Aliases:** `sprite orgs`, `sprite organizations`, `sprite o`
+
+### `sprite org list`
+
+Show configured organizations and tokens.
+
+```bash
+sprite org list
+```
+
+### `sprite org logout`
+
+Remove tokens for a specific organization.
+
+```bash
+sprite org logout [options]
+```
+
+**Options:**
+- `--org <name>` - Organization to log out from
+
+### `sprite org keyring disable`
+
+Disable keyring storage, store tokens in config file.
+
+```bash
+sprite org keyring disable
+```
+
+### `sprite org keyring enable`
+
+Enable keyring storage for tokens.
+
+```bash
+sprite org keyring enable
+```
+
+## Sprite Management
+
+### `sprite create`
+
+Create a new sprite.
+
+```bash
+sprite create [sprite-name]
+```
+
+**Examples:**
+```bash
+sprite create my-sprite
+sprite create dev-env
+```
+
+### `sprite use`
+
+Set the active sprite for the current directory.
+
+```bash
+sprite use [sprite]
+```
+
+Without arguments, opens an interactive selector to choose a sprite. Creates a `.sprite` file in the current directory.
+
+**Examples:**
+```bash
+sprite use my-sprite
+sprite use  # Opens interactive sprite selector
+```
+
+### `sprite list`
+
+List all sprites.
+
+```bash
+sprite list [options]
+```
+
+**Options:**
+- `--prefix <string>` - Filter by name prefix
+
+**Alias:** `sprite ls`
+
+**Examples:**
+```bash
+sprite list
+sprite list --prefix "dev-"
+```
+
+### `sprite destroy`
+
+Destroy a sprite.
+
+```bash
+sprite destroy [name]
+```
+
+Without a name, destroys the current sprite.
+
+**Examples:**
+```bash
+sprite destroy my-sprite
+sprite destroy  # Destroy current sprite
+```
+
+## Command Execution
+
+### `sprite exec`
+
+Execute a command in the sprite environment.
+
+```bash
+sprite exec [options] [command...]
+```
+
+**Options:**
+- `-dir <path>` - Working directory
+- `-env <KEY=VALUE,KEY2=VALUE2>` - Environment variables (comma-separated)
+- `-tty` - Allocate pseudo-terminal
+- `-id <session-id>` - Attach to existing session
+- `-detachable` - Create detachable tmux session
+- `-http-post` - Use HTTP/1.1 fallback instead of WebSocket (non-TTY only)
+
+**Alias:** `sprite x`
+
+**Examples:**
+```bash
+sprite exec echo "hello"
+sprite exec -dir /home/sprite npm test
+sprite exec -env NODE_ENV=production npm start
+sprite exec -tty bash
+sprite exec -detachable "npm run dev"
+```
+
+### `sprite console`
+
+Open an interactive shell in the sprite.
+
+```bash
+sprite console
+```
+
+**Alias:** `sprite c`
+
+This opens `/.sprite/bin/sprite-console`, which selects a login shell based on your local environment and installs terminfo if needed.
+
+## Checkpoints
+
+### `sprite checkpoint create`
+
+Create a checkpoint of the current sprite state.
+
+```bash
+sprite checkpoint create
+```
+
+### `sprite checkpoint list`
+
+List all checkpoints for the current sprite.
+
+```bash
+sprite checkpoint list
+```
+
+**Aliases:** `sprite checkpoint ls`, `sprite checkpoints ls`
+
+### `sprite checkpoint info`
+
+Show details about a checkpoint.
+
+```bash
+sprite checkpoint info <id>
+```
+
+### `sprite checkpoint delete`
+
+Delete a checkpoint.
+
+```bash
+sprite checkpoint delete <id>
+```
+
+**Alias:** `sprite checkpoint rm`
+
+**Example:**
+```bash
+sprite checkpoint delete v3
+```
+
+<Callout type="info">
+This performs a soft delete. You cannot delete the currently active checkpoint.
+</Callout>
+
+### `sprite restore`
+
+Restore a sprite from a checkpoint.
+
+```bash
+sprite restore <checkpoint-id>
+```
+
+**Alias:** `sprite checkpoint restore <id>`
+
+## Networking
+
+### `sprite proxy`
+
+Forward local ports to the sprite.
+
+```bash
+sprite proxy <port1> [port2...]
+```
+
+**Examples:**
+```bash
+sprite proxy 3000
+sprite proxy 3000 8080 5432
+```
+
+### `sprite url`
+
+Show or update the sprite's URL.
+
+```bash
+sprite url [subcommand]
+```
+
+**Subcommands:**
+- `sprite url` - Show sprite URL
+- `sprite url update --auth <type>` - Update URL authentication
+
+**Auth Types:**
+- `public` - No authentication required
+- `default` - Require sprite authentication (default)
+
+**Examples:**
+```bash
+sprite url
+sprite url update --auth public
+sprite url update --auth default
+```
+
+## Sessions
+
+List active exec sessions by running `sprite exec` with no command:
+
+```bash
+sprite exec
+```
+
+## API Access
+
+### `sprite api`
+
+Make authenticated API calls.
+
+```bash
+sprite api [options] <path>
+```
+
+Uses curl with authentication headers automatically set.
+
+**Examples:**
+```bash
+sprite api /v1/sprites
+sprite api -X POST /v1/sprites -d '{"name": "test"}'
+```
+
+## Utility Commands
+
+### `sprite upgrade`
+
+Upgrade the CLI to the latest version.
+
+```bash
+sprite upgrade [options]
+```
+
+**Options:**
+- `--check` - Check for updates without installing
+
+**Examples:**
+```bash
+sprite upgrade
+sprite upgrade --check
+```
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | General error |
+| 2 | Command not found |
+| 126 | Command cannot execute |
+| 127 | Command not found (in sprite) |
+| 128+ | Command terminated by signal |
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `SPRITE_TOKEN` | API token override (legacy; falls back if no stored token) |
+| `SPRITE_URL` | Direct sprite URL (for local/dev direct connections) |
+| `SPRITES_API_URL` | API URL override (default: `https://api.sprites.dev`) |
+
+## Configuration Files
+
+### Global Config
+
+`~/.sprites/sprites.json` (managed by the CLI; format may evolve):
+```json
+{
+  "version": "1",
+  "current_selection": {
+    "url": "https://api.sprites.dev",
+    "org": "personal"
+  },
+  "urls": {
+    "https://api.sprites.dev": {
+      "url": "https://api.sprites.dev",
+      "orgs": {
+        "personal": {
+          "name": "personal",
+          "keyring_key": "sprites-cli:<user-id>",
+          "use_keyring": true,
+          "sprites": {}
+        }
+      }
+    }
+  }
+}
+```
+
+### Local Context
+
+`.sprite` (in project directory):
+```json
+{
+  "organization": "personal",
+  "sprite": "my-project-sprite"
+}
+```
+
+## Examples
+
+### Development Workflow
+
+```bash
+# Create a sprite for a project
+sprite create my-project
+sprite use my-project
+
+# Clone repo and install dependencies
+sprite exec "git clone https://github.com/user/repo.git"
+sprite exec -dir /home/sprite/repo "npm install"
+
+# Run development server
+sprite exec -detachable -dir /home/sprite/repo "npm run dev"
+
+# Forward port locally
+sprite proxy 3000
+
+# Open interactive shell
+sprite console
+```
+
+### CI/CD Usage
+
+```bash
+# Create ephemeral sprite
+sprite create "ci-${CI_JOB_ID}"
+
+# Run tests
+sprite exec -dir /home/sprite/repo "npm test"
+EXIT_CODE=$?
+
+# Cleanup
+sprite destroy "ci-${CI_JOB_ID}"
+
+exit $EXIT_CODE
+```
+
+### Checkpoint Workflow
+
+```bash
+# Set up environment
+sprite create clean-env
+sprite exec "pip install -r requirements.txt"
+
+# Save clean state
+sprite checkpoint create
+
+# Run experiments
+sprite exec "python experiment.py"
+
+# Restore to clean state
+sprite restore <checkpoint-id>
+```

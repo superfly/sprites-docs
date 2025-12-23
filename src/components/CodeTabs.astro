@@ -1,0 +1,8 @@
+---
+// CodeTabs needs client-side rendering for tab state
+// We export both the wrapper and Snippet for use in MDX
+import { CodeTabs as CodeTabsReact } from './react/CodeTabs';
+export { Snippet } from './react/CodeTabs';
+---
+
+<CodeTabsReact client:only="react"><slot /></CodeTabsReact>

@@ -1,0 +1,536 @@
+---
+title: Go SDK
+description: Use Sprites programmatically with the Go SDK
+---
+
+The Sprites Go SDK provides an idiomatic Go interface for managing Sprites programmatically. The SDK mirrors the `os/exec` package API, making it a near drop-in replacement for local command execution.
+
+## Installation
+
+```bash
+go get github.com/superfly/sprites-go
+```
+
+**Requirements:**
+- Go 1.24 or later
+
+## Quick Start
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+
+    sprites "github.com/superfly/sprites-go"
+)
+
+func main() {
+    ctx := context.Background()
+    client := sprites.New(os.Getenv("SPRITE_TOKEN"))
+
+    // Create a sprite
+    sprite, _ := client.CreateSprite(ctx, "my-sprite", nil)
+
+    // Execute a command
+    cmd := sprite.Command("echo", "Hello, Sprites!")
+    output, _ := cmd.Output()
+    fmt.Println(string(output))
+
+    // Clean up
+    client.DeleteSprite(ctx, "my-sprite")
+}
+```
+
+## Authentication
+
+Create a token at [sprites.dev/account](https://sprites.dev/account), or use the CLI (`sprite org auth`).
+
+### Using Environment Variables
+
+```go
+client := sprites.New(os.Getenv("SPRITE_TOKEN"))
+```
+
+### With Options
+
+```go
+client := sprites.New(token,
+    sprites.WithBaseURL("https://api.sprites.dev"),
+    sprites.WithHTTPClient(&http.Client{Timeout: 30 * time.Second}),
+)
+```
+
+### Generating Tokens
+
+Generate a Sprites token from Fly.io credentials:
+
+```go
+token, err := sprites.CreateToken(ctx,
+    "FlyV1 <macaroon-token>", // Fly.io macaroon
+    "personal",               // Organization slug
+    "",                       // Optional invite code
+    "https://api.sprites.dev", // Optional API URL
+)
+```
+
+## Sprite Management
+
+### Creating Sprites
+
+```go
+// Simple creation
+sprite, err := client.CreateSprite(ctx, "my-sprite", nil)
+
+// With configuration
+sprite, err := client.CreateSprite(ctx, "my-sprite", &sprites.SpriteConfig{
+    CPUs:      2,
+    RamMB:     8192,
+    StorageGB: 200,
+    Region:    "ord",
+})
+// Note: config fields are accepted but currently ignored by the API.
+```
+
+### Getting Sprites
+
+```go
+// Get sprite handle (doesn't verify existence)
+sprite := client.Sprite("my-sprite")
+
+// Get sprite and verify it exists
+sprite, err := client.GetSprite(ctx, "my-sprite")
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(sprite.URL)
+```
+
+Note: The API currently returns only `id`, `name`, `organization`, `url`, `url_settings`, `created_at`, and `updated_at`. Other `SpriteInfo` fields may be empty.
+
+### Listing Sprites
+
+```go
+// List all sprites (auto-pagination)
+sprites, err := client.ListAllSprites(ctx, "")
+
+// List with prefix filter
+devSprites, err := client.ListAllSprites(ctx, "dev-")
+
+// Manual pagination
+page, err := client.ListSprites(ctx, &sprites.ListOptions{
+    MaxResults: 50,
+})
+for _, s := range page.Sprites {
+    fmt.Println(s.Name)
+}
+
+if page.HasMore {
+    nextPage, err := client.ListSprites(ctx, &sprites.ListOptions{
+        ContinuationToken: page.NextContinuationToken,
+    })
+}
+```
+
+### Deleting Sprites
+
+```go
+err := client.DeleteSprite(ctx, "my-sprite")
+```
+
+### Upgrading Sprites
+
+```go
+err := client.UpgradeSprite(ctx, "my-sprite")
+```
+
+## Command Execution
+
+The SDK mirrors the `os/exec` package API:
+
+### Basic Execution
+
+```go
+// Run and wait
+cmd := sprite.Command("echo", "hello")
+err := cmd.Run()
+
+// Get output
+cmd := sprite.Command("ls", "-la")
+output, err := cmd.Output()
+fmt.Println(string(output))
+
+// Get combined output (stdout + stderr)
+output, err := cmd.CombinedOutput()
+```
+
+### With Context
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+defer cancel()
+
+cmd := sprite.CommandContext(ctx, "long-running-task")
+err := cmd.Run()
+if ctx.Err() == context.DeadlineExceeded {
+    fmt.Println("Command timed out")
+}
+```
+
+### Environment and Working Directory
+
+```go
+cmd := sprite.Command("npm", "test")
+cmd.Dir = "/home/sprite/project"
+cmd.Env = []string{
+    "NODE_ENV=test",
+    "CI=true",
+}
+output, err := cmd.Output()
+```
+
+### I/O Pipes
+
+```go
+cmd := sprite.Command("cat")
+
+// Get pipes before starting
+stdin, _ := cmd.StdinPipe()
+stdout, _ := cmd.StdoutPipe()
+
+cmd.Start()
+
+// Write to stdin
+io.WriteString(stdin, "Hello from stdin!")
+stdin.Close()
+
+// Read from stdout
+output, _ := io.ReadAll(stdout)
+fmt.Println(string(output))
+
+cmd.Wait()
+```
+
+### Streaming Output
+
+```go
+cmd := sprite.Command("npm", "run", "dev")
+stdout, _ := cmd.StdoutPipe()
+stderr, _ := cmd.StderrPipe()
+
+cmd.Start()
+
+// Stream stdout
+go io.Copy(os.Stdout, stdout)
+go io.Copy(os.Stderr, stderr)
+
+cmd.Wait()
+```
+
+## TTY Mode
+
+For interactive applications:
+
+```go
+cmd := sprite.Command("bash")
+cmd.SetTTY(true)
+cmd.SetTTYSize(24, 80)
+
+cmd.Stdin = os.Stdin
+cmd.Stdout = os.Stdout
+cmd.Stderr = os.Stderr
+
+cmd.Start()
+
+// Resize later (e.g., on terminal resize)
+cmd.Resize(30, 100)
+
+cmd.Wait()
+```
+
+## Detachable Sessions
+
+Create sessions that persist after disconnecting:
+
+```go
+// Start a command that will run in a session
+cmd := sprite.CreateDetachableSession("npm", "run", "dev")
+cmd.Stdout = os.Stdout
+cmd.Start()
+
+// List sessions to get the session ID
+sessions, _ := client.ListSessions(ctx, "my-sprite")
+sessionID := sessions[0].ID
+fmt.Printf("Session ID: %s\n", sessionID)
+
+// Disconnect (session keeps running)
+
+// Later, attach to the session
+cmd = sprite.AttachSessionContext(ctx, sessionID)
+cmd.Stdout = os.Stdout
+cmd.Run()
+```
+
+### Listing Sessions
+
+```go
+sessions, err := client.ListSessions(ctx, "my-sprite")
+for _, session := range sessions {
+    fmt.Printf("%s: %s\n", session.ID, session.Command)
+}
+```
+
+## Port Forwarding
+
+Forward local ports to your Sprite:
+
+```go
+// Single port
+session, err := client.ProxyPort(ctx, "my-sprite", 3000, 3000)
+defer session.Close()
+// localhost:3000 now forwards to sprite:3000
+
+// Multiple ports
+sessions, err := client.ProxyPorts(ctx, "my-sprite", []sprites.PortMapping{
+    {LocalPort: 3000, RemotePort: 3000},
+    {LocalPort: 8080, RemotePort: 80},
+})
+defer func() {
+    for _, s := range sessions {
+        s.Close()
+    }
+}()
+
+// With specific remote host
+sessions, err := client.ProxyPorts(ctx, "my-sprite", []sprites.PortMapping{
+    {LocalPort: 5432, RemotePort: 5432, RemoteHost: "10.0.0.1"},
+})
+```
+
+## Port Notifications
+
+Get notified when ports open in the Sprite:
+
+```go
+cmd := sprite.Command("npm", "run", "dev")
+cmd.TextMessageHandler = func(data []byte) {
+    var notification sprites.PortNotificationMessage
+    if err := json.Unmarshal(data, &notification); err != nil {
+        return
+    }
+
+    switch notification.Type {
+    case "port_opened":
+        fmt.Printf("Port %d opened on %s by PID %d\n", notification.Port, notification.Address, notification.PID)
+        // Could auto-forward port, open browser, etc.
+    case "port_closed":
+        fmt.Printf("Port %d closed\n", notification.Port)
+    }
+}
+cmd.Run()
+```
+
+## Error Handling
+
+```go
+cmd := sprite.Command("bash", "-lc", "exit 1")
+err := cmd.Run()
+
+if err != nil {
+    if exitErr, ok := err.(*sprites.ExitError); ok {
+        fmt.Printf("Exit code: %d\n", exitErr.ExitCode())
+    } else {
+        // Network or other error
+        log.Fatal(err)
+    }
+}
+```
+
+> **Note:** To capture stderr output, use `cmd.CombinedOutput()` or set `cmd.Stderr` to a buffer before running.
+
+## Cmd API Reference
+
+The `Cmd` struct mirrors `exec.Cmd`:
+
+### Fields
+
+```go
+type Cmd struct {
+    Dir    string            // Working directory
+    Env    []string          // Environment variables
+    Stdin  io.Reader         // Standard input
+    Stdout io.Writer         // Standard output
+    Stderr io.Writer         // Standard error
+}
+```
+
+### Methods
+
+```go
+// Execution
+func (c *Cmd) Run() error
+func (c *Cmd) Start() error
+func (c *Cmd) Wait() error
+func (c *Cmd) Output() ([]byte, error)
+func (c *Cmd) CombinedOutput() ([]byte, error)
+
+// Pipes
+func (c *Cmd) StdinPipe() (io.WriteCloser, error)
+func (c *Cmd) StdoutPipe() (io.ReadCloser, error)
+func (c *Cmd) StderrPipe() (io.ReadCloser, error)
+
+// TTY
+func (c *Cmd) SetTTY(enabled bool)
+func (c *Cmd) SetTTYSize(rows, cols uint16)
+func (c *Cmd) Resize(rows, cols uint16) error
+```
+
+## Type Reference
+
+```go
+// Client configuration
+type Option func(*Client)
+func WithBaseURL(url string) Option
+func WithHTTPClient(client *http.Client) Option
+
+// Sprite configuration
+type SpriteConfig struct {
+    CPUs      int
+    RamMB     int
+    StorageGB int
+    Region    string
+}
+
+// URL settings
+type URLSettings struct {
+    Auth string
+}
+
+// Sprite information
+type SpriteInfo struct {
+    ID        string
+    Name      string
+    Organization string
+    URL       string
+    URLSettings *URLSettings
+    Status    string
+    Config    *SpriteConfig
+    Environment map[string]string
+    CreatedAt time.Time
+    UpdatedAt time.Time
+    BucketName string
+    PrimaryRegion string
+}
+
+// List options
+type ListOptions struct {
+    Prefix            string
+    MaxResults        int
+    ContinuationToken string
+}
+
+// Port mapping
+type PortMapping struct {
+    LocalPort  int
+    RemotePort int
+    RemoteHost string
+}
+
+// Port notification
+type PortNotificationMessage struct {
+    Type string // "port_opened" or "port_closed"
+    Port int
+    Address string
+    PID  int
+}
+
+// Session
+type Session struct {
+    ID      string
+    Command string
+    Workdir string
+    Created time.Time
+    BytesPerSecond float64
+    IsActive bool
+    LastActivity *time.Time
+}
+
+// Errors
+type ExitError struct {
+    Code int
+}
+func (e *ExitError) ExitCode() int
+func (e *ExitError) Error() string
+```
+
+## Complete Example
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "io"
+    "log"
+    "os"
+    "time"
+
+    sprites "github.com/superfly/sprites-go"
+)
+
+func main() {
+    ctx := context.Background()
+    client := sprites.New(os.Getenv("SPRITE_TOKEN"))
+
+    sprite, err := client.CreateSprite(ctx, "ci-runner", nil)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer client.DeleteSprite(ctx, "ci-runner")
+
+    // Clone repository
+    cloneCmd := sprite.Command("git", "clone",
+        "https://github.com/user/repo.git", "/home/sprite/repo")
+    if err := cloneCmd.Run(); err != nil {
+        log.Fatal(err)
+    }
+
+    // Install dependencies
+    installCmd := sprite.Command("npm", "install")
+    installCmd.Dir = "/home/sprite/repo"
+    if err := installCmd.Run(); err != nil {
+        log.Fatal(err)
+    }
+
+    // Run tests with streaming output
+    testCmd := sprite.Command("npm", "test")
+    testCmd.Dir = "/home/sprite/repo"
+
+    stdout, _ := testCmd.StdoutPipe()
+    stderr, _ := testCmd.StderrPipe()
+
+    testCmd.Start()
+
+    go io.Copy(os.Stdout, stdout)
+    go io.Copy(os.Stderr, stderr)
+
+    if err := testCmd.Wait(); err != nil {
+        if exitErr, ok := err.(*sprites.ExitError); ok {
+            fmt.Printf("Tests failed with exit code %d\n", exitErr.ExitCode())
+            os.Exit(exitErr.ExitCode())
+        }
+        log.Fatal(err)
+    }
+
+    fmt.Println("Tests passed!")
+}
+```
+
+## Related Documentation
+
+- [Sprites Guide](/sprites) - Comprehensive guide
+- [JavaScript SDK](/sdks/javascript) - JavaScript SDK reference
+- [REST API](/api/rest) - HTTP API reference
