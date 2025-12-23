@@ -19,8 +19,37 @@ import Default from '@astrojs/starlight/components/Header.astro';
     }
   }
 
+  function applyGlassmorphism() {
+    const header = document.querySelector('header.header') as HTMLElement;
+    if (header) {
+      const isDark = document.documentElement.dataset.theme !== 'light';
+      header.style.backdropFilter = 'blur(10px) saturate(180%)';
+      header.style.setProperty('-webkit-backdrop-filter', 'blur(10px) saturate(180%)');
+      header.style.background = isDark
+        ? 'rgba(12, 10, 9, 0.7)'
+        : 'rgba(255, 255, 255, 0.7)';
+      header.style.borderBottom = isDark
+        ? '1px solid rgba(255, 255, 255, 0.1)'
+        : '1px solid rgba(0, 0, 0, 0.1)';
+    }
+  }
+
+  // Watch for theme changes
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === 'data-theme') {
+        applyGlassmorphism();
+      }
+    });
+  });
+  observer.observe(document.documentElement, { attributes: true });
+
   addDashboardLink();
-  document.addEventListener('astro:page-load', addDashboardLink);
+  applyGlassmorphism();
+  document.addEventListener('astro:page-load', () => {
+    addDashboardLink();
+    applyGlassmorphism();
+  });
 </script>
 
 <style is:global>

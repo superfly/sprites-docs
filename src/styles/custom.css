@@ -313,29 +313,7 @@ pre[data-bash-prompt] > code {
 }
 
 header.header {
-  /* Fallback for browsers without backdrop-filter */
-  background: oklch(0.18 0.005 49.25) !important;
   border-bottom-color: var(--sl-color-hairline);
-}
-
-@supports (backdrop-filter: blur(1px)) {
-  header.header {
-    background: oklch(0.147 0.004 49.25 / 70%) !important;
-    backdrop-filter: blur(10px) saturate(180%);
-    -webkit-backdrop-filter: blur(10px) saturate(180%);
-    border-bottom: 1px solid oklch(1 0 0 / 10%);
-  }
-}
-
-[data-theme='light'] header.header {
-  background: oklch(1 0 0) !important;
-}
-
-@supports (backdrop-filter: blur(1px)) {
-  [data-theme='light'] header.header {
-    background: oklch(1 0 0 / 70%) !important;
-    border-bottom: 1px solid oklch(0 0 0 / 10%);
-  }
 }
 
 /* Table styling */
