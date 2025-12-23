@@ -1,0 +1,271 @@
+---
+title: Configuration Reference
+description: All configuration options for Sprites
+---
+
+This page documents all configuration options available for Sprites, including resource allocation, environment settings, and client configuration.
+
+## Sprite Configuration
+
+### Resource Options
+
+Sprites currently use a fixed resource configuration set by the service:
+
+| Resource | Value |
+|----------|-------|
+| CPUs | 8 vCPUs |
+| RAM | 8192 MB |
+| Storage | 100 GB |
+
+The region is chosen by the API based on its deployment region (`FLY_REGION`), with a fallback of `iad`.
+These values are not configurable via the CLI/SDK/API yet. (SDK config fields are accepted but ignored by the API.)
+
+## URL Settings
+
+Configure HTTP access to your Sprite:
+
+| Option | Values | Default | Description |
+|--------|--------|---------|-------------|
+| `auth` | `sprite`, `public` | `sprite` | Authentication requirement |
+
+```bash
+# Make URL public
+sprite url update --auth public
+
+# Require authentication
+sprite url update --auth default
+```
+
+For the REST API and Go SDK, use `sprite` or `public` for `url_settings.auth`.
+
+## Environment Variables
+
+### CLI Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SPRITE_TOKEN` | API token override (env fallback) | - |
+| `SPRITE_URL` | Direct sprite URL (for local/dev direct connections) | - |
+| `SPRITES_API_URL` | API endpoint | `https://api.sprites.dev` |
+
+### SDK Environment Variables
+
+SDKs do not read environment variables automatically. Pass values explicitly (commonly from env vars):
+
+```bash
+export SPRITE_TOKEN="spr_xxxxxxxxxxxxx"
+```
+
+## Client Configuration
+
+### JavaScript SDK
+
+```typescript
+interface ClientOptions {
+  baseURL?: string;   // API endpoint (default: https://api.sprites.dev)
+  timeout?: number;   // Request timeout in ms
+}
+
+const client = new SpritesClient(token, {
+  baseURL: 'https://api.sprites.dev',
+  timeout: 30000,
+});
+```
+
+### Go SDK
+
+```go
+// Configure with options
+client := sprites.New(token,
+    sprites.WithBaseURL("https://api.sprites.dev"),
+    sprites.WithHTTPClient(&http.Client{
+        Timeout: 30 * time.Second,
+    }),
+)
+```
+
+## CLI Configuration Files
+
+### Global Configuration
+
+Location: `~/.sprites/sprites.json` (current) and `~/.sprites/config.json` (legacy compatibility)
+
+```json
+{
+  "version": "1",
+  "current_selection": {
+    "url": "https://api.sprites.dev",
+    "org": "personal"
+  },
+  "urls": {
+    "https://api.sprites.dev": {
+      "url": "https://api.sprites.dev",
+      "orgs": {
+        "personal": {
+          "name": "personal",
+          "keyring_key": "sprites-cli:<user-id>",
+          "use_keyring": true,
+          "sprites": {}
+        },
+        "team": {
+          "name": "team",
+          "keyring_key": "sprites-cli:<user-id>",
+          "use_keyring": true,
+          "sprites": {}
+        }
+      }
+    }
+  }
+}
+```
+
+### Local Context
+
+Location: `.sprite` in project directory
+
+```json
+{
+  "organization": "team",
+  "sprite": "project-dev"
+}
+```
+
+This file is automatically created by `sprite use` and should be added to `.gitignore`.
+
+## Command Execution Options
+
+### SpawnOptions
+
+Available for all execution methods:
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `cwd` | string | Working directory |
+| `env` | object / []string | Environment variables (JS object or Go `[]string`) |
+| `tty` | boolean | Enable pseudo-terminal |
+| `rows` | number | TTY rows (default: 24) |
+| `cols` | number | TTY columns (default: 80) |
+| `detachable` | boolean | Create detachable session |
+| `sessionId` | string | Attach to existing session |
+| `controlMode` | boolean | Enable control messages (requires detachable/sessionId) |
+
+### CLI Exec Options
+
+```bash
+sprite exec [options] [command]
+
+Options:
+  -dir <path>       Working directory
+  -env <KEY=VALUE,KEY2=VALUE2>  Environment variables (comma-separated)
+  -tty              Allocate pseudo-terminal
+  -id <session-id>  Attach to session
+  -detachable       Create detachable session
+```
+
+## Pre-installed Tools
+
+The default Sprite environment includes:
+
+### Languages & Runtimes
+
+| Tool | Version |
+|------|---------|
+| Node.js | 22.20.0 |
+| Python | 3.13.7 |
+| Go | 1.25.1 |
+| Ruby | 3.4.6 |
+| Rust | 1.90.0 |
+| Elixir | 1.18.4 |
+| Erlang | 28.1 |
+| Java | 25 (Temurin) |
+| Bun | latest |
+| Deno | latest |
+
+### AI Tools
+
+| Tool | Description |
+|------|-------------|
+| Claude CLI | Anthropic's Claude |
+| Gemini CLI | Google's Gemini |
+| OpenAI Codex | OpenAI's Codex CLI |
+| Cursor | Cursor CLI |
+
+### System Tools
+
+| Tool | Description |
+|------|-------------|
+| Git | Version control |
+| curl | HTTP client |
+| wget | File download |
+| vim | Text editor |
+| nano | Text editor |
+| htop | Process viewer |
+| tmux | Terminal multiplexer |
+| jq | JSON processor |
+
+### Package Managers
+
+| Manager | For |
+|---------|-----|
+| apt | System packages |
+| npm | Node.js |
+| pip | Python |
+| cargo | Rust |
+| go get | Go |
+| gem | Ruby |
+| mix | Elixir |
+
+## Network Configuration
+
+### Default Ports
+
+No default ports are exposed. Start services on any port and access via:
+
+1. **Sprite URL** - `https://sprite-name.sprites.dev:PORT`
+2. **Port forwarding** - `sprite proxy PORT`
+
+### Network Access
+
+- **Outbound**: Full access to internet
+- **Inbound**: Via URL or port forwarding only
+- **DNS**: Standard resolution
+
+## Storage Configuration
+
+### Filesystem
+
+| Property | Value |
+|----------|-------|
+| Type | ext4 |
+| Provisioned size | 100 GB (current default) |
+| Persistence | Full |
+| Location | `/` (entire filesystem) |
+
+### Special Directories
+
+| Directory | Description |
+|-----------|-------------|
+| `/home/sprite` | User home directory |
+| `/tmp` | Temporary files (not persisted on restart) |
+
+## Timeout Configuration
+
+### Hibernation Timeout
+
+Sprites currently hibernate after **30 seconds** of inactivity. This timeout is not configurable via the CLI/SDK/API yet.
+
+### Execution Timeout
+
+For Go, use context cancellation:
+
+```go
+ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+defer cancel()
+cmd := sprite.CommandContext(ctx, "long-command")
+```
+
+## Related Documentation
+
+- [Lifecycle](/concepts/lifecycle) - Hibernation and persistence
+- [Billing](/reference/billing) - Pricing details
+- [CLI Commands](/cli/commands) - Full CLI reference

@@ -1,0 +1,243 @@
+---
+title: CLI Authentication
+description: Authenticate the Sprites CLI with your Fly.io account
+---
+
+Sprites uses your Fly.io account for authentication. This guide covers setting up authentication and managing API tokens.
+
+## Quick Setup
+
+The simplest way to authenticate:
+
+```bash
+sprite org auth
+```
+
+This opens a browser window to authenticate with Fly.io. Once complete, you're ready to use Sprites.
+
+## Authentication Flow
+
+### 1. Authenticate with Fly.io
+
+If you're already logged into `flyctl`, the Sprites CLI can use your existing session:
+
+```bash
+sprite org auth
+```
+
+If you're not logged in or encounter issues:
+
+```bash
+# First, ensure you're logged into fly
+fly auth logout
+fly auth login
+
+# Verify your flyctl session works
+fly apps list
+
+# Then authenticate with Sprites
+sprite org auth
+```
+
+### 2. Select an Organization
+
+If you belong to multiple Fly.io organizations, select one:
+
+```bash
+sprite org list
+```
+
+Output:
+```
+Organizations:
+  personal (current)
+  my-team
+  another-org
+```
+
+To switch organizations:
+
+```bash
+sprite org auth --org my-team
+```
+
+## Token Management
+
+You can also create and manage tokens at [sprites.dev/account](https://sprites.dev/account).
+
+### Viewing Your Token
+
+Your Sprites API token is stored securely. To view it:
+
+```bash
+# If using keyring storage, disable it first
+sprite org keyring disable
+
+# Then check the config file
+cat ~/.sprites/sprites.json
+```
+
+The token is used for API and SDK authentication.
+
+### Token Storage
+
+By default, tokens are stored in your system keyring for security. You can switch to file-based storage:
+
+```bash
+# Disable keyring (stores token in config file)
+sprite org keyring disable
+
+# Re-enable keyring storage
+sprite org keyring enable
+```
+
+### Config File Structure
+
+When using file-based storage, `~/.sprites/sprites.json` contains:
+
+```json
+{
+  "version": "1",
+  "current_selection": {
+    "url": "https://api.sprites.dev",
+    "org": "personal"
+  },
+  "urls": {
+    "https://api.sprites.dev": {
+      "url": "https://api.sprites.dev",
+      "orgs": {
+        "personal": {
+          "name": "personal",
+          "keyring_key": "sprites-cli:<user-id>",
+          "use_keyring": true,
+          "sprites": {}
+        }
+      }
+    }
+  }
+}
+```
+
+## Multiple Organizations
+
+### Adding Organizations
+
+Add tokens for multiple organizations:
+
+```bash
+# Add another organization
+sprite org auth --org my-team
+```
+
+### Switching Organizations
+
+```bash
+# List organizations
+sprite org list
+
+# Use a specific org for a command
+sprite -o my-team list
+
+# Set default organization
+sprite org auth --org my-team
+```
+
+### Per-Directory Organization
+
+Use different organizations in different directories:
+
+```bash
+cd ~/projects/team-project
+sprite use --org my-team my-sprite
+
+cd ~/projects/personal
+sprite use --org personal my-personal-sprite
+```
+
+The organization is saved in the local `.sprite` file.
+
+## Logging Out
+
+### Remove a Single Organization
+
+```bash
+sprite org logout --org my-team
+```
+
+### Remove All Credentials
+
+```bash
+sprite logout
+```
+
+This removes all stored tokens and configuration.
+
+## Environment Variables
+
+For CI/CD or automated environments, you can use environment variables:
+
+```bash
+export SPRITE_TOKEN="spr_xxxxxxxxxxxxx"
+export SPRITES_API_URL="https://api.sprites.dev"  # Optional, uses default
+```
+
+`SPRITE_TOKEN` is used as a fallback when no stored token is available.
+
+## Troubleshooting
+
+### "Not authenticated" Error
+
+```bash
+# Re-authenticate
+sprite org auth
+
+# If that fails, reset and try again
+fly auth logout
+fly auth login
+sprite org auth
+```
+
+### Token Not Found
+
+If the CLI can't find your token:
+
+```bash
+# Check if using keyring
+sprite org keyring disable
+
+# Verify token exists
+cat ~/.sprites/sprites.json | grep api_token
+
+# Re-authenticate if needed
+sprite org auth
+```
+
+### Browser Doesn't Open
+
+If the authentication browser doesn't open automatically:
+
+1. Look for the URL printed in the terminal
+2. Copy and paste it into your browser
+3. Complete authentication
+4. Return to the terminal
+
+### Permission Errors
+
+If you get permission errors after authentication:
+
+1. Verify your Fly.io account has access to the organization
+2. Check that your `flyctl` session is valid: `fly apps list`
+3. Try re-authenticating: `sprite org auth`
+
+## Security Best Practices
+
+1. **Use keyring storage** (default) for interactive use
+2. **Use environment variables** for CI/CD pipelines
+3. **Never commit** `.sprites/` or `.sprite` files to version control
+4. **Rotate tokens** periodically by re-authenticating
+5. **Use organization-specific tokens** rather than personal tokens in shared environments
+
+## Next Steps
+
+- [Commands Reference](/cli/commands) - Full CLI documentation
+- [Quickstart](/quickstart) - Create your first Sprite

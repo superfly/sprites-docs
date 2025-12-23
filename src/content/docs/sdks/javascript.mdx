@@ -1,0 +1,414 @@
+---
+title: JavaScript SDK
+description: Use Sprites programmatically with the JavaScript/TypeScript SDK
+---
+
+The Sprites JavaScript SDK (`@fly/sprites`) provides a Node.js interface for managing Sprites programmatically. The SDK mirrors the Node.js `child_process` API, making it familiar and easy to use.
+
+## Installation
+
+```bash
+npm install @fly/sprites
+```
+
+**Requirements:**
+- Node.js 24.0.0 or later
+- No external dependencies (uses Node.js stdlib only)
+
+## Quick Start
+
+```javascript
+import { SpritesClient } from '@fly/sprites';
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+
+// Create a sprite
+const sprite = await client.createSprite('my-sprite');
+
+// Execute a command
+const result = await sprite.execFile('echo', ['Hello, Sprites!']);
+console.log(result.stdout);
+
+// Clean up
+await sprite.delete();
+```
+
+## Authentication
+
+Create a token at [sprites.dev/account](https://sprites.dev/account), or use the CLI (`sprite org auth`).
+
+### Using Environment Variables
+
+```javascript
+// Uses SPRITE_TOKEN environment variable
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+```
+
+### With Options
+
+```javascript
+const client = new SpritesClient(token, {
+  baseURL: 'https://api.sprites.dev', // Optional, uses default
+  timeout: 30000, // Request timeout in ms
+});
+```
+
+### Generating Tokens
+
+Generate a Sprites token from Fly.io credentials:
+
+```javascript
+const token = await SpritesClient.createToken(
+  'FlyV1 <macaroon-token>', // Fly.io macaroon
+  'personal',               // Organization slug
+  'optional-invite-code'    // Optional
+);
+```
+
+## Sprite Management
+
+### Creating Sprites
+
+```javascript
+// Simple creation
+const sprite = await client.createSprite('my-sprite');
+
+// With configuration
+const sprite = await client.createSprite('my-sprite', {
+  cpus: 2,
+  ramMB: 8192,
+  storageGB: 200,
+  region: 'ord',
+});
+// Note: config fields are accepted but currently ignored by the API.
+```
+
+### Getting Sprites
+
+```javascript
+// Get sprite handle (doesn't verify existence)
+const sprite = client.sprite('my-sprite');
+
+// Get sprite and verify it exists
+const sprite = await client.getSprite('my-sprite');
+console.log(sprite.url);
+```
+
+Note: The API currently returns only `id`, `name`, `organization`, `url`, `url_settings`, `created_at`, and `updated_at`. Other `SpriteInfo` fields may be undefined.
+
+### Listing Sprites
+
+```javascript
+// List all sprites (auto-pagination)
+const sprites = await client.listAllSprites();
+
+// List with prefix filter
+const devSprites = await client.listAllSprites('dev-');
+
+// Manual pagination
+const page = await client.listSprites({ maxResults: 50 });
+for (const sprite of page.sprites) {
+  console.log(sprite.name);
+}
+
+if (page.hasMore) {
+  const nextPage = await client.listSprites({
+    continuationToken: page.nextContinuationToken,
+  });
+}
+```
+
+### Deleting Sprites
+
+```javascript
+await sprite.delete();
+// or
+await client.deleteSprite('my-sprite');
+```
+
+### Upgrading Sprites
+
+```javascript
+await sprite.upgrade();
+// or
+await client.upgradeSprite('my-sprite');
+```
+
+## Command Execution
+
+The SDK provides three methods for executing commands, mirroring Node.js `child_process`:
+
+### `spawn()` - Event-based Streaming
+
+Returns a `SpriteCommand` that emits events. Best for long-running commands or when you need to stream output.
+
+```javascript
+const cmd = sprite.spawn('npm', ['run', 'dev']);
+
+cmd.stdout.on('data', (chunk) => {
+  process.stdout.write(chunk);
+});
+
+cmd.stderr.on('data', (chunk) => {
+  process.stderr.write(chunk);
+});
+
+cmd.on('exit', (code) => {
+  console.log(`Exited with code ${code}`);
+});
+
+// Wait for completion
+const exitCode = await cmd.wait();
+```
+
+### `exec()` - Promise-based (Direct)
+
+Runs a command by splitting on whitespace (no shell). Best for simple commands without shell features.
+
+```javascript
+const { stdout, stderr, exitCode } = await sprite.exec('ls -la');
+console.log(stdout);
+```
+
+With options:
+
+```javascript
+const result = await sprite.exec('npm test', {
+  cwd: '/home/sprite/project',
+  env: { NODE_ENV: 'test' },
+  maxBuffer: 1024 * 1024, // 1MB
+});
+```
+
+### `execFile()` - Promise-based (Direct)
+
+Executes a file directly without a shell. Use this for specific executables or when you need shell features via `bash -lc`.
+
+```javascript
+const result = await sprite.execFile('node', ['script.js', '--flag']);
+console.log(result.stdout);
+
+// Shell features via bash
+const result2 = await sprite.execFile('bash', ['-lc', 'ls -la && echo done']);
+```
+
+## Options
+
+### SpawnOptions
+
+Available for `spawn()`, `exec()`, and `execFile()`:
+
+```typescript
+interface SpawnOptions {
+  cwd?: string;           // Working directory
+  env?: Record<string, string>;  // Environment variables
+  tty?: boolean;          // Enable TTY mode
+  rows?: number;          // TTY rows (default: 24)
+  cols?: number;          // TTY columns (default: 80)
+  detachable?: boolean;   // Create detachable session
+  sessionId?: string;     // Attach to existing session
+  controlMode?: boolean;  // Enable control mode
+}
+```
+
+### ExecOptions
+
+Additional options for `exec()` and `execFile()`:
+
+```typescript
+interface ExecOptions extends SpawnOptions {
+  maxBuffer?: number;     // Max stdout/stderr buffer size
+  encoding?: string;      // Output encoding (default: 'utf8')
+}
+```
+
+## TTY Mode
+
+For interactive applications:
+
+```javascript
+const cmd = sprite.spawn('bash', [], {
+  tty: true,
+  rows: 24,
+  cols: 80,
+});
+
+// Connect to terminal
+process.stdin.pipe(cmd.stdin);
+cmd.stdout.pipe(process.stdout);
+
+// Handle resize
+process.stdout.on('resize', () => {
+  cmd.resize(process.stdout.columns, process.stdout.rows);
+});
+
+await cmd.wait();
+```
+
+## Detachable Sessions
+
+Create sessions that persist after disconnecting:
+
+```javascript
+// Create a detachable session
+const sessionCmd = sprite.createSession('npm', ['run', 'dev']);
+let sessionId;
+
+sessionCmd.on('message', (msg) => {
+  if (msg && msg.type === 'session_info') {
+    sessionId = msg.session_id;
+    console.log(`Session ID: ${sessionId}`);
+  }
+});
+
+// Disconnect (session keeps running)
+
+// Later, attach to the session
+const cmd = sprite.attachSession(sessionId);
+cmd.stdout.pipe(process.stdout);
+await cmd.wait();
+```
+
+### Listing Sessions
+
+```javascript
+const sessions = await sprite.listSessions();
+for (const session of sessions) {
+  console.log(`${session.id}: ${session.command}`);
+}
+```
+
+## Port Notifications
+
+Get notified when ports open in the Sprite:
+
+```javascript
+const cmd = sprite.spawn('npm', ['run', 'dev']);
+
+cmd.on('message', (msg) => {
+  if (msg.type === 'port_opened') {
+    console.log(`Port ${msg.port} opened on ${msg.address} by PID ${msg.pid}`);
+    // Could auto-open browser, set up proxy, etc.
+  } else if (msg.type === 'port_closed') {
+    console.log(`Port ${msg.port} closed on ${msg.address}`);
+  }
+});
+
+await cmd.wait();
+```
+
+## Error Handling
+
+```javascript
+import { ExecError } from '@fly/sprites';
+
+try {
+  await sprite.execFile('bash', ['-lc', 'exit 1']);
+} catch (error) {
+  if (error instanceof ExecError) {
+    console.log('Exit code:', error.exitCode);
+    console.log('Stdout:', error.stdout);
+    console.log('Stderr:', error.stderr);
+  } else {
+    // Network or other error
+    throw error;
+  }
+}
+```
+
+## SpriteCommand API
+
+The `SpriteCommand` class (returned by `spawn()`) provides:
+
+### Properties
+
+```typescript
+cmd.stdin   // Writable stream
+cmd.stdout  // Readable stream
+cmd.stderr  // Readable stream
+```
+
+### Methods
+
+```typescript
+await cmd.wait()           // Wait for exit, returns exit code
+cmd.kill(signal?: string)  // Kill the command
+cmd.resize(cols, rows)     // Resize TTY
+cmd.exitCode()             // Get exit code (after exit)
+```
+
+### Events
+
+```typescript
+cmd.on('exit', (code) => {})    // Command exited
+cmd.on('error', (err) => {})    // Error occurred
+cmd.on('message', (msg) => {})  // Text message (port notifications, session_info)
+```
+
+## TypeScript Support
+
+The SDK is written in TypeScript and includes full type definitions:
+
+```typescript
+import {
+  SpritesClient,
+  Sprite,
+  SpriteCommand,
+  SpriteConfig,
+  SpriteInfo,
+  SpawnOptions,
+  ExecOptions,
+  ExecResult,
+  ExecError,
+  Session,
+  PortNotification,
+} from '@fly/sprites';
+```
+
+## Complete Example
+
+```javascript
+import { SpritesClient, ExecError } from '@fly/sprites';
+
+async function main() {
+  const client = new SpritesClient(process.env.SPRITE_TOKEN);
+
+  const sprite = await client.createSprite('ci-runner');
+
+  try {
+    // Clone repository
+    await sprite.execFile('git', ['clone', 'https://github.com/user/repo.git', '/home/sprite/repo']);
+
+    // Install dependencies
+    await sprite.execFile('npm', ['install'], { cwd: '/home/sprite/repo' });
+
+    // Run tests with streaming output
+    const cmd = sprite.spawn('npm', ['test'], { cwd: '/home/sprite/repo' });
+
+    cmd.stdout.on('data', (chunk) => process.stdout.write(chunk));
+    cmd.stderr.on('data', (chunk) => process.stderr.write(chunk));
+
+    const exitCode = await cmd.wait();
+    console.log(`Tests completed with exit code ${exitCode}`);
+
+  } catch (error) {
+    if (error instanceof ExecError) {
+      console.error(`Command failed: ${error.stderr}`);
+      process.exit(error.exitCode);
+    }
+    throw error;
+
+  } finally {
+    // Always clean up
+    await sprite.delete();
+  }
+}
+
+main();
+```
+
+## Related Documentation
+
+- [Sprites Guide](/sprites) - Comprehensive guide
+- [Go SDK](/sdks/go) - Go SDK reference
+- [REST API](/api/rest) - HTTP API reference

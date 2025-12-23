@@ -1,0 +1,384 @@
+---
+title: Base Images
+description: Pre-configured development environments for Sprites
+---
+
+Sprites run on pre-configured base images that include common development tools, language runtimes, and AI coding agents. The base image is upgraded automatically without affecting your overlay filesystem.
+
+## Ubuntu DevTools (Default)
+
+The default Sprite image is based on Ubuntu 25.04 and comes with a comprehensive development environment.
+
+### Operating System
+
+- **Base**: Ubuntu 25.04
+- **User**: `sprite` with passwordless sudo
+- **Shell**: bash (default), with zsh, fish, tcsh, and ksh available
+
+### Pre-installed Languages
+
+| Language | Default Version | Version Manager | Manager Shimmed? |
+|----------|-----------------|-----------------|------------------|
+| Node.js | 22.20.0 | nvm | No (requires sourcing) |
+| Python | 3.13.7 | pyenv | Yes |
+| Go | 1.25.1 | Direct install | N/A |
+| Rust | 1.90.0 | rustup | Yes |
+| Ruby | 3.4.6 | rbenv | Yes |
+| Elixir | 1.18.4 | Direct install | N/A |
+| Erlang | 28.1 | kerl | Yes |
+| Java | 25 (Temurin) | SDKMAN | No (requires sourcing) |
+| Bun | latest | Direct install | N/A |
+| Deno | latest | Direct install | N/A |
+
+### AI Coding Agents
+
+Pre-installed coding agents ready to use:
+
+| Agent | Command | Package |
+|-------|---------|---------|
+| Claude Code | `claude` | @anthropic-ai/claude-code |
+| Gemini CLI | `gemini` | @google/gemini-cli |
+| OpenAI Codex | `codex` | @openai/codex |
+| Cursor | `cursor` | cursor |
+
+### System Tools
+
+Common development tools pre-installed:
+
+- **Build tools**: build-essential, clang, autoconf, automake, libtool, pkg-config
+- **Version control**: git
+- **Editors**: vim, nano
+- **Shells**: bash, zsh, fish, tcsh, ksh
+- **Terminal**: tmux, kitty
+- **Utilities**: curl, wget, rsync, tree, htop
+- **Network**: dnsutils, iputils-ping, net-tools, openssh-client
+
+## Language Details
+
+### Node.js
+
+Default commands work immediately via shims: `node`, `npm`, `npx`, `corepack`.
+
+```bash
+# These work directly
+node --version
+npm --version
+npm install express
+npx create-next-app
+```
+
+To install or switch Node.js versions, you must source nvm first:
+
+```bash
+# Source nvm
+export NVM_DIR="/.sprite/languages/node/nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# Now nvm commands work
+nvm install 20
+nvm install 18
+nvm use 20
+nvm alias default 20
+nvm list
+```
+
+### Python
+
+Default commands work immediately via shims: `python`, `pip`, `pipenv`, `poetry`, `virtualenv`.
+
+The `pyenv` command is also shimmed and works directly:
+
+```bash
+# These work directly
+python --version
+pip --version
+pip install requests
+
+# pyenv is shimmed - works without sourcing
+pyenv install 3.12.0
+pyenv install 3.11.0
+pyenv global 3.12.0
+pyenv local 3.11.0  # Per-directory
+pyenv versions
+
+# Virtual environments
+python -m venv myenv
+source myenv/bin/activate
+
+# Or use poetry/pipenv (pre-installed)
+poetry new myproject
+pipenv install
+```
+
+### Go
+
+Default commands work immediately via shims: `go`, `gofmt`.
+
+```bash
+# These work directly
+go version
+go build
+go run main.go
+go install github.com/example/tool@latest
+```
+
+Go is installed directly without a version manager. Only one version is available at a time.
+
+### Rust
+
+Default commands work immediately via shims: `rustc`, `cargo`, `rustfmt`, `rustdoc`.
+
+The `rustup` command is also shimmed and works directly:
+
+```bash
+# These work directly
+rustc --version
+cargo --version
+cargo build
+cargo run
+
+# rustup is shimmed - works without sourcing
+rustup toolchain install nightly
+rustup toolchain install 1.75.0
+rustup default nightly
+rustup default stable
+rustup component add clippy
+rustup toolchain list
+```
+
+### Ruby
+
+Default commands work immediately via shims: `ruby`, `gem`, `bundle`, `bundler`, `irb`, `rake`.
+
+The `rbenv` command is also shimmed and works directly:
+
+```bash
+# These work directly
+ruby --version
+gem --version
+gem install rails
+bundle install
+
+# rbenv is shimmed - works without sourcing
+rbenv install 3.3.0
+rbenv install 3.2.0
+rbenv global 3.3.0
+rbenv local 3.2.0  # Per-directory
+rbenv versions
+```
+
+### Elixir & Erlang
+
+Default Elixir commands work via shims: `elixir`, `elixirc`, `iex`, `mix`.
+
+Default Erlang commands work via shims: `erl`, `erlc`, `escript`, `dialyzer`, `rebar3`.
+
+```bash
+# These work directly
+elixir --version
+iex
+mix new myapp
+
+erl -version
+rebar3 new app myapp
+```
+
+The `kerl` command is shimmed for managing Erlang versions:
+
+```bash
+# kerl is shimmed - works without sourcing
+kerl list releases
+kerl build 27.0 27.0
+kerl install 27.0 /.sprite/languages/erlang/kerl/installs/27.0
+```
+
+Elixir is installed directly for the default Erlang version. To use different Elixir versions, download precompiled releases manually.
+
+### Java
+
+Default Java commands work via shims: `java`, `javac`, `jar`, `jshell`, etc.
+
+```bash
+# These work directly
+java --version
+javac --version
+java -jar myapp.jar
+```
+
+To install or switch Java versions, you must source SDKMAN first:
+
+```bash
+# Source SDKMAN
+export SDKMAN_DIR="/.sprite/languages/java/sdkman"
+[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ] && \. "$SDKMAN_DIR/bin/sdkman-init.sh"
+
+# Now sdk commands work
+sdk list java
+sdk install java 21-tem
+sdk install java 17-tem
+sdk use java 21-tem
+sdk default java 21-tem
+```
+
+### Bun
+
+Default commands work via shims: `bun`, `bunx`.
+
+```bash
+# These work directly
+bun --version
+bun run start
+bun install
+bun test
+bunx create-next-app
+```
+
+### Deno
+
+Default command works via shim: `deno`.
+
+```bash
+# These work directly
+deno --version
+deno run script.ts
+deno task start
+deno compile app.ts
+```
+
+## Filesystem Layout
+
+Languages are installed in `/.sprite/languages/` with shims in `/.sprite/bin/`:
+
+```
+/.sprite/
+├── bin/                    # Command shims (in PATH)
+│   ├── node
+│   ├── npm
+│   ├── python
+│   ├── pyenv              # Shimmed - works directly
+│   ├── go
+│   ├── rustc
+│   ├── rustup             # Shimmed - works directly
+│   ├── ruby
+│   ├── rbenv              # Shimmed - works directly
+│   └── ...
+├── languages/
+│   ├── node/
+│   │   └── nvm/           # Must source to use nvm
+│   ├── python/
+│   │   └── pyenv/         # Shimmed via /.sprite/bin/pyenv
+│   ├── go/
+│   │   ├── versions/      # Go versions
+│   │   └── current/       # Symlink to active version
+│   ├── rust/
+│   │   ├── rustup/        # Shimmed via /.sprite/bin/rustup
+│   │   └── cargo/
+│   ├── ruby/
+│   │   └── rbenv/         # Shimmed via /.sprite/bin/rbenv
+│   ├── java/
+│   │   └── sdkman/        # Must source to use sdk
+│   ├── erlang/
+│   │   └── kerl/          # Shimmed via /.sprite/bin/kerl
+│   ├── elixir/
+│   │   └── current/       # Symlink to active version
+│   ├── bun/
+│   └── deno/
+├── etc/
+│   └── profile.d/         # Shell initialization
+└── llm.txt                 # LLM documentation
+```
+
+## Image Updates
+
+Base images are updated automatically without affecting your files:
+
+- **Your code and data**: Stored in the overlay filesystem, preserved across updates
+- **System packages**: Updated in the base image, applied on next boot
+- **Language runtimes**: Base versions updated, your installed versions preserved
+
+To check the current base image version:
+
+```bash
+cat /.sprite/version.txt
+```
+
+## LLM Integration
+
+Each Sprite includes documentation for LLMs at `/.sprite/llm.txt`. This file describes the environment and available tools, making it easy for AI assistants to understand and work with your Sprite.
+
+Additional language-specific documentation is available in each language directory:
+
+```bash
+# General environment documentation
+cat /.sprite/llm.txt
+
+# Per-language documentation
+cat /.sprite/languages/node/llm.txt
+cat /.sprite/languages/python/llm.txt
+cat /.sprite/languages/rust/llm.txt
+```
+
+## Internal Tools
+
+The base image includes several tools for interacting with the Sprite runtime from inside the environment.
+
+### curl-sprite-api
+
+A convenience wrapper for accessing the internal API via Unix socket:
+
+```bash
+# Instead of:
+curl --unix-socket /.sprite/api.sock -H "Content-Type: application/json" http://sprite/v1/services
+
+# You can use:
+curl-sprite-api /v1/services
+
+# See all available endpoints
+curl-sprite-api --help
+```
+
+The internal API manages:
+- **Services** - Long-running processes that persist across reboots
+- **Checkpoints** - Create and restore environment snapshots
+
+See [Services](/docs/concepts/services) and [Checkpoints](/docs/concepts/checkpoints) for details.
+
+### sprite-browser
+
+Handles browser open requests from within the Sprite. When a process tries to open a URL (e.g., `xdg-open https://example.com`), this tool sends an escape sequence to your terminal, which the Sprite CLI intercepts to open the URL in your local browser.
+
+```bash
+# Opens in your local browser (when connected via sprite console)
+xdg-open https://example.com
+```
+
+### sprite-console
+
+Launches the appropriate login shell based on your local environment. When you run `sprite console`, this script:
+
+1. Detects your preferred shell from the `$SHELL` environment variable
+2. Installs terminfo if needed for proper terminal rendering
+3. Starts a login shell session
+
+### Internal API Socket
+
+The Sprite runtime exposes a Unix socket at `/.sprite/api.sock` for internal management. While `curl-sprite-api` is the recommended way to interact with it, you can also use it directly:
+
+```bash
+# Using curl directly
+curl --unix-socket /.sprite/api.sock \
+  -H "Content-Type: application/json" \
+  http://sprite/v1/services
+
+# Using other HTTP clients that support Unix sockets
+```
+
+### Network Policy
+
+Network egress policy is mounted read-only at `/.sprite/policy/network.json`. This file shows which domains are allowed:
+
+```bash
+cat /.sprite/policy/network.json
+```
+
+Network policies must be updated externally via the Sprite API—the container cannot modify its own policy. See [Networking](/docs/concepts/networking) for details.

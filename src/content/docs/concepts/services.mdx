@@ -1,0 +1,243 @@
+---
+title: Services
+description: Long-running processes that persist across Sprite reboots
+---
+
+Services are long-running processes managed by the Sprite runtime that automatically restart when your Sprite boots. Unlike detachable sessions, services survive full Sprite restarts and are ideal for background daemons, development servers, and databases.
+
+## Overview
+
+Services are managed through the internal API at `/.sprite/api.sock`. The `curl-sprite-api` command provides a convenient wrapper:
+
+```bash
+# List all services
+curl-sprite-api /v1/services
+
+# Get help and see all endpoints
+curl-sprite-api --help
+```
+
+## Creating Services
+
+Create a service with a PUT request:
+
+```bash
+# Simple service
+curl-sprite-api -X PUT /v1/services/myapp -d '{
+  "cmd": "/usr/bin/myapp",
+  "args": ["--port", "8080"]
+}'
+
+# Service with dependencies
+curl-sprite-api -X PUT /v1/services/webapp -d '{
+  "cmd": "npm",
+  "args": ["run", "dev"],
+  "needs": ["database"]
+}'
+```
+
+### Service Configuration
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `cmd` | string | Path to executable (required) |
+| `args` | string[] | Command arguments |
+| `needs` | string[] | Services that must start first |
+
+### Streaming Logs on Creation
+
+When you create a service, the API streams logs in NDJSON format:
+
+```bash
+# Stream logs for 10 seconds after creation
+curl-sprite-api -X PUT '/v1/services/myapp?duration=10s' -d '{
+  "cmd": "npm",
+  "args": ["run", "dev"]
+}'
+```
+
+The default streaming duration is 5 seconds. Set `duration=0` to return immediately without streaming.
+
+## Managing Services
+
+### List Services
+
+```bash
+curl-sprite-api /v1/services
+```
+
+Returns a JSON array of services with their current states:
+
+```json
+[
+  {
+    "name": "webapp",
+    "cmd": "npm",
+    "args": ["run", "dev"],
+    "needs": [],
+    "state": {
+      "name": "webapp",
+      "status": "running",
+      "pid": 1234,
+      "started_at": "2024-01-15T10:30:00Z"
+    }
+  }
+]
+```
+
+### Get Service State
+
+```bash
+curl-sprite-api /v1/services/webapp
+```
+
+### Delete a Service
+
+```bash
+curl-sprite-api -X DELETE /v1/services/webapp
+```
+
+### Send Signals
+
+Send Unix signals to a service:
+
+```bash
+# Graceful shutdown
+curl-sprite-api -X POST /v1/services/signal -d '{
+  "name": "webapp",
+  "signal": "TERM"
+}'
+
+# Force kill
+curl-sprite-api -X POST /v1/services/signal -d '{
+  "name": "webapp",
+  "signal": "KILL"
+}'
+
+# Reload configuration (for services that support it)
+curl-sprite-api -X POST /v1/services/signal -d '{
+  "name": "nginx",
+  "signal": "HUP"
+}'
+```
+
+## Services vs Detachable Sessions
+
+Choose the right approach for your use case:
+
+| Feature | Services | Detachable Sessions |
+|---------|----------|---------------------|
+| Survives Sprite restart | Yes | No |
+| Auto-starts on boot | Yes | No |
+| Managed via | Internal API | External CLI/SDK |
+| Dependencies | Supported (`needs`) | Not supported |
+| Best for | Daemons, servers | One-off tasks, builds |
+
+### When to Use Services
+
+- **Development servers** that should always be running
+- **Databases** like PostgreSQL, Redis, or SQLite servers
+- **Background workers** processing queues
+- **Reverse proxies** or other infrastructure
+
+### When to Use Detachable Sessions
+
+- **Build processes** that run once
+- **Long-running scripts** you want to monitor
+- **Interactive sessions** you might reconnect to
+
+## Common Patterns
+
+### Development Server
+
+```bash
+# Create a Node.js dev server service
+curl-sprite-api -X PUT /v1/services/devserver -d '{
+  "cmd": "npm",
+  "args": ["run", "dev"]
+}'
+```
+
+### Database with Dependent Service
+
+```bash
+# First, create the database service
+curl-sprite-api -X PUT /v1/services/postgres -d '{
+  "cmd": "/usr/lib/postgresql/16/bin/postgres",
+  "args": ["-D", "/home/sprite/pgdata"]
+}'
+
+# Then create a service that depends on it
+curl-sprite-api -X PUT /v1/services/webapp -d '{
+  "cmd": "npm",
+  "args": ["start"],
+  "needs": ["postgres"]
+}'
+```
+
+### Python Background Worker
+
+```bash
+curl-sprite-api -X PUT /v1/services/worker -d '{
+  "cmd": "python",
+  "args": ["-m", "celery", "worker", "-A", "tasks"]
+}'
+```
+
+## LLM Integration
+
+AI coding agents can manage services through the internal API. Point your LLM at `/.sprite/llm.txt` for environment documentation, then it can:
+
+```bash
+# LLM creates a service for the project it's working on
+curl-sprite-api -X PUT /v1/services/devserver -d '{
+  "cmd": "npm",
+  "args": ["run", "dev"],
+  "dir": "/home/sprite/project"
+}'
+
+# Check if it's running
+curl-sprite-api /v1/services/devserver
+
+# Restart after making changes
+curl-sprite-api -X POST /v1/services/signal -d '{"name": "devserver", "signal": "TERM"}'
+# Service auto-restarts
+```
+
+## Troubleshooting
+
+### Service Won't Start
+
+1. Check the command path is correct and executable exists
+2. Verify working directory exists
+3. Check dependencies are running if using `needs`
+
+### Service Keeps Restarting
+
+The service manager will restart crashed services. If a service exits immediately:
+
+1. Check logs during creation with `duration=30s`
+2. Verify environment variables are set correctly
+3. Test the command manually first
+
+### Viewing Service Logs
+
+Stream logs when creating the service:
+
+```bash
+curl-sprite-api -X PUT '/v1/services/myapp?duration=60s' -d '{...}'
+```
+
+Or check system logs:
+
+```bash
+journalctl -f  # If available
+# or
+tail -f /var/log/syslog
+```
+
+## Related Documentation
+
+- [Lifecycle and Persistence](/docs/concepts/lifecycle) - Sprite lifecycle overview
+- [Checkpoints](/docs/concepts/checkpoints) - Save and restore state
+- [Base Images](/docs/reference/base-images) - Pre-installed tools

@@ -1,0 +1,140 @@
+---
+title: Billing
+description: Sprites pricing and billing details
+---
+
+import BillingCalculator from '@/components/BillingCalculator.astro';
+import BillingFAQ from '@/components/BillingFAQ.astro';
+import PricingRates from '@/components/PricingRates.astro';
+
+Sprites offers flexible billing: **pay-as-you-go** for usage-based pricing with no commitment, or a **subscription plan** with included credits for predictable costs.
+
+## Pay As You Go
+
+Usage-based pricing with no monthly commitment.
+
+- Up to **3 sprites** running concurrently
+- Pay only for what you use
+- No commitment
+
+<PricingRates />
+
+**Key benefit:** No compute charges while Sprites are hibernated—usage only counts when actively running.
+
+## Subscription Plan
+
+Included credits and higher limits for predictable costs.
+
+| Plan | Price | Concurrent Sprites | CPU Hours | RAM Hours | Storage |
+|------|-------|--------------------|-----------|-----------|---------|
+| **Level 10** | $20/mo | 10 | 450 hrs | 1,800 GB-hrs | 50 GB |
+
+Overage beyond included credits is billed at the same pay-as-you-go rates above.
+
+## Estimate Your Costs
+
+<BillingCalculator />
+
+## Compute Billing
+
+### How It Works
+
+You're billed for CPU and memory only while:
+
+- A command is actively executing
+- A TTY session is open
+- A detachable session is running
+
+When your Sprite hibernates, compute billing stops immediately.
+
+Sprites use a fixed resource configuration (8 vCPUs, 4 GB RAM), so compute billing uses those values whenever a Sprite is active.
+
+### Billing Granularity
+
+Compute is billed **per-second** with no minimum. If you run a command for 30 seconds, you pay for exactly 30 seconds.
+
+## Storage Billing
+
+### How It Works
+
+Storage is billed monthly based on the actual data stored on your Sprite's filesystem:
+
+- **TRIM-friendly**: You only pay for data actually written
+- **Deleted files reduce cost**: Deleting files reduces your storage bill
+- **Compression**: Data is compressed in storage
+
+### Starting Allocation
+
+Every Sprite includes 100 GB of storage capacity. Storage does not autoscale yet.
+
+### Typical Usage
+
+| Environment | Storage | Within Plan? |
+|------------|---------|--------------|
+| Minimal (OS + tools) | ~2 GB | Yes |
+| Dev environment | ~5 GB | Yes |
+| With datasets | ~10 GB | Yes |
+| Large datasets | ~60 GB | +10 GB overage |
+
+## Cost Optimization
+
+### Minimize Active Time
+
+```bash
+# Bad: Long-running idle session
+sprite console
+# (leave terminal open for hours while doing other things)
+
+# Good: Run specific commands
+sprite exec "npm test"
+sprite exec "npm build"
+```
+
+### Use Hibernation Effectively
+
+Sprites hibernate after ~30 seconds of inactivity. Close idle TTY sessions and keep workloads scoped to short bursts when possible.
+
+### Clean Up Storage
+
+```bash
+# Remove unnecessary files
+sprite exec "rm -rf node_modules/.cache"
+sprite exec "apt-get clean"
+sprite exec "pip cache purge"
+```
+
+### Use Checkpoints Wisely
+
+Checkpoints consume storage. Clean up old checkpoints:
+
+```bash
+# List checkpoints
+sprite checkpoint list
+
+# Keep only what you need
+```
+
+## Billing Scenarios
+
+Use the calculator above to model your own usage. Here are some common patterns:
+
+| Scenario | Active Time | CPU Hours/mo | PAYG Cost | Level 10 Plan |
+|----------|-------------|--------------|-----------|---------------|
+| **Weekend hacker** | 4 hrs/wk | ~69 hrs | ~$15 | $20 (within plan) |
+| **Light CI** | 20 builds × 10 min | ~108 hrs | ~$24 | $20 (within plan) |
+| **Part-time dev** | 2 hrs/day, 5 days/wk | ~346 hrs | ~$76 | $20 (within plan) |
+| **Full-time dev** | 4 hrs/day, 5 days/wk | ~693 hrs | ~$152 | ~$87 (+overage) |
+
+## Monitoring Usage
+
+Usage and billing information is available through your Fly.io dashboard and organization settings. The CLI and API do not currently expose detailed usage metrics.
+
+## Billing FAQ
+
+<BillingFAQ />
+
+## Related Documentation
+
+- [Lifecycle](/concepts/lifecycle) - Hibernation behavior
+- [Configuration](/reference/configuration) - Resource options
+- [Checkpoints](/concepts/checkpoints) - Checkpoint storage
