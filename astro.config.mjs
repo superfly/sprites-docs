@@ -79,8 +79,24 @@ export default defineConfig({
           ],
         },
       ],
-      head: [], // Fonts are now self-hosted via fontsource
+      head: [
+        // OpenGraph / Social (og:image and twitter:image are set dynamically in Head.astro)
+        {
+          tag: 'meta',
+          attrs: { property: 'og:type', content: 'website' },
+        },
+        {
+          tag: 'meta',
+          attrs: { property: 'og:site_name', content: 'Sprites Documentation' },
+        },
+        // Twitter Card
+        {
+          tag: 'meta',
+          attrs: { name: 'twitter:card', content: 'summary_large_image' },
+        },
+      ],
       components: {
+        Head: './src/components/Head.astro',
         Header: './src/components/Header.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
         PageTitle: './src/components/PageTitle.astro',

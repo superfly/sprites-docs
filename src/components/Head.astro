@@ -1,0 +1,12 @@
+---
+import Default from '@astrojs/starlight/components/Head.astro';
+
+const pageTitle = Astro.locals.starlightRoute?.entry?.data?.title ?? 'Sprites Documentation';
+const ogImageUrl = `https://og-image.fly.dev/image?template=sprites&text=${encodeURIComponent(pageTitle)}`;
+---
+
+<Default {...Astro.props}><slot /></Default>
+
+<!-- Dynamic OG Image -->
+<meta property="og:image" content={ogImageUrl} />
+<meta name="twitter:image" content={ogImageUrl} />
