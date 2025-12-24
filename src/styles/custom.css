@@ -66,8 +66,8 @@
   --secondary-foreground: oklch(0.2 0.01 285);
   --muted: oklch(0.95 0.01 285);
   --muted-foreground: oklch(0.45 0.01 285);
-  --accent: oklch(0.5 0.2 285);
-  --accent-foreground: oklch(1 0 0);
+  --accent: oklch(0.95 0.05 285);
+  --accent-foreground: oklch(0.15 0.01 285);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.85 0.01 285);
   --input: oklch(0.85 0.01 285);
@@ -81,8 +81,8 @@
   --sidebar-foreground: oklch(0.15 0.01 285);
   --sidebar-primary: oklch(0.5 0.2 285);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.5 0.2 285);
-  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0.05 285);
+  --sidebar-accent-foreground: oklch(0.15 0.01 285);
   --sidebar-border: oklch(0.85 0.01 285);
   --sidebar-ring: oklch(0.5 0.2 285);
 }
@@ -224,7 +224,7 @@
   /* Background colors */
   --sl-color-bg: oklch(1 0 0);
   --sl-color-bg-nav: oklch(0.98 0.002 285);
-  --sl-color-bg-sidebar: oklch(0.97 0.003 285);
+  --sl-color-bg-sidebar: oklch(1 0 0);
   --sl-color-bg-inline-code: oklch(0.93 0.01 285);
 
   /* Border colors */
@@ -359,7 +359,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 [data-theme='light'] nav[aria-label="Main"] a:hover {
-  color: oklch(0.45 0.22 285) !important;
+  color: oklch(0.5 0.3 285) !important;
+  background-color: oklch(0.95 0.05 285) !important;
 }
 
 [data-theme='light'] nav[aria-label="Main"] a[aria-current="page"] {
@@ -384,11 +385,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Header links in light mode */
-[data-theme='light'] header a {
+[data-theme='light'] header a:not(.site-title):not(.dashboard-link) {
   color: oklch(0.2 0.02 285);
 }
 
-[data-theme='light'] header a:hover {
+[data-theme='light'] header a:hover:not(.site-title):not(.dashboard-link) {
   color: oklch(0.45 0.22 285);
 }
 
