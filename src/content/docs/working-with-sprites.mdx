@@ -1,0 +1,594 @@
+---
+title: Working with Sprites
+description: Beyond the basics, sessions, ports, persistence, checkpoints
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Callout } from '@/components/react';
+
+After you've made it through the Quickstart, you've got a working Sprite and a sense of how to use it. This page covers what comes next: how Sprites behave over time, how to run persistent processes, how networking works, and how to shape the environment to fit your stack. Use it as a reference as you start building more with Sprites.
+
+## Lifecycle
+
+### Automatic Hibernation
+
+Sprites automatically hibernate when inactive, with no compute charges while idle. When you execute a command or make a request to a Sprite's URL, it automatically wakes up with all your data intact.
+
+### Timeouts
+
+Sprites currently hibernate after **30 seconds** of inactivity. This timeout is not configurable yet.
+
+### Idle Detection
+
+A Sprite is considered active if any of the following are true:
+
+1. It has an active command running (via `exec`)
+2. Its stdin is being written to
+3. It has an open TCP connection over its URL
+4. A detachable session is running
+
+---
+
+## Configuration
+
+### Resource Allocation
+
+Sprites currently use a fixed resource configuration (8 vCPUs, 8192 MB RAM, 100 GB storage). These values are not configurable yet. (SDK config fields are accepted but ignored by the API.)
+
+### Working Directory
+
+Set the working directory for command execution:
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+sprite exec -dir /home/sprite/project npm test
+```
+</TabItem>
+
+<TabItem label="JavaScript">
+```javascript
+const result = await sprite.exec('npm test', {
+  cwd: '/home/sprite/project',
+});
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+cmd := sprite.Command("npm", "test")
+cmd.Dir = "/home/sprite/project"
+output, err := cmd.Output()
+```
+</TabItem>
+</Tabs>
+
+### Environment Variables
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+sprite exec -env MY_SECRET=hello bash -c 'echo $MY_SECRET'
+```
+</TabItem>
+
+<TabItem label="JavaScript">
+```javascript
+const result = await sprite.execFile('bash', ['-lc', 'echo $MY_SECRET'], {
+  env: { MY_SECRET: 'hello' },
+});
+console.log(result.stdout); // hello
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+cmd := sprite.Command("bash", "-c", "echo $MY_SECRET")
+cmd.Env = []string{"MY_SECRET=hello"}
+output, _ := cmd.Output()
+fmt.Println(string(output)) // hello
+```
+</TabItem>
+</Tabs>
+
+---
+
+## Environment
+
+### Pre-installed Tools
+
+The default Sprite environment includes:
+
+- **Languages**: Node.js, Python, Go, Ruby, Rust, Elixir/Erlang, Java, Bun, Deno
+- **AI Tools**: Claude CLI, Gemini CLI, OpenAI Codex, Cursor
+- **Utilities**: Git, curl, wget, vim, and common development tools
+
+### Custom Setup
+
+Run setup commands after creating a Sprite:
+
+<Tabs>
+<TabItem label="JavaScript">
+```javascript
+const sprite = await client.createSprite('my-sprite');
+
+// Install custom dependencies
+await sprite.exec('pip install pandas numpy matplotlib');
+await sprite.exec('npm install -g typescript');
+
+// Clone a repository
+await sprite.exec('git clone https://github.com/your/repo.git /home/sprite/project');
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+sprite, _ := client.CreateSprite(ctx, "my-sprite", nil)
+
+// Install custom dependencies
+sprite.Command("pip", "install", "pandas", "numpy", "matplotlib").Run()
+sprite.Command("npm", "install", "-g", "typescript").Run()
+
+// Clone a repository
+sprite.Command("git", "clone", "https://github.com/your/repo.git", "/home/sprite/project").Run()
+```
+</TabItem>
+</Tabs>
+
+---
+
+## Interactive Sessions
+
+### TTY Mode
+
+For interactive applications, enable TTY mode:
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# Open interactive shell (TTY enabled by default)
+sprite console
+
+# Or with exec
+sprite exec -tty bash
+```
+</TabItem>
+
+<TabItem label="JavaScript">
+```javascript
+const cmd = sprite.spawn('bash', [], {
+  tty: true,
+  rows: 24,
+  cols: 80,
+});
+
+// Write to stdin
+cmd.stdin.write('echo hello\n');
+
+// Read from stdout
+cmd.stdout.on('data', (data) => {
+  process.stdout.write(data);
+});
+
+// Resize terminal
+cmd.resize(30, 100);
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+cmd := sprite.Command("bash")
+cmd.SetTTY(true)
+cmd.SetTTYSize(24, 80)
+
+cmd.Stdin = os.Stdin
+cmd.Stdout = os.Stdout
+cmd.Stderr = os.Stderr
+
+cmd.Start()
+
+// Resize later
+cmd.Resize(30, 100)
+
+cmd.Wait()
+```
+</TabItem>
+</Tabs>
+
+### Detachable Sessions
+
+Create sessions that persist even after disconnecting:
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# Create a detachable session
+sprite exec -detachable "npm run dev"
+
+# List active sessions
+sprite exec
+
+# Attach to a session
+sprite exec -id <session-id>
+```
+</TabItem>
+
+<TabItem label="JavaScript">
+```javascript
+// Create a detachable session
+const sessionCmd = sprite.createSession('npm', ['run', 'dev']);
+let sessionId;
+
+sessionCmd.on('message', (msg) => {
+  if (msg && msg.type === 'session_info') {
+    sessionId = msg.session_id;
+  }
+});
+
+// ... later, attach to it
+const cmd = sprite.attachSession(sessionId);
+cmd.stdout.pipe(process.stdout);
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+// Create a detachable session
+cmd := sprite.CreateDetachableSession("npm", "run", "dev")
+cmd.Start()
+
+// List sessions to get the session ID
+sessions, _ := client.ListSessions(ctx, "my-sprite")
+sessionID := sessions[0].ID
+
+// ... later, attach to it
+cmd = sprite.AttachSessionContext(ctx, sessionID)
+cmd.Stdout = os.Stdout
+cmd.Run()
+```
+</TabItem>
+</Tabs>
+
+### Listing Sessions
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+sprite exec
+```
+</TabItem>
+
+<TabItem label="JavaScript">
+```javascript
+const sessions = await sprite.listSessions();
+for (const session of sessions) {
+  console.log(`${session.id}: ${session.command}`);
+}
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+sessions, _ := client.ListSessions(ctx, "my-sprite")
+for _, session := range sessions {
+    fmt.Printf("%s: %s\n", session.ID, session.Command)
+}
+```
+</TabItem>
+</Tabs>
+
+---
+
+## Managing Sprites
+
+### Referencing by Name
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# Set active sprite for current directory
+sprite use my-sprite
+
+# Commands now use this sprite
+sprite exec echo "hello"
+```
+</TabItem>
+
+<TabItem label="JavaScript">
+```javascript
+// Get sprite by name (doesn't verify it exists)
+const sprite = client.sprite('my-sprite');
+
+// Get sprite and verify it exists
+const sprite = await client.getSprite('my-sprite');
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+// Get sprite by name (doesn't verify it exists)
+sprite := client.Sprite("my-sprite")
+
+// Get sprite and verify it exists
+sprite, err := client.GetSprite(ctx, "my-sprite")
+```
+</TabItem>
+</Tabs>
+
+### Listing Sprites
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# List all sprites
+sprite list
+
+# List with prefix filter
+sprite list --prefix "dev-"
+```
+</TabItem>
+
+<TabItem label="JavaScript">
+```javascript
+// List all sprites
+const sprites = await client.listAllSprites();
+
+// List with prefix filter
+const devSprites = await client.listAllSprites('dev-');
+
+// Paginated listing
+const page = await client.listSprites({ maxResults: 50 });
+console.log(page.sprites);
+if (page.hasMore) {
+  const nextPage = await client.listSprites({
+    continuationToken: page.nextContinuationToken,
+  });
+}
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+// List all sprites
+sprites, _ := client.ListAllSprites(ctx, "")
+
+// List with prefix filter
+devSprites, _ := client.ListAllSprites(ctx, "dev-")
+
+// Paginated listing
+page, _ := client.ListSprites(ctx, &sprites.ListOptions{MaxResults: 50})
+fmt.Println(page.Sprites)
+if page.HasMore {
+    nextPage, _ := client.ListSprites(ctx, &sprites.ListOptions{
+        ContinuationToken: page.NextContinuationToken,
+    })
+}
+```
+</TabItem>
+</Tabs>
+
+---
+
+## HTTP Access
+
+Every Sprite has a unique URL for HTTP access:
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# Get sprite URL
+sprite url
+
+# Make URL public (no auth required)
+sprite url update --auth public
+
+# Make URL require sprite auth (default)
+sprite url update --auth default
+```
+</TabItem>
+
+<TabItem label="JavaScript">
+```javascript
+// Get sprite info including URL
+const info = await client.getSprite('my-sprite');
+console.log(info.url);
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+// Get sprite info including URL
+info, _ := client.GetSprite(ctx, "my-sprite")
+fmt.Println(info.URL)
+```
+</TabItem>
+</Tabs>
+
+Updating URL settings is available via the CLI, Go SDK, or REST API (the JS SDK does not expose a helper yet).
+
+---
+
+## Port Forwarding
+
+Forward local ports to your Sprite:
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# Forward local port 3000 to sprite port 3000
+sprite proxy 3000
+
+# Forward multiple ports
+sprite proxy 3000 8080 5432
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+// Forward single port
+session, _ := client.ProxyPort(ctx, "my-sprite", 3000, 3000)
+defer session.Close()
+// localhost:3000 now forwards to sprite:3000
+
+// Forward multiple ports
+sessions, _ := client.ProxyPorts(ctx, "my-sprite", []sprites.PortMapping{
+    {LocalPort: 3000, RemotePort: 3000},
+    {LocalPort: 8080, RemotePort: 80},
+})
+```
+</TabItem>
+</Tabs>
+
+### Port Notifications
+
+Get notified when ports open in your Sprite:
+
+<Tabs>
+<TabItem label="JavaScript">
+```javascript
+const cmd = sprite.spawn('npm', ['run', 'dev']);
+
+cmd.on('message', (msg) => {
+  if (msg.type === 'port_opened') {
+    console.log(`Port ${msg.port} opened on ${msg.address} by PID ${msg.pid}`);
+    // Auto-forward or notify user
+  }
+});
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+cmd := sprite.Command("npm", "run", "dev")
+cmd.TextMessageHandler = func(data []byte) {
+    var notification sprites.PortNotificationMessage
+    json.Unmarshal(data, &notification)
+
+    if notification.Type == "port_opened" {
+        fmt.Printf("Port %d opened on %s by PID %d\n", notification.Port, notification.Address, notification.PID)
+    }
+}
+cmd.Run()
+```
+</TabItem>
+</Tabs>
+
+---
+
+## Checkpoints
+
+Save and restore Sprite state:
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+# Create a checkpoint
+sprite checkpoint create
+
+# List checkpoints
+sprite checkpoint list
+
+# Restore from checkpoint
+sprite restore <checkpoint-id>
+```
+</TabItem>
+</Tabs>
+
+See [Checkpoints and Restore](/concepts/checkpoints) for more details.
+
+---
+
+## Error Handling
+
+<Tabs>
+<TabItem label="JavaScript">
+```javascript
+import { ExecError } from '@fly/sprites';
+
+try {
+  await sprite.execFile('bash', ['-lc', 'exit 1']);
+} catch (error) {
+  if (error instanceof ExecError) {
+    console.log('Exit code:', error.exitCode);
+    console.log('Stdout:', error.stdout);
+    console.log('Stderr:', error.stderr);
+  }
+}
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+cmd := sprite.Command("bash", "-lc", "exit 1")
+err := cmd.Run()
+
+if err != nil {
+    if exitErr, ok := err.(*sprites.ExitError); ok {
+        fmt.Printf("Exit code: %d\n", exitErr.ExitCode())
+    }
+}
+```
+</TabItem>
+</Tabs>
+
+---
+
+## Cleanup
+
+Always clean up Sprites when you're done:
+
+<Tabs>
+<TabItem label="CLI">
+```bash
+sprite destroy my-sprite
+```
+</TabItem>
+
+<TabItem label="JavaScript">
+```javascript
+await sprite.delete();
+// or
+await client.deleteSprite('my-sprite');
+```
+</TabItem>
+
+<TabItem label="Go">
+```go
+err := client.DeleteSprite(ctx, "my-sprite")
+```
+</TabItem>
+</Tabs>
+
+---
+
+## Optional: Mount Sprite Filesystem Locally
+
+Add this helper function to your `.zshrc` or `.bashrc` to mount your Sprite's home directory locally:
+
+```bash
+# Add to ~/.zshrc
+sc() {
+  local sprite_name="${1:-$(sprite use)}"
+  local mount_point="/tmp/sprite-${sprite_name}"
+  mkdir -p "$mount_point"
+  sshfs -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
+    "sprite@${sprite_name}.sprites.dev:" "$mount_point"
+  cd "$mount_point"
+}
+```
+
+Then use it with:
+
+```bash
+sc my-sprite  # Mounts and cd's to the sprite's filesystem
+```
+
+---
+
+## Next Steps
+
+- **[CLI Reference](/cli/commands)** - Full command documentation
+- **[JavaScript SDK](/sdks/javascript)** - Complete SDK reference
+- **[Go SDK](/sdks/go)** - Native Go integration
+- **[Lifecycle & Persistence](/concepts/lifecycle)** - Deep dive into how Sprites work
+- **[Networking](/concepts/networking)** - URLs, ports, and connectivity
