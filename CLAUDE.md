@@ -9,10 +9,12 @@ Sprites documentation site built with Astro Starlight and React components. Stat
 ## Commands
 
 ```bash
-bun install          # Install dependencies
-bun run dev          # Start dev server at localhost:4321
-bun run build        # Build static site to ./dist/
-bun run preview      # Preview production build locally
+pnpm install         # Install dependencies
+pnpm dev             # Start dev server at localhost:4321
+pnpm build           # Build static site to ./dist/
+pnpm preview         # Preview production build locally
+pnpm lint            # Run Biome linter
+pnpm lint:fix        # Auto-fix lint issues
 ```
 
 ## Architecture
@@ -32,14 +34,10 @@ bun run preview      # Preview production build locally
 - `astro.config.mjs` - Site config including sidebar structure
 
 ### Component Pattern
-React components are wrapped in `.astro` files for MDX usage. The React components export from `src/components/react/index.ts`:
-- `CodeTabs`/`Snippet` - Language-tabbed code blocks
-- `Callout` - Alert/info boxes
-- `ParamTable`/`Param` - API parameter documentation
-- `APIEndpoint`/`StatusCodes` - REST API documentation
-- `BillingCalculator`/`PricingRates` - Interactive pricing tools
+React components are wrapped in `.astro` files for MDX usage. All React components export from `src/components/react/index.ts`. Use `client:load` directive when importing React components in MDX.
 
-Use `client:load` directive when importing React components in MDX.
+### Starlight Overrides
+Custom Starlight components in `src/components/` override defaults: `Head.astro`, `Header.astro`, `Search.astro`, `ThemeSelect.astro`, `PageTitle.astro`, `SiteTitle.astro`.
 
 ### Path Aliases
 - `@/*` → `./src/*`
