@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const srcDir = '../sprites-docs-next/content/docs';
 const destDir = './src/content/docs';
 
-function transformContent(content, filePath) {
+function transformContent(content, _filePath) {
   let transformed = content;
 
   // Transform {#snippet name()} to <Snippet name="name">
-  transformed = transformed.replace(/\{#snippet\s+(\w+)\(\)\}/g, '<Snippet name="$1">');
+  transformed = transformed.replace(
+    /\{#snippet\s+(\w+)\(\)\}/g,
+    '<Snippet name="$1">',
+  );
 
   // Transform {/snippet} to </Snippet>
   transformed = transformed.replace(/\{\/snippet\}/g, '</Snippet>');
@@ -18,13 +21,22 @@ function transformContent(content, filePath) {
   // Check which components are used
   const usedComponents = [];
   if (transformed.includes('<Callout')) usedComponents.push('Callout');
-  if (transformed.includes('<CodeTabs')) usedComponents.push('CodeTabs', 'Snippet');
-  if (transformed.includes('<LifecycleDiagram')) usedComponents.push('LifecycleDiagram');
-  if (transformed.includes('<BillingCalculator')) usedComponents.push('BillingCalculator');
-  if (transformed.includes('<ParamTable') || transformed.includes('<Param ')) usedComponents.push('ParamTable', 'Param');
+  if (transformed.includes('<CodeTabs'))
+    usedComponents.push('CodeTabs', 'Snippet');
+  if (transformed.includes('<LifecycleDiagram'))
+    usedComponents.push('LifecycleDiagram');
+  if (transformed.includes('<BillingCalculator'))
+    usedComponents.push('BillingCalculator');
+  if (transformed.includes('<ParamTable') || transformed.includes('<Param '))
+    usedComponents.push('ParamTable', 'Param');
   if (transformed.includes('<ParamInline')) usedComponents.push('ParamInline');
-  if (transformed.includes('<StatusCodes') || transformed.includes('<StatusBadge')) usedComponents.push('StatusCodes', 'StatusBadge');
-  if (transformed.includes('<APIEndpoint') || transformed.includes('<APIBody')) usedComponents.push('APIEndpoint', 'APIBody');
+  if (
+    transformed.includes('<StatusCodes') ||
+    transformed.includes('<StatusBadge')
+  )
+    usedComponents.push('StatusCodes', 'StatusBadge');
+  if (transformed.includes('<APIEndpoint') || transformed.includes('<APIBody'))
+    usedComponents.push('APIEndpoint', 'APIBody');
 
   // Add imports after frontmatter if components are used
   if (usedComponents.length > 0) {
@@ -37,7 +49,8 @@ function transformContent(content, filePath) {
       const afterFrontmatter = frontmatterEnd + 3;
       transformed =
         transformed.substring(0, afterFrontmatter) +
-        '\n\n' + importStatement +
+        '\n\n' +
+        importStatement +
         transformed.substring(afterFrontmatter).trimStart();
     }
   }

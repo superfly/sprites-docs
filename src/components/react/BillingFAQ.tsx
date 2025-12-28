@@ -3,7 +3,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion'
+} from '@/components/ui/accordion';
 
 const faqs = [
   {
@@ -39,14 +39,18 @@ const faqs = [
     answer:
       'Usage and billing information is available through your Fly.io dashboard and organization settings.',
   },
-]
+];
 
 export function BillingFAQ() {
   return (
     <div className="my-6 border border-[var(--sl-color-hairline)]">
       <Accordion type="single" collapsible className="w-full">
-        {faqs.map((faq, i) => (
-          <AccordionItem key={i} value={`item-${i}`} className="border-[var(--sl-color-hairline)] px-4">
+        {faqs.map((faq) => (
+          <AccordionItem
+            key={faq.question}
+            value={faq.question}
+            className="border-[var(--sl-color-hairline)] px-4"
+          >
             <AccordionTrigger className="text-sm hover:no-underline">
               {faq.question}
             </AccordionTrigger>
@@ -57,5 +61,5 @@ export function BillingFAQ() {
         ))}
       </Accordion>
     </div>
-  )
+  );
 }

@@ -1,9 +1,10 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
-import starlight from '@astrojs/starlight';
-import sitemap from '@astrojs/sitemap';
+
 import react from '@astrojs/react';
+import sitemap from '@astrojs/sitemap';
+import starlight from '@astrojs/starlight';
 import tailwindcss from '@tailwindcss/vite';
+import { defineConfig } from 'astro/config';
 
 // https://astro.build/config
 export default defineConfig({
@@ -27,7 +28,11 @@ export default defineConfig({
       favicon: '/favicon.svg',
       customCss: ['./src/styles/custom.css'],
       social: [
-        { icon: 'github', label: 'GitHub', href: 'https://github.com/superfly/sprites-docs' },
+        {
+          icon: 'github',
+          label: 'GitHub',
+          href: 'https://github.com/superfly/sprites-docs',
+        },
       ],
       editLink: {
         baseUrl: 'https://github.com/superfly/sprites-docs/edit/master/',
@@ -67,9 +72,7 @@ export default defineConfig({
         },
         {
           label: 'API',
-          items: [
-            { label: 'REST API', slug: 'api/rest' },
-          ],
+          items: [{ label: 'REST API', slug: 'api/rest' }],
         },
         {
           label: 'Reference',
