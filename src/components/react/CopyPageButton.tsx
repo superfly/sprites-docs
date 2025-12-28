@@ -1,6 +1,10 @@
-import { ArrowUpRight, Check, ChevronDown, Copy } from 'lucide-react';
+import { ArrowUpRight, Check, Copy, Ellipsis } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
+import {
+  ButtonGroup,
+  ButtonGroupSeparator,
+} from '@/components/ui/button-group';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,58 +69,52 @@ export function CopyPageButton({
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-          <span className="hidden sm:inline">Copy page</span>
-          <ChevronDown className="size-3 opacity-50" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuItem
-          onClick={handleCopy}
-          className="flex flex-col items-start gap-0.5 py-2"
-        >
-          <div className="flex items-center gap-2">
-            {copied ? (
-              <Check className="size-4 text-emerald-500" />
-            ) : (
-              <Copy className="size-4" />
-            )}
-            <span className="font-medium">Copy page</span>
-          </div>
-          <span className="text-xs text-muted-foreground pl-6">
-            Copy page as Markdown for LLMs
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={handleOpenChatGPT}
-          className="flex flex-col items-start gap-0.5 py-2"
-        >
-          <div className="flex items-center gap-2">
-            <ChatGPTIcon />
-            <span className="font-medium">Open in ChatGPT</span>
-            <ArrowUpRight className="size-3 opacity-50" />
-          </div>
-          <span className="text-xs text-muted-foreground pl-6">
-            Ask questions about this page
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={handleOpenClaude}
-          className="flex flex-col items-start gap-0.5 py-2"
-        >
-          <div className="flex items-center gap-2">
-            <ClaudeIcon />
-            <span className="font-medium">Open in Claude</span>
-            <ArrowUpRight className="size-3 opacity-50" />
-          </div>
-          <span className="text-xs text-muted-foreground pl-6">
-            Ask questions about this page
-          </span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <ButtonGroup>
+      <Button
+        variant="outline"
+        size="sm"
+        className="gap-1 !text-xs h-7"
+        onClick={handleCopy}
+      >
+        {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+        <span className="hidden sm:inline">Copy page</span>
+      </Button>
+      <ButtonGroupSeparator />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="px-1.5 h-7">
+            <Ellipsis className="size-3" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-64">
+          <DropdownMenuItem
+            onClick={handleOpenChatGPT}
+            className="flex flex-col items-start gap-0.5 py-2"
+          >
+            <div className="flex items-center gap-2">
+              <ChatGPTIcon />
+              <span className="font-medium">Open in ChatGPT</span>
+              <ArrowUpRight className="size-3 opacity-50" />
+            </div>
+            <span className="text-xs text-muted-foreground pl-6">
+              Ask questions about this page
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={handleOpenClaude}
+            className="flex flex-col items-start gap-0.5 py-2"
+          >
+            <div className="flex items-center gap-2">
+              <ClaudeIcon />
+              <span className="font-medium">Open in Claude</span>
+              <ArrowUpRight className="size-3 opacity-50" />
+            </div>
+            <span className="text-xs text-muted-foreground pl-6">
+              Ask questions about this page
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </ButtonGroup>
   );
 }
