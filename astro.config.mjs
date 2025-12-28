@@ -99,6 +99,7 @@ export default defineConfig({
       components: {
         Head: './src/components/Head.astro',
         Header: './src/components/Header.astro',
+        Search: './src/components/Search.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
         PageTitle: './src/components/PageTitle.astro',
         SiteTitle: './src/components/SiteTitle.astro',
