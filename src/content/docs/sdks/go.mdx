@@ -83,15 +83,6 @@ token, err := sprites.CreateToken(ctx,
 ```go
 // Simple creation
 sprite, err := client.CreateSprite(ctx, "my-sprite", nil)
-
-// With configuration
-sprite, err := client.CreateSprite(ctx, "my-sprite", &sprites.SpriteConfig{
-    CPUs:      2,
-    RamMB:     8192,
-    StorageGB: 200,
-    Region:    "ord",
-})
-// Note: config fields are accepted but currently ignored by the API.
 ```
 
 ### Getting Sprites

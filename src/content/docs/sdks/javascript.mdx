@@ -72,15 +72,6 @@ const token = await SpritesClient.createToken(
 ```javascript
 // Simple creation
 const sprite = await client.createSprite('my-sprite');
-
-// With configuration
-const sprite = await client.createSprite('my-sprite', {
-  cpus: 2,
-  ramMB: 8192,
-  storageGB: 200,
-  region: 'ord',
-});
-// Note: config fields are accepted but currently ignored by the API.
 ```
 
 ### Getting Sprites
