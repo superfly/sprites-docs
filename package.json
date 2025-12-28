@@ -7,6 +7,8 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "lint": "biome check",
+    "lint:fix": "biome check --write",
     "astro": "astro"
   },
   "dependencies": {
