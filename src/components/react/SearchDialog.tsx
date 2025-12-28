@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/spinner'
+import { AnimatedItem } from './AnimatedList'
 
 // Types for Pagefind
 interface PagefindSubResult {
@@ -522,18 +523,15 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
               </div>
             ) : (
               selectableItems.map((item, index) => (
-                <motion.div
+                <AnimatedItem
                   key={item.id}
-                  data-index={index}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.1, delay: Math.min(index * 0.02, 0.1) }}
+                  index={index}
+                  delay={0.03}
                   onMouseEnter={() => setSelectedIndex(index)}
                   onClick={() => {
                     window.location.href = item.url
                     onClose()
                   }}
-                  className="cursor-pointer"
                 >
                   {item.type === 'section' ? (
                     <SectionResultItem
@@ -546,7 +544,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                       isSelected={selectedIndex === index}
                     />
                   )}
-                </motion.div>
+                </AnimatedItem>
               ))
             )}
           </div>
