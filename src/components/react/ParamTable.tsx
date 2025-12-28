@@ -1,7 +1,13 @@
-import type { ReactNode } from 'react'
-import { cn } from '../../lib/utils'
+import type { ReactNode } from 'react';
+import { cn } from '../../lib/utils';
 
-type ParamType = 'string' | 'integer' | 'boolean' | 'object' | 'array' | 'number'
+type ParamType =
+  | 'string'
+  | 'integer'
+  | 'boolean'
+  | 'object'
+  | 'array'
+  | 'number';
 
 const typeStyles: Record<ParamType, string> = {
   string: 'bg-violet-500/10 text-violet-400',
@@ -10,23 +16,37 @@ const typeStyles: Record<ParamType, string> = {
   boolean: 'bg-amber-500/10 text-amber-400',
   object: 'bg-emerald-500/10 text-emerald-400',
   array: 'bg-pink-500/10 text-pink-400',
-}
+};
 
 interface ParamProps {
-  name: string
-  type: ParamType
-  required?: boolean
-  default?: string
-  description: string
-  children?: ReactNode
+  name: string;
+  type: ParamType;
+  required?: boolean;
+  default?: string;
+  description: string;
+  children?: ReactNode;
 }
 
-export function Param({ name, type, required, default: defaultValue, description, children }: ParamProps) {
+export function Param({
+  name,
+  type,
+  required,
+  default: defaultValue,
+  description,
+  children,
+}: ParamProps) {
   return (
     <div className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0 border-b border-[var(--sl-color-hairline)] last:border-0">
       <div className="flex items-center gap-2 flex-wrap">
-        <code className="font-mono text-sm font-medium text-[var(--sl-color-white)]">{name}</code>
-        <span className={cn('px-1.5 py-0.5 text-xs font-medium', typeStyles[type] || typeStyles.string)}>
+        <code className="font-mono text-sm font-medium text-[var(--sl-color-white)]">
+          {name}
+        </code>
+        <span
+          className={cn(
+            'px-1.5 py-0.5 text-xs font-medium',
+            typeStyles[type] || typeStyles.string,
+          )}
+        >
           {type}
         </span>
         {required && (
@@ -47,11 +67,11 @@ export function Param({ name, type, required, default: defaultValue, description
         </div>
       )}
     </div>
-  )
+  );
 }
 
 interface ParamTableProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function ParamTable({ children }: ParamTableProps) {
@@ -66,18 +86,18 @@ export function ParamTable({ children }: ParamTableProps) {
         {children}
       </div>
     </div>
-  )
+  );
 }
 
 // Alternative: inline params for simple cases
 interface ParamInlineProps {
   params: Array<{
-    name: string
-    type: ParamType
-    required?: boolean
-    default?: string
-    description: string
-  }>
+    name: string;
+    type: ParamType;
+    required?: boolean;
+    default?: string;
+    description: string;
+  }>;
 }
 
 export function ParamInline({ params }: ParamInlineProps) {
@@ -87,5 +107,5 @@ export function ParamInline({ params }: ParamInlineProps) {
         <Param key={param.name} {...param} />
       ))}
     </ParamTable>
-  )
+  );
 }

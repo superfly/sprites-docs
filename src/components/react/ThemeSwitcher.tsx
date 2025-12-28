@@ -1,86 +1,94 @@
-"use client"
+'use client';
 
-import { useEffect, useState } from "react"
-import { Sun, Moon, Monitor } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Monitor, Moon, Sun } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { cn } from "@/lib/utils"
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
-type Theme = "light" | "dark" | "auto"
+type Theme = 'light' | 'dark' | 'auto';
 
 const themes = [
-  { value: "light" as Theme, label: "Light", icon: Sun },
-  { value: "dark" as Theme, label: "Dark", icon: Moon },
-  { value: "auto" as Theme, label: "System", icon: Monitor },
-]
+  { value: 'light' as Theme, label: 'Light', icon: Sun },
+  { value: 'dark' as Theme, label: 'Dark', icon: Moon },
+  { value: 'auto' as Theme, label: 'System', icon: Monitor },
+];
 
 function getTheme(): Theme {
-  if (typeof localStorage !== "undefined") {
-    const stored = localStorage.getItem("starlight-theme")
-    if (stored === "light" || stored === "dark" || stored === "auto") {
-      return stored
+  if (typeof localStorage !== 'undefined') {
+    const stored = localStorage.getItem('starlight-theme');
+    if (stored === 'light' || stored === 'dark' || stored === 'auto') {
+      return stored;
     }
   }
-  return "auto"
+  return 'auto';
 }
 
 function setTheme(theme: Theme) {
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem("starlight-theme", theme)
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('starlight-theme', theme);
   }
 
-  const root = document.documentElement
+  const root = document.documentElement;
 
-  if (theme === "auto") {
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    root.dataset.theme = prefersDark ? "dark" : "light"
+  if (theme === 'auto') {
+    const prefersDark = window.matchMedia(
+      '(prefers-color-scheme: dark)',
+    ).matches;
+    root.dataset.theme = prefersDark ? 'dark' : 'light';
   } else {
-    root.dataset.theme = theme
+    root.dataset.theme = theme;
   }
 
   // Dispatch event for Starlight's theme provider
-  document.dispatchEvent(new CustomEvent("theme-changed", { detail: { theme } }))
+  document.dispatchEvent(
+    new CustomEvent('theme-changed', { detail: { theme } }),
+  );
 }
 
 export function ThemeSwitcher() {
-  const [theme, setThemeState] = useState<Theme>("auto")
-  const [mounted, setMounted] = useState(false)
+  const [theme, setThemeState] = useState<Theme>('auto');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true)
-    setThemeState(getTheme())
+    setMounted(true);
+    setThemeState(getTheme());
 
     // Listen for system preference changes
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)")
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = () => {
-      if (getTheme() === "auto") {
-        setTheme("auto")
+      if (getTheme() === 'auto') {
+        setTheme('auto');
       }
-    }
-    mediaQuery.addEventListener("change", handleChange)
-    return () => mediaQuery.removeEventListener("change", handleChange)
-  }, [])
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
   const handleThemeChange = (newTheme: Theme) => {
-    setThemeState(newTheme)
-    setTheme(newTheme)
-  }
+    setThemeState(newTheme);
+    setTheme(newTheme);
+  };
 
-  const currentTheme = themes.find((t) => t.value === theme) || themes[2]
-  const CurrentIcon = currentTheme.icon
+  const currentTheme = themes.find((t) => t.value === theme) || themes[2];
+  const CurrentIcon = currentTheme.icon;
 
   if (!mounted) {
     return (
-      <Button variant="ghost" size="icon-sm" className="text-[var(--sl-color-gray-2)]">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        className="text-[var(--sl-color-gray-2)]"
+      >
         <Sun className="h-4 w-4" />
         <span className="sr-only">Toggle theme</span>
       </Button>
-    )
+    );
   }
 
   return (
@@ -101,8 +109,8 @@ export function ThemeSwitcher() {
             key={value}
             onClick={() => handleThemeChange(value)}
             className={cn(
-              "gap-2 cursor-pointer",
-              theme === value && "bg-accent"
+              'gap-2 cursor-pointer',
+              theme === value && 'bg-accent',
             )}
           >
             <Icon className="h-4 w-4" />
@@ -111,5 +119,5 @@ export function ThemeSwitcher() {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
