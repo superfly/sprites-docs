@@ -52,12 +52,11 @@ import SearchDialogWrapper from './react/SearchDialogWrapper';
   .search-trigger {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 0.375rem 0.75rem;
-    min-width: 12rem;
-    background: var(--sl-color-gray-6);
-    border: 1px solid var(--sl-color-hairline);
-    border-radius: 0.375rem;
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
     color: var(--sl-color-gray-2);
     font-size: 0.875rem;
     cursor: pointer;
@@ -66,14 +65,36 @@ import SearchDialogWrapper from './react/SearchDialogWrapper';
   }
 
   .search-trigger:hover {
-    background: var(--sl-color-gray-5);
-    border-color: var(--sl-color-gray-4);
+    color: var(--sl-color-gray-1);
+  }
+
+  @media (min-width: 640px) {
+    .search-trigger {
+      padding: 0.375rem 0.75rem;
+      min-width: 12rem;
+      justify-content: flex-start;
+      background: var(--sl-color-gray-6);
+      border: 1px solid var(--sl-color-hairline);
+      border-radius: 0.375rem;
+    }
+
+    .search-trigger:hover {
+      background: var(--sl-color-gray-5);
+      border-color: var(--sl-color-gray-4);
+    }
   }
 
   .search-icon {
-    width: 1rem;
-    height: 1rem;
+    width: 1.25rem;
+    height: 1.25rem;
     opacity: 0.7;
+  }
+
+  @media (min-width: 640px) {
+    .search-icon {
+      width: 1rem;
+      height: 1rem;
+    }
   }
 
   .search-label {

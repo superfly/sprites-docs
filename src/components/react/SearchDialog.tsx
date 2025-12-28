@@ -281,19 +281,29 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
 
   // Focus input and blur page content when dialog opens
   useEffect(() => {
+    const unlockScroll = () => {
+      const scrollY = document.body.style.top;
+      document.body.classList.remove('search-dialog-open');
+      document.body.style.top = '';
+      if (scrollY) {
+        window.scrollTo(0, Number.parseInt(scrollY, 10) * -1);
+      }
+    };
+
     if (isOpen) {
+      // Save scroll position before locking
+      const scrollY = window.scrollY;
+      document.body.style.top = `-${scrollY}px`;
       document.body.classList.add('search-dialog-open');
       setTimeout(() => inputRef.current?.focus(), 50);
       setQuery('');
       setResults([]);
       setSelectedIndex(0);
     } else {
-      document.body.classList.remove('search-dialog-open');
+      unlockScroll();
     }
 
-    return () => {
-      document.body.classList.remove('search-dialog-open');
-    };
+    return unlockScroll;
   }, [isOpen]);
 
   // Search effect with manual debouncing
@@ -455,7 +465,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 px-6 sm:pt-[10vh] sm:px-4">
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -472,7 +482,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: -10 }}
         transition={{ duration: 0.15 }}
-        className="relative w-full max-w-2xl mx-4 bg-popover border border-border rounded-lg shadow-2xl overflow-hidden"
+        className="relative w-full max-w-2xl bg-popover border border-border rounded-lg shadow-2xl overflow-hidden"
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">

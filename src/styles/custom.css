@@ -480,6 +480,9 @@ starlight-tabs [role="tab"][aria-selected="true"] {
 /* Search dialog open state - blur page content and prevent scroll */
 body.search-dialog-open {
   overflow: hidden;
+  position: fixed;
+  inset: 0;
+  touch-action: none;
 }
 
 body.search-dialog-open .page {
