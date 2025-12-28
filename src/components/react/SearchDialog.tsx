@@ -1,93 +1,99 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { createPortal } from 'react-dom'
-import { motion } from 'motion/react'
-import { cn } from '@/lib/utils'
-import { Spinner } from '@/components/ui/spinner'
-import { Kbd, KbdGroup } from '@/components/ui/kbd'
-import { AnimatedItem } from './AnimatedList'
+import { motion } from 'motion/react';
+import type React from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Kbd, KbdGroup } from '@/components/ui/kbd';
+import { Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
+import { AnimatedItem } from './AnimatedList';
 
 // Types for Pagefind
 interface PagefindSubResult {
-  url: string
-  title: string
-  excerpt: string
+  url: string;
+  title: string;
+  excerpt: string;
   anchor?: {
-    element: string
-    id: string
-    text: string
-  }
+    element: string;
+    id: string;
+    text: string;
+  };
 }
 
 interface PagefindResult {
-  id: string
-  url: string
-  excerpt: string
-  content: string
+  id: string;
+  url: string;
+  excerpt: string;
+  content: string;
   meta: {
-    title: string
-    image?: string
-  }
-  sub_results: PagefindSubResult[]
+    title: string;
+    image?: string;
+  };
+  sub_results: PagefindSubResult[];
   anchors: Array<{
-    element: string
-    id: string
-    text: string
-    location: number
-  }>
+    element: string;
+    id: string;
+    text: string;
+    location: number;
+  }>;
 }
 
 interface PagefindSearchResult {
   results: Array<{
-    id: string
-    score: number
-    data: () => Promise<PagefindResult>
-  }>
+    id: string;
+    score: number;
+    data: () => Promise<PagefindResult>;
+  }>;
 }
 
 interface Pagefind {
-  init: () => Promise<void>
-  options: (opts: Record<string, unknown>) => Promise<void>
-  search: (query: string, options?: Record<string, unknown>) => Promise<PagefindSearchResult | null>
-  debouncedSearch: (query: string, options?: Record<string, unknown>, timeout?: number) => Promise<PagefindSearchResult | null>
-  preload: (query: string, options?: Record<string, unknown>) => Promise<void>
-  destroy: () => Promise<void>
+  init: () => Promise<void>;
+  options: (opts: Record<string, unknown>) => Promise<void>;
+  search: (
+    query: string,
+    options?: Record<string, unknown>,
+  ) => Promise<PagefindSearchResult | null>;
+  debouncedSearch: (
+    query: string,
+    options?: Record<string, unknown>,
+    timeout?: number,
+  ) => Promise<PagefindSearchResult | null>;
+  preload: (query: string, options?: Record<string, unknown>) => Promise<void>;
+  destroy: () => Promise<void>;
 }
 
 declare global {
   interface Window {
-    pagefind?: Pagefind
+    pagefind?: Pagefind;
   }
 }
 
 // Flattened item for navigation
 interface SelectableItem {
-  id: string
-  url: string
-  title: string
-  excerpt: string
-  type: 'page' | 'section'
-  isLastInGroup: boolean
+  id: string;
+  url: string;
+  title: string;
+  excerpt: string;
+  type: 'page' | 'section';
+  isLastInGroup: boolean;
 }
 
 // Main page result item
 const PageResultItem: React.FC<{
-  item: SelectableItem
-  isSelected: boolean
+  item: SelectableItem;
+  isSelected: boolean;
 }> = ({ item, isSelected }) => {
   return (
     <div
       className={cn(
         'px-3 py-2.5 rounded-md transition-colors border border-transparent',
-        isSelected
-          ? 'bg-accent border-ring/50'
-          : 'hover:bg-muted'
+        isSelected ? 'bg-accent border-ring/50' : 'hover:bg-muted',
       )}
     >
       <div className="flex items-center gap-3">
         <svg
           className={cn(
             'w-4 h-4 flex-shrink-0',
-            isSelected ? 'text-primary' : 'text-muted-foreground'
+            isSelected ? 'text-primary' : 'text-muted-foreground',
           )}
           fill="none"
           viewBox="0 0 24 24"
@@ -103,26 +109,28 @@ const PageResultItem: React.FC<{
         <span
           className={cn(
             'text-sm font-medium flex-1',
-            isSelected ? 'text-accent-foreground' : 'text-foreground'
+            isSelected ? 'text-accent-foreground' : 'text-foreground',
           )}
         >
           {item.title}
         </span>
-        <Kbd className={cn(
-          "transition-opacity",
-          isSelected ? "opacity-100" : "opacity-0"
-        )}>
+        <Kbd
+          className={cn(
+            'transition-opacity',
+            isSelected ? 'opacity-100' : 'opacity-0',
+          )}
+        >
           Enter
         </Kbd>
       </div>
     </div>
-  )
-}
+  );
+};
 
 // Sub-result item with tree connector
 const SectionResultItem: React.FC<{
-  item: SelectableItem
-  isSelected: boolean
+  item: SelectableItem;
+  isSelected: boolean;
 }> = ({ item, isSelected }) => {
   return (
     <div className="flex items-stretch">
@@ -132,7 +140,7 @@ const SectionResultItem: React.FC<{
         <div
           className={cn(
             'absolute left-1/2 -translate-x-1/2 w-px bg-border',
-            item.isLastInGroup ? 'top-0 h-1/2' : 'inset-y-0'
+            item.isLastInGroup ? 'top-0 h-1/2' : 'inset-y-0',
           )}
         />
         {/* Horizontal line */}
@@ -143,9 +151,7 @@ const SectionResultItem: React.FC<{
       <div
         className={cn(
           'flex-1 px-3 py-2 rounded-md transition-colors border border-transparent',
-          isSelected
-            ? 'bg-accent border-ring/50'
-            : 'hover:bg-muted'
+          isSelected ? 'bg-accent border-ring/50' : 'hover:bg-muted',
         )}
       >
         <div className="flex items-start justify-between gap-2">
@@ -153,7 +159,7 @@ const SectionResultItem: React.FC<{
             <div
               className={cn(
                 'text-sm font-medium',
-                isSelected ? 'text-accent-foreground' : 'text-foreground'
+                isSelected ? 'text-accent-foreground' : 'text-foreground',
               )}
             >
               {item.title}
@@ -161,86 +167,91 @@ const SectionResultItem: React.FC<{
             {item.excerpt && (
               <div
                 className="text-xs text-muted-foreground mt-1 line-clamp-2 [&_mark]:bg-yellow-500/30 [&_mark]:text-inherit [&_mark]:rounded-sm"
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: pagefind sanitizes excerpts
                 dangerouslySetInnerHTML={{ __html: item.excerpt }}
               />
             )}
           </div>
-          <Kbd className={cn(
-            "flex-shrink-0 transition-opacity",
-            isSelected ? "opacity-100" : "opacity-0"
-          )}>
+          <Kbd
+            className={cn(
+              'flex-shrink-0 transition-opacity',
+              isSelected ? 'opacity-100' : 'opacity-0',
+            )}
+          >
             Enter
           </Kbd>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export interface SearchDialogProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export const SearchDialog: React.FC<SearchDialogProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [query, setQuery] = useState('')
-  const [results, setResults] = useState<PagefindResult[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [selectedIndex, setSelectedIndex] = useState(0)
-  const [topGradientOpacity, setTopGradientOpacity] = useState(0)
-  const [bottomGradientOpacity, setBottomGradientOpacity] = useState(0)
-  const [pagefindReady, setPagefindReady] = useState(false)
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<PagefindResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [topGradientOpacity, setTopGradientOpacity] = useState(0);
+  const [bottomGradientOpacity, setBottomGradientOpacity] = useState(0);
+  const [pagefindReady, setPagefindReady] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement>(null)
-  const listRef = useRef<HTMLDivElement>(null)
-  const dialogRef = useRef<HTMLDivElement>(null)
-  const searchIdRef = useRef<number>(0)
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const searchIdRef = useRef<number>(0);
 
   // Load Pagefind once on mount
   useEffect(() => {
     const loadPagefind = async () => {
       if (window.pagefind) {
-        setPagefindReady(true)
-        return
+        setPagefindReady(true);
+        return;
       }
 
       try {
-        const pagefindPath = '/pagefind/pagefind.js'
-        const module = await (Function('return import("' + pagefindPath + '")')() as Promise<Pagefind>)
-        window.pagefind = module
+        const pagefindPath = '/pagefind/pagefind.js';
+        const module = await (Function(
+          `return import("${pagefindPath}")`,
+        )() as Promise<Pagefind>);
+        window.pagefind = module;
 
         // Configure options
         await module.options({
           excerptLength: 20,
           highlightParam: 'highlight',
-        })
+        });
 
-        setPagefindReady(true)
+        setPagefindReady(true);
       } catch (error) {
-        console.error('Failed to load Pagefind:', error)
+        console.error('Failed to load Pagefind:', error);
       }
-    }
+    };
 
-    loadPagefind()
-  }, [])
+    loadPagefind();
+  }, []);
 
   // Flatten results into selectable items
   const selectableItems = useMemo((): SelectableItem[] => {
-    const items: SelectableItem[] = []
+    const items: SelectableItem[] = [];
 
     results.forEach((result) => {
       // Get sub_results, filtering out the main page URL if it appears first
-      const subResults = result.sub_results || []
+      const subResults = result.sub_results || [];
       const sections = subResults.filter((sub, idx) => {
         // Keep if URL has a hash (it's a section link)
-        if (sub.url.includes('#')) return true
+        if (sub.url.includes('#')) return true;
         // Skip first item if it's just the page URL without hash
-        if (idx === 0 && sub.url === result.url) return false
-        return true
-      })
+        if (idx === 0 && sub.url === result.url) return false;
+        return true;
+      });
 
       // Add main page result
       items.push({
@@ -250,7 +261,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
         excerpt: '',
         type: 'page',
         isLastInGroup: sections.length === 0,
-      })
+      });
 
       // Add section results (limit to 3)
       sections.slice(0, 3).forEach((sub, idx) => {
@@ -261,184 +272,187 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
           excerpt: sub.excerpt || '',
           type: 'section',
           isLastInGroup: idx === Math.min(sections.length, 3) - 1,
-        })
-      })
-    })
+        });
+      });
+    });
 
-    return items
-  }, [results])
+    return items;
+  }, [results]);
 
   // Focus input and blur page content when dialog opens
   useEffect(() => {
     if (isOpen) {
-      document.body.classList.add('search-dialog-open')
-      setTimeout(() => inputRef.current?.focus(), 50)
-      setQuery('')
-      setResults([])
-      setSelectedIndex(0)
+      document.body.classList.add('search-dialog-open');
+      setTimeout(() => inputRef.current?.focus(), 50);
+      setQuery('');
+      setResults([]);
+      setSelectedIndex(0);
     } else {
-      document.body.classList.remove('search-dialog-open')
+      document.body.classList.remove('search-dialog-open');
     }
 
     return () => {
-      document.body.classList.remove('search-dialog-open')
-    }
-  }, [isOpen])
+      document.body.classList.remove('search-dialog-open');
+    };
+  }, [isOpen]);
 
   // Search effect with manual debouncing
   useEffect(() => {
     // Increment search ID to invalidate any pending searches
-    const currentSearchId = ++searchIdRef.current
+    const currentSearchId = ++searchIdRef.current;
 
     // Clear results immediately when query is empty
     if (!query.trim()) {
-      setResults([])
-      setIsLoading(false)
-      setSelectedIndex(0)
-      return
+      setResults([]);
+      setIsLoading(false);
+      setSelectedIndex(0);
+      return;
     }
 
     if (!window.pagefind) {
-      return
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     // Preload indexes for faster search
     if (query.length >= 2) {
-      window.pagefind.preload(query)
+      window.pagefind.preload(query);
     }
 
     // Debounce the actual search
     const timeoutId = setTimeout(async () => {
       // Check if this search is still valid
       if (searchIdRef.current !== currentSearchId) {
-        return
+        return;
       }
 
       try {
-        const search = await window.pagefind!.search(query)
+        const search = await window.pagefind?.search(query);
 
         // Check again after async operation
         if (searchIdRef.current !== currentSearchId) {
-          return
+          return;
         }
 
         if (!search || search.results.length === 0) {
-          setResults([])
-          setSelectedIndex(0)
-          setIsLoading(false)
-          return
+          setResults([]);
+          setSelectedIndex(0);
+          setIsLoading(false);
+          return;
         }
 
         // Load first 6 page results
         const loadedResults = await Promise.all(
-          search.results.slice(0, 6).map((r) => r.data())
-        )
+          search.results.slice(0, 6).map((r) => r.data()),
+        );
 
         // Final check before setting state
         if (searchIdRef.current !== currentSearchId) {
-          return
+          return;
         }
 
-        setResults(loadedResults)
-        setSelectedIndex(0)
-        setIsLoading(false)
+        setResults(loadedResults);
+        setSelectedIndex(0);
+        setIsLoading(false);
       } catch (error) {
-        console.error('Search error:', error)
+        console.error('Search error:', error);
         if (searchIdRef.current === currentSearchId) {
-          setResults([])
-          setIsLoading(false)
+          setResults([]);
+          setIsLoading(false);
         }
       }
-    }, 150)
+    }, 150);
 
     // Cleanup: clear timeout if query changes before it fires
     return () => {
-      clearTimeout(timeoutId)
-    }
-  }, [query])
+      clearTimeout(timeoutId);
+    };
+  }, [query]);
 
   // Handle scroll for gradients
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.target as HTMLDivElement
-    setTopGradientOpacity(Math.min(scrollTop / 50, 1))
-    const bottomDistance = scrollHeight - (scrollTop + clientHeight)
+    const { scrollTop, scrollHeight, clientHeight } =
+      e.target as HTMLDivElement;
+    setTopGradientOpacity(Math.min(scrollTop / 50, 1));
+    const bottomDistance = scrollHeight - (scrollTop + clientHeight);
     setBottomGradientOpacity(
-      scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1)
-    )
-  }
+      scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1),
+    );
+  };
 
   // Check initial scroll state
   useEffect(() => {
     if (!listRef.current || selectableItems.length === 0) {
-      setBottomGradientOpacity(0)
-      return
+      setBottomGradientOpacity(0);
+      return;
     }
-    const { scrollHeight, clientHeight } = listRef.current
-    setBottomGradientOpacity(scrollHeight <= clientHeight ? 0 : 1)
-  }, [selectableItems])
+    const { scrollHeight, clientHeight } = listRef.current;
+    setBottomGradientOpacity(scrollHeight <= clientHeight ? 0 : 1);
+  }, [selectableItems]);
 
   // Keyboard navigation
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       switch (e.key) {
         case 'ArrowDown':
-          e.preventDefault()
-          setSelectedIndex((prev) => Math.min(prev + 1, selectableItems.length - 1))
-          break
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            Math.min(prev + 1, selectableItems.length - 1),
+          );
+          break;
         case 'ArrowUp':
-          e.preventDefault()
-          setSelectedIndex((prev) => Math.max(prev - 1, 0))
-          break
+          e.preventDefault();
+          setSelectedIndex((prev) => Math.max(prev - 1, 0));
+          break;
         case 'Enter':
-          e.preventDefault()
+          e.preventDefault();
           if (selectableItems[selectedIndex]) {
-            window.location.href = selectableItems[selectedIndex].url
-            onClose()
+            window.location.href = selectableItems[selectedIndex].url;
+            onClose();
           }
-          break
+          break;
         case 'Escape':
-          e.preventDefault()
-          onClose()
-          break
+          e.preventDefault();
+          onClose();
+          break;
       }
-    }
+    };
 
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, selectableItems, selectedIndex, onClose])
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, selectableItems, selectedIndex, onClose]);
 
   // Scroll selected item into view
   useEffect(() => {
-    if (!listRef.current || selectedIndex < 0) return
+    if (!listRef.current || selectedIndex < 0) return;
 
     const selectedItem = listRef.current.querySelector(
-      `[data-index="${selectedIndex}"]`
-    ) as HTMLElement | null
+      `[data-index="${selectedIndex}"]`,
+    ) as HTMLElement | null;
 
     if (selectedItem) {
-      selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
-  }, [selectedIndex])
+  }, [selectedIndex]);
 
   // Click outside to close
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) return;
 
     const handleClick = (e: MouseEvent) => {
       if (dialogRef.current && !dialogRef.current.contains(e.target as Node)) {
-        onClose()
+        onClose();
       }
-    }
+    };
 
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [isOpen, onClose])
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [isOpen, onClose]);
 
-  if (!isOpen) return null
+  if (!isOpen) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh]">
@@ -480,17 +494,30 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={pagefindReady ? "Search documentation..." : "Loading search..."}
+            placeholder={
+              pagefindReady ? 'Search documentation...' : 'Loading search...'
+            }
             disabled={!pagefindReady}
             className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm disabled:opacity-50"
           />
           {query && (
             <button
+              type="button"
               onClick={() => setQuery('')}
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           )}
@@ -500,7 +527,8 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
         {/* Results count */}
         {!isLoading && query && results.length > 0 && (
           <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
-            {results.length} result{results.length !== 1 ? 's' : ''} for "{query}"
+            {results.length} result{results.length !== 1 ? 's' : ''} for "
+            {query}"
           </div>
         )}
 
@@ -533,8 +561,8 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                     delay={0.03}
                     onMouseEnter={() => setSelectedIndex(index)}
                     onClick={() => {
-                      window.location.href = item.url
-                      onClose()
+                      window.location.href = item.url;
+                      onClose();
                     }}
                   >
                     {item.type === 'section' ? (
@@ -583,8 +611,8 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
         )}
       </motion.div>
     </div>,
-    document.body
-  )
-}
+    document.body,
+  );
+};
 
-export default SearchDialog
+export default SearchDialog;
