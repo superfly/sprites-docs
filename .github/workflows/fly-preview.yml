@@ -1,0 +1,72 @@
+name: Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_PREVIEW_API_TOKEN }}
+  FLY_REGION: iad
+  FLY_ORG: ${{ vars.FLY_PREVIEW_ORG }}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    concurrency:
+      group: pr-${{ github.event.number }}
+
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy preview app
+        id: deploy
+        uses: superfly/fly-pr-review-apps@1.2.1
+        with:
+          config: fly.preview.toml
+          vmsize: shared-cpu-1x
+          memory: 256
+
+      - name: Comment on PR
+        if: github.event.action != 'closed'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            const sha = context.sha.substring(0, 7);
+            const body = `### Preview Deployment\n\n| Name | URL |\n|------|-----|\n| Preview | ${url} |\n\nCommit: \`${sha}\``;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('### Preview Deployment'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
