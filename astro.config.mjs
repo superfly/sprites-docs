@@ -20,6 +20,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Sprites',
+      disable404Route: true,
       logo: {
         light: './src/assets/logo-light.svg',
         dark: './src/assets/logo-dark.svg',

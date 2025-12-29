@@ -1,0 +1,363 @@
+---
+import PixelBlast from '@components/PixelBlast';
+import SearchDialogWrapper from '@components/react/SearchDialogWrapper';
+import '@/styles/custom.css';
+---
+
+<html lang="en" data-theme="dark" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>404 - Page Not Found | Sprites</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html, body {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: oklch(0.147 0.004 49.25);
+        color: oklch(0.985 0.001 106.423);
+      }
+
+      .container {
+        position: relative;
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+
+      .background {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+      }
+
+      .background::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          circle at center,
+          oklch(0.147 0.004 49.25) 0%,
+          oklch(0.147 0.004 49.25) 20%,
+          oklch(0.147 0.004 49.25 / 70%) 35%,
+          oklch(0.147 0.004 49.25 / 30%) 50%,
+          transparent 65%
+        );
+        pointer-events: none;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        text-decoration: none;
+        color: oklch(0.985 0.001 106.423);
+        margin-bottom: 1.5rem;
+        position: relative;
+        z-index: 20;
+      }
+
+      .logo svg {
+        height: 1.25rem;
+        width: auto;
+      }
+
+      .logo span {
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 1.125rem;
+        font-weight: 600;
+      }
+
+      .terminal {
+        position: relative;
+        z-index: 10;
+        width: 100%;
+        max-width: 560px;
+        background: oklch(0.12 0.004 49.25 / 90%);
+        border: 1px solid oklch(1 0 0 / 10%);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+      }
+
+      .terminal-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        background: oklch(0.18 0.004 49.25 / 80%);
+        border-bottom: 1px solid oklch(1 0 0 / 10%);
+      }
+
+      .terminal-dots {
+        display: flex;
+        gap: 0.375rem;
+      }
+
+      .terminal-dot {
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 50%;
+      }
+
+      .terminal-dot.red { background: #ff5f57; }
+      .terminal-dot.yellow { background: #febc2e; }
+      .terminal-dot.green { background: #28c840; }
+
+      .terminal-title {
+        flex: 1;
+        text-align: center;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.75rem;
+        color: oklch(0.6 0.01 56.259);
+        margin-right: 3rem;
+      }
+
+      .terminal-body {
+        padding: 1.5rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.875rem;
+        line-height: 1.7;
+      }
+
+      .line {
+        margin-bottom: 0.25rem;
+      }
+
+      .prompt {
+        color: oklch(0.648 0.2 131.684);
+        user-select: none;
+      }
+
+      .command {
+        color: oklch(0.9 0.01 106.423);
+      }
+
+      .path {
+        color: oklch(0.768 0.233 130.85);
+      }
+
+      .error-line {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        margin: 0.75rem 0;
+      }
+
+      .error-code {
+        color: oklch(0.704 0.191 22.216);
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.125rem 0.375rem;
+        background: oklch(0.704 0.191 22.216 / 15%);
+        border-radius: 0.25rem;
+      }
+
+      .error-msg {
+        color: oklch(0.85 0.01 106.423);
+      }
+
+      .info {
+        color: oklch(0.6 0.01 56.259);
+        margin: 1.25rem 0;
+      }
+
+      .comment {
+        color: oklch(0.5 0.01 56.259);
+      }
+
+      .cursor {
+        display: inline-block;
+        width: 0.5rem;
+        height: 1.1em;
+        background: oklch(0.648 0.2 131.684);
+        margin-left: 0.25rem;
+        animation: blink 1s step-end infinite;
+        vertical-align: text-bottom;
+      }
+
+      @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+      }
+
+      .actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        justify-content: center;
+        position: relative;
+        z-index: 10;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        padding: 0.5rem 1rem;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        border-radius: 0.375rem;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        cursor: pointer;
+      }
+
+      .btn-primary {
+        color: oklch(0.147 0.004 49.25);
+        background: oklch(0.648 0.2 131.684);
+        border: none;
+      }
+
+      .btn-primary:hover {
+        background: oklch(0.768 0.233 130.85);
+      }
+
+      .btn-secondary {
+        color: oklch(0.8 0.01 106.423);
+        background: transparent;
+        border: 1px solid oklch(1 0 0 / 20%);
+      }
+
+      .btn-secondary:hover {
+        background: oklch(1 0 0 / 5%);
+        border-color: oklch(1 0 0 / 30%);
+      }
+
+      .btn svg {
+        width: 0.875rem;
+        height: 0.875rem;
+      }
+
+      /* Hide background when search is open */
+      body.search-dialog-open .background {
+        opacity: 0;
+        transition: opacity 0.15s ease;
+      }
+
+      body.search-dialog-open .container {
+        background: oklch(0.147 0.004 49.25);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="background">
+        <PixelBlast
+          client:load
+          variant="square"
+          pixelSize={4}
+          color="#22c55e"
+          patternScale={3}
+          patternDensity={1.6}
+          speed={0.1}
+          edgeFade={0}
+          enableRipples={true}
+          rippleSpeed={0.3}
+          rippleThickness={0.08}
+          rippleIntensityScale={0.8}
+          seed={404}
+          style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+        />
+      </div>
+
+      <a href="/" class="logo">
+        <svg width="20" height="20" viewBox="0 0 724 582" fill-rule="evenodd">
+          <path d="M205.594 197.898h322.661v108.263H205.594z" fill="#16a34a"/>
+          <path d="M578.582 508.799h-72.323v72.686h72.323v-72.686zm-361.614 0h-72.323v72.686h72.323v-72.686zm361.614-290.742h72.323v145.371h-72.323v72.686h-74.229 1.906v72.685H216.968v-72.685h-72.323v-72.686H72.323V218.057h72.322v-73.163h72.323V72.686h72.323v72.685h144.645V72.686h72.323v72.685h72.323v72.686zM72.323 508.799V363.428H0v145.371h72.323zm650.904 0V363.428h-72.322v145.371h72.322zM289.423 290.742h-.132.132zm-72.455-72.685h72.323v72.685h-72.323v-72.685zm216.968 0h72.323v72.685h-72.323v-72.685zM578.582 0h-72.323v72.686h72.323V0zM216.968 0h-72.323v72.686h72.323V0z" fill="#16a34a"/>
+          <path d="M144.645 363.428V218.057h72.323v-72.686h289.291v72.686h72.323v72.685l-.001.001v72.685h-72.322v72.686h-72.323V508.8H289.291v-72.686h-72.323v-72.686h-72.323zm144.646-72.686h-72.323v-72.685h72.323v72.685zm216.968 0h-72.323v-72.685h72.323v72.685z" fill="#22c55e"/>
+          <rect x="216.968" y="218.057" width="72.323" height="72.685" fill="black"/>
+          <rect x="433.936" y="218.057" width="72.323" height="72.685" fill="black"/>
+        </svg>
+        <span>Sprites</span>
+      </a>
+
+      <div class="terminal">
+        <div class="terminal-header">
+          <div class="terminal-dots">
+            <div class="terminal-dot red"></div>
+            <div class="terminal-dot yellow"></div>
+            <div class="terminal-dot green"></div>
+          </div>
+        </div>
+        <div class="terminal-body">
+          <div class="line">
+            <span class="prompt">$ </span>
+            <span class="command">sprite exec</span>
+            <span class="path"> {Astro.url.pathname}</span>
+          </div>
+          <div class="error-line">
+            <span class="error-code">404</span>
+            <span class="error-msg">This sprite escaped its sandbox</span>
+          </div>
+          <div class="info">
+            Page not found. This URL doesn't exist —<br/>
+            it may have moved, or never been here at all.
+          </div>
+          <div class="line">
+            <span class="prompt">$ </span>
+            <span class="cursor"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a href="/" class="btn btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          cd ~/docs
+        </a>
+        <button type="button" class="btn btn-secondary" id="search-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+          </svg>
+          search
+        </button>
+        <a href="https://sprites.dev" class="btn btn-secondary" target="_blank" rel="noopener">
+          sprites.dev
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+        </a>
+      </div>
+
+      <SearchDialogWrapper client:load />
+    </div>
+
+    <script>
+      const openSearch = () => {
+        document.dispatchEvent(new CustomEvent('open-search'));
+      };
+
+      document.getElementById('search-btn')?.addEventListener('click', openSearch);
+
+      document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+          e.preventDefault();
+          openSearch();
+        }
+      });
+    </script>
+  </body>
+</html>
