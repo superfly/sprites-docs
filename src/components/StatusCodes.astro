@@ -1,0 +1,18 @@
+---
+import { StatusCodes as StatusCodesReact } from './react/StatusCodes';
+
+interface StatusCode {
+  code: number;
+  label: string;
+  description?: string;
+}
+
+interface Props {
+  codes: StatusCode[];
+  columns?: 2 | 3 | 4;
+}
+
+const props = Astro.props;
+---
+
+<StatusCodesReact {...props} client:load />

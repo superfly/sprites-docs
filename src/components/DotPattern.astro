@@ -1,0 +1,19 @@
+---
+import { DotPattern as DotPatternReact } from './react/DotPattern';
+
+interface Props {
+  width?: number;
+  height?: number;
+  x?: number;
+  y?: number;
+  cx?: number;
+  cy?: number;
+  cr?: number;
+  className?: string;
+  glow?: boolean;
+}
+
+const props = Astro.props;
+---
+
+<DotPatternReact {...props} client:load />

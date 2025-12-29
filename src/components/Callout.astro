@@ -1,0 +1,12 @@
+---
+import { Callout as CalloutReact } from './react/Callout';
+
+interface Props {
+  type?: 'info' | 'warning' | 'danger' | 'tip';
+  title?: string;
+}
+
+const props = Astro.props;
+---
+
+<CalloutReact {...props} client:load><slot /></CalloutReact>

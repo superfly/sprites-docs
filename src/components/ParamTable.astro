@@ -1,0 +1,7 @@
+---
+import { ParamTable as ParamTableReact } from './react/ParamTable';
+
+const props = Astro.props;
+---
+
+<ParamTableReact {...props} client:load><slot /></ParamTableReact>

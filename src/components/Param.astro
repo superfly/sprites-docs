@@ -1,0 +1,15 @@
+---
+import { Param as ParamReact } from './react/ParamTable';
+
+interface Props {
+  name: string;
+  type: 'string' | 'integer' | 'boolean' | 'object' | 'array' | 'number';
+  required?: boolean;
+  default?: string;
+  description: string;
+}
+
+const props = Astro.props;
+---
+
+<ParamReact {...props} client:load><slot /></ParamReact>

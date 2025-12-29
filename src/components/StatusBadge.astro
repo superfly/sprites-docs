@@ -1,0 +1,12 @@
+---
+import { StatusBadge as StatusBadgeReact } from './react/StatusCodes';
+
+interface Props {
+  code: number;
+  label?: string;
+}
+
+const props = Astro.props;
+---
+
+<StatusBadgeReact {...props} client:load />

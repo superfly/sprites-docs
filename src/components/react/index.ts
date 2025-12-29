@@ -20,3 +20,5 @@ export { SearchDialog } from './SearchDialog';
 export { SearchDialogWrapper } from './SearchDialogWrapper';
 export { StatusBadge, StatusCodes } from './StatusCodes';
 export { ThemeSwitcher } from './ThemeSwitcher';
+export { default as PixelBlast } from './PixelBlast';
+export { default as StarBorder } from './StarBorder';
