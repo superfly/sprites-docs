@@ -1,15 +1,50 @@
 ---
-import { Param as ParamReact } from './react/ParamTable';
+/**
+ * Pure Astro Param component - no JavaScript shipped to client
+ */
+type ParamType = 'string' | 'integer' | 'boolean' | 'object' | 'array' | 'number';
 
 interface Props {
   name: string;
-  type: 'string' | 'integer' | 'boolean' | 'object' | 'array' | 'number';
+  type: ParamType;
   required?: boolean;
   default?: string;
   description: string;
 }
 
-const props = Astro.props;
+const { name, type, required, default: defaultValue, description } = Astro.props;
+
+const typeStyles: Record<ParamType, string> = {
+  string: 'bg-violet-500/10 text-violet-400',
+  integer: 'bg-blue-500/10 text-blue-400',
+  number: 'bg-blue-500/10 text-blue-400',
+  boolean: 'bg-amber-500/10 text-amber-400',
+  object: 'bg-emerald-500/10 text-emerald-400',
+  array: 'bg-pink-500/10 text-pink-400',
+};
 ---
 
-<ParamReact {...props} client:load><slot /></ParamReact>
+<div class="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0 border-b border-[var(--sl-color-hairline)] last:border-0">
+  <div class="flex items-center gap-2 flex-wrap">
+    <code class="font-mono text-sm font-medium text-[var(--sl-color-white)]">
+      {name}
+    </code>
+    <span class:list={['px-1.5 py-0.5 text-xs font-medium', typeStyles[type] || typeStyles.string]}>
+      {type}
+    </span>
+    {required && (
+      <span class="px-1.5 py-0.5 text-xs font-medium bg-red-500/10 text-red-400">
+        required
+      </span>
+    )}
+    {defaultValue && (
+      <span class="text-xs text-[var(--sl-color-gray-2)]">
+        default: <code class="font-mono">{defaultValue}</code>
+      </span>
+    )}
+  </div>
+  <p class="text-sm text-[var(--sl-color-gray-2)] m-0">{description}</p>
+  <div class="mt-1 text-sm text-[var(--sl-color-gray-2)] [&_code]:text-xs">
+    <slot />
+  </div>
+</div>
