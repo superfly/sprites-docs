@@ -46,8 +46,8 @@ const PAYG = {
 // Usage pricing (same for overage and PAYG)
 const RATES = {
   cpuHour: 0.07,
-  ramGBHour: 0.011,
-  storageGB: 0.1,
+  ramGBHour: 0.04375,
+  storageGB: 0.5,
 };
 
 type BillingMode = 'plan' | 'payg';
