@@ -4,11 +4,16 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '*.md'
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
 
@@ -29,3 +34,11 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Build Fly app
+        run: flyctl deploy --build-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
