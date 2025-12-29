@@ -29,7 +29,7 @@ const StarBorder = <T extends React.ElementType = 'div'>({
       className={cn('relative inline-block overflow-hidden', className)}
       {...(rest as React.ComponentPropsWithoutRef<T>)}
       style={{
-        padding: `${thickness}px 0`,
+        padding: `${thickness}px`,
         ...(rest as React.CSSProperties & { style?: React.CSSProperties })
           .style,
       }}
