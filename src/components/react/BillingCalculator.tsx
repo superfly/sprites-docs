@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { HOURLY_RATES } from './PricingRates';
 
 // Fixed Sprite resources per active hour
 const VCPUS = 8;
@@ -41,13 +42,6 @@ const PAYG = {
   cpuHours: 0,
   ramGBHours: 0,
   storageGB: 0,
-};
-
-// Usage pricing (same for overage and PAYG)
-const RATES = {
-  cpuHour: 0.07,
-  ramGBHour: 0.04375,
-  storageGB: 0.5,
 };
 
 type BillingMode = 'plan' | 'payg';
@@ -90,11 +84,11 @@ export function BillingCalculator() {
 
   // Calculate usage costs (overage for plan, full cost for PAYG)
   const cpuCost =
-    Math.max(0, cpuHoursUsed - currentPlan.cpuHours) * RATES.cpuHour;
+    Math.max(0, cpuHoursUsed - currentPlan.cpuHours) * HOURLY_RATES.cpu;
   const ramCost =
-    Math.max(0, ramGBHoursUsed - currentPlan.ramGBHours) * RATES.ramGBHour;
+    Math.max(0, ramGBHoursUsed - currentPlan.ramGBHours) * HOURLY_RATES.ram;
   const storageCost =
-    Math.max(0, storageGBUsed - currentPlan.storageGB) * RATES.storageGB;
+    Math.max(0, storageGBUsed - currentPlan.storageGB) * HOURLY_RATES.storage;
   const usageCost = cpuCost + ramCost + storageCost;
 
   const totalCost = currentPlan.price + usageCost;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 
-const HOURLY_RATES = {
+export const HOURLY_RATES = {
   cpu: 0.07,
   ram: 0.04375,
   storage: 0.5,
