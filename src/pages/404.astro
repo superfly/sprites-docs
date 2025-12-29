@@ -11,7 +11,6 @@ import '@/styles/custom.css';
     <title>404 - Page Not Found | Sprites</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <style>
-
       * {
         margin: 0;
         padding: 0;
@@ -31,9 +30,9 @@ import '@/styles/custom.css';
       }
 
       .container {
-        position: relative;
-        height: 100vh;
-        width: 100vw;
+        position: fixed;
+        inset: 0;
+        max-width: none;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -45,6 +44,7 @@ import '@/styles/custom.css';
         position: absolute;
         inset: 0;
         z-index: 0;
+        transition: opacity 0.15s ease;
       }
 
       .background::after {
@@ -120,15 +120,6 @@ import '@/styles/custom.css';
       .terminal-dot.yellow { background: #febc2e; }
       .terminal-dot.green { background: #28c840; }
 
-      .terminal-title {
-        flex: 1;
-        text-align: center;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.75rem;
-        color: oklch(0.6 0.01 56.259);
-        margin-right: 3rem;
-      }
-
       .terminal-body {
         padding: 1.5rem;
         font-family: 'JetBrains Mono', monospace;
@@ -178,10 +169,6 @@ import '@/styles/custom.css';
         margin: 1.25rem 0;
       }
 
-      .comment {
-        color: oklch(0.5 0.01 56.259);
-      }
-
       .cursor {
         display: inline-block;
         width: 0.5rem;
@@ -199,6 +186,7 @@ import '@/styles/custom.css';
 
       .actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 0.75rem;
         margin-top: 1.5rem;
         justify-content: center;
@@ -249,7 +237,6 @@ import '@/styles/custom.css';
       /* Hide background when search is open */
       body.search-dialog-open .background {
         opacity: 0;
-        transition: opacity 0.15s ease;
       }
 
       body.search-dialog-open .container {
@@ -274,7 +261,6 @@ import '@/styles/custom.css';
           rippleThickness={0.08}
           rippleIntensityScale={0.8}
           seed={404}
-          style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
         />
       </div>
 
@@ -325,7 +311,7 @@ import '@/styles/custom.css';
           </svg>
           cd ~/docs
         </a>
-        <button type="button" class="btn btn-secondary" id="search-btn">
+        <button type="button" class="btn btn-secondary" id="search-btn" aria-label="Search documentation">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"/>
             <path d="m21 21-4.35-4.35"/>

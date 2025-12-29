@@ -433,7 +433,7 @@ const PixelBlast: React.FC<PixelBlastProps> = ({
       if (threeRef.current) {
         const t = threeRef.current;
         t.resizeObserver?.disconnect();
-        cancelAnimationFrame(t.raf!);
+        if (t.raf) cancelAnimationFrame(t.raf);
         t.quad?.geometry.dispose();
         t.material.dispose();
         t.composer?.dispose();
@@ -650,8 +650,8 @@ const PixelBlast: React.FC<PixelBlastProps> = ({
         touch,
         liquidEffect,
       };
-    } else {
-      const t = threeRef.current!;
+    } else if (threeRef.current) {
+      const t = threeRef.current;
       t.uniforms.uShapeType.value = SHAPE_MAP[variant] ?? 0;
       t.uniforms.uPixelSize.value = pixelSize * t.renderer.getPixelRatio();
       t.uniforms.uColor.value.set(color);
@@ -682,7 +682,7 @@ const PixelBlast: React.FC<PixelBlastProps> = ({
       if (!threeRef.current) return;
       const t = threeRef.current;
       t.resizeObserver?.disconnect();
-      cancelAnimationFrame(t.raf!);
+      if (t.raf) cancelAnimationFrame(t.raf);
       t.quad?.geometry.dispose();
       t.material.dispose();
       t.composer?.dispose();
@@ -720,6 +720,7 @@ const PixelBlast: React.FC<PixelBlastProps> = ({
       ref={containerRef}
       className={`w-full h-full relative overflow-hidden ${className ?? ''}`}
       style={style}
+      role="img"
       aria-label="PixelBlast interactive background"
     />
   );
