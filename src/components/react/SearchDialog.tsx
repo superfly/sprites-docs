@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import StarBorder from '@/components/StarBorder';
 import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
@@ -476,150 +477,158 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
       />
 
       {/* Dialog */}
-      <motion.div
-        ref={dialogRef}
-        initial={{ opacity: 0, scale: 0.96, y: -10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: -10 }}
-        transition={{ duration: 0.15 }}
-        className="relative w-full max-w-2xl bg-popover border border-border rounded-lg shadow-2xl overflow-hidden"
+      <StarBorder
+        className="w-full max-w-2xl rounded-lg"
+        color="var(--primary)"
+        speed="8s"
+        thickness={1}
+        isAnimating={!query}
       >
-        {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
-          <svg
-            className="w-5 h-5 text-muted-foreground flex-shrink-0"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={
-              pagefindReady ? 'Search documentation...' : 'Loading search...'
-            }
-            disabled={!pagefindReady}
-            className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm disabled:opacity-50"
-          />
-          {query && (
-            <button
-              type="button"
-              onClick={() => setQuery('')}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+        <motion.div
+          ref={dialogRef}
+          initial={{ opacity: 0, scale: 0.96, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: -10 }}
+          transition={{ duration: 0.15 }}
+          className="relative w-full bg-popover border border-border rounded-lg shadow-2xl overflow-hidden"
+        >
+          {/* Search input */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+            <svg
+              className="w-5 h-5 text-muted-foreground flex-shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={
+                pagefindReady ? 'Search documentation...' : 'Loading search...'
+              }
+              disabled={!pagefindReady}
+              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm disabled:opacity-50"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          )}
-          <Kbd className="hidden sm:inline-flex">Esc</Kbd>
-        </div>
-
-        {/* Results count */}
-        {!isLoading && query && results.length > 0 && (
-          <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
-            {results.length} result{results.length !== 1 ? 's' : ''} for "
-            {query}"
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            )}
+            <Kbd className="hidden sm:inline-flex">Esc</Kbd>
           </div>
-        )}
 
-        {/* Results - only show when there's a query */}
-        {query && (
-          <div className="relative">
-            <div
-              ref={listRef}
-              className="max-h-[60vh] overflow-y-auto p-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full"
-              onScroll={handleScroll}
-              style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'var(--border) transparent',
-              }}
-            >
-              {isLoading ? (
-                <div className="py-8 flex items-center justify-center gap-2 text-muted-foreground text-sm">
-                  <Spinner className="size-4" />
-                  <span>Searching...</span>
-                </div>
-              ) : selectableItems.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground text-sm">
-                  No results found for "{query}"
-                </div>
-              ) : (
-                selectableItems.map((item, index) => (
-                  <AnimatedItem
-                    key={item.id}
-                    index={index}
-                    delay={0.03}
-                    onMouseEnter={() => setSelectedIndex(index)}
-                    onClick={() => {
-                      window.location.href = item.url;
-                      onClose();
-                    }}
-                  >
-                    {item.type === 'section' ? (
-                      <SectionResultItem
-                        item={item}
-                        isSelected={selectedIndex === index}
-                      />
-                    ) : (
-                      <PageResultItem
-                        item={item}
-                        isSelected={selectedIndex === index}
-                      />
-                    )}
-                  </AnimatedItem>
-                ))
-              )}
+          {/* Results count */}
+          {!isLoading && query && results.length > 0 && (
+            <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
+              {results.length} result{results.length !== 1 ? 's' : ''} for "
+              {query}"
             </div>
+          )}
 
-            {/* Gradient overlays */}
-            <div
-              className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-popover to-transparent pointer-events-none transition-opacity duration-300"
-              style={{ opacity: topGradientOpacity }}
-            />
-            <div
-              className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-popover to-transparent pointer-events-none transition-opacity duration-300"
-              style={{ opacity: bottomGradientOpacity }}
-            />
-          </div>
-        )}
+          {/* Results - only show when there's a query */}
+          {query && (
+            <div className="relative">
+              <div
+                ref={listRef}
+                className="max-h-[60vh] overflow-y-auto p-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full"
+                onScroll={handleScroll}
+                style={{
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: 'var(--border) transparent',
+                }}
+              >
+                {isLoading ? (
+                  <div className="py-8 flex items-center justify-center gap-2 text-muted-foreground text-sm">
+                    <Spinner className="size-4" />
+                    <span>Searching...</span>
+                  </div>
+                ) : selectableItems.length === 0 ? (
+                  <div className="py-8 text-center text-muted-foreground text-sm">
+                    No results found for "{query}"
+                  </div>
+                ) : (
+                  selectableItems.map((item, index) => (
+                    <AnimatedItem
+                      key={item.id}
+                      index={index}
+                      delay={0.03}
+                      onMouseEnter={() => setSelectedIndex(index)}
+                      onClick={() => {
+                        window.location.href = item.url;
+                        onClose();
+                      }}
+                    >
+                      {item.type === 'section' ? (
+                        <SectionResultItem
+                          item={item}
+                          isSelected={selectedIndex === index}
+                        />
+                      ) : (
+                        <PageResultItem
+                          item={item}
+                          isSelected={selectedIndex === index}
+                        />
+                      )}
+                    </AnimatedItem>
+                  ))
+                )}
+              </div>
 
-        {/* Footer */}
-        {selectableItems.length > 0 && (
-          <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex items-center justify-end gap-4">
-            <span className="flex items-center gap-1">
-              <KbdGroup>
-                <Kbd>↑</Kbd>
-                <Kbd>↓</Kbd>
-              </KbdGroup>
-              <span className="ml-1">Navigate</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <Kbd>↵</Kbd>
-              <span className="ml-1">Open</span>
-            </span>
-          </div>
-        )}
-      </motion.div>
+              {/* Gradient overlays */}
+              <div
+                className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-popover to-transparent pointer-events-none transition-opacity duration-300"
+                style={{ opacity: topGradientOpacity }}
+              />
+              <div
+                className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-popover to-transparent pointer-events-none transition-opacity duration-300"
+                style={{ opacity: bottomGradientOpacity }}
+              />
+            </div>
+          )}
+
+          {/* Footer */}
+          {selectableItems.length > 0 && (
+            <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex items-center justify-end gap-4">
+              <span className="flex items-center gap-1">
+                <KbdGroup>
+                  <Kbd>↑</Kbd>
+                  <Kbd>↓</Kbd>
+                </KbdGroup>
+                <span className="ml-1">Navigate</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <Kbd>↵</Kbd>
+                <span className="ml-1">Open</span>
+              </span>
+            </div>
+          )}
+        </motion.div>
+      </StarBorder>
     </div>,
     document.body,
   );
