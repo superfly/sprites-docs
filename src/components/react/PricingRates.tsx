@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Switch } from '@/components/ui/switch';
 
 const HOURLY_RATES = {
-  cpu: 0.0275,
-  ram: 0.04375,
-  storage: 0.5,
+  cpu: 0.07,
+  ram: 0.011,
+  storage: 0.1,
 };
 
 export function PricingRates() {
