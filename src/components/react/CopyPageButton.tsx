@@ -80,8 +80,11 @@ export function CopyPageButton({
   };
 
   const handleViewMarkdown = () => {
-    const url = pageUrl.endsWith('/') ? pageUrl.slice(0, -1) : pageUrl;
-    window.open(`${url}.md`, '_blank');
+    const url = new URL(pageUrl);
+    const path = url.pathname.replace(/\/$/, '');
+    // Root path links to /index.md, otherwise append .md
+    const mdPath = path === '' ? '/index.md' : `${path}.md`;
+    window.open(`${url.origin}${mdPath}`, '_blank');
   };
 
   return (
