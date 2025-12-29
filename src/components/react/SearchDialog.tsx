@@ -493,7 +493,12 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
           className="relative w-full bg-popover border border-border rounded-lg shadow-lg overflow-hidden"
         >
           {/* Search input */}
-          <div className={cn("flex items-center gap-3 px-4 py-3", query && "border-b border-border")}>
+          <div
+            className={cn(
+              'flex items-center gap-3 px-4 py-3',
+              query && 'border-b border-border',
+            )}
+          >
             <svg
               className="w-5 h-5 text-muted-foreground flex-shrink-0"
               fill="none"
