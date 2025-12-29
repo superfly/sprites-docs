@@ -32,6 +32,10 @@ RUN printf 'server {\n\
     location / {\n\
         try_files $uri $uri/ $uri.html =404;\n\
     }\n\
+    location ~* \\.md$ {\n\
+        types { text/plain md; }\n\
+        add_header Content-Disposition "inline";\n\
+    }\n\
     location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {\n\
         expires 1y;\n\
         add_header Cache-Control "public, immutable";\n\

@@ -6,7 +6,7 @@ export const prerender = true;
 export const getStaticPaths: GetStaticPaths = async () => {
   const docs = await getCollection('docs');
   return docs.map((doc) => ({
-    params: { slug: doc.id === 'index' ? undefined : doc.id },
+    params: { slug: doc.id },
     props: { doc },
   }));
 };
