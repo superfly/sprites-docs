@@ -24,12 +24,13 @@ RUN pnpm run build
 # Final stage - minimal nginx
 FROM nginx:alpine
 
-# SPA routing + caching for static assets
+# Static site routing + caching for static assets
 RUN printf 'server {\n\
     listen 80;\n\
     root /usr/share/nginx/html;\n\
+    error_page 404 /404.html;\n\
     location / {\n\
-        try_files $uri $uri/ $uri.html /index.html;\n\
+        try_files $uri $uri/ $uri.html =404;\n\
     }\n\
     location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {\n\
         expires 1y;\n\

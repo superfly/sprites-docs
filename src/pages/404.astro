@@ -136,14 +136,6 @@ import '@/styles/custom.css';
         user-select: none;
       }
 
-      .command {
-        color: oklch(0.9 0.01 106.423);
-      }
-
-      .path {
-        color: oklch(0.768 0.233 130.85);
-      }
-
       .error-line {
         display: flex;
         align-items: baseline;
@@ -284,11 +276,6 @@ import '@/styles/custom.css';
           </div>
         </div>
         <div class="terminal-body">
-          <div class="line">
-            <span class="prompt">$ </span>
-            <span class="command">sprite exec</span>
-            <span class="path"> {Astro.url.pathname}</span>
-          </div>
           <div class="error-line">
             <span class="error-code">404</span>
             <span class="error-msg">This sprite escaped its sandbox</span>
