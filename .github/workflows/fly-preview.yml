@@ -7,7 +7,7 @@ on:
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_PREVIEW_API_TOKEN }}
   FLY_REGION: iad
-  FLY_ORG: superfly
+  FLY_ORG: ${{ vars.FLY_PREVIEW_ORG }}
 
 jobs:
   preview:
