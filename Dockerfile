@@ -24,24 +24,7 @@ RUN pnpm run build
 # Final stage - minimal nginx
 FROM nginx:alpine
 
-# Static site routing + caching for static assets
-RUN printf 'server {\n\
-    listen 80;\n\
-    root /usr/share/nginx/html;\n\
-    error_page 404 /404.html;\n\
-    location / {\n\
-        try_files $uri $uri/ $uri.html =404;\n\
-    }\n\
-    location ~* \\.md$ {\n\
-        types { text/plain md; }\n\
-        add_header Content-Disposition "inline";\n\
-    }\n\
-    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {\n\
-        expires 1y;\n\
-        add_header Cache-Control "public, immutable";\n\
-    }\n\
-}' > /etc/nginx/conf.d/default.conf
-
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
