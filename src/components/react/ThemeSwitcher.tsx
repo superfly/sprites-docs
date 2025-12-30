@@ -22,16 +22,21 @@ const themes = [
 function getTheme(): Theme {
   if (typeof localStorage !== 'undefined') {
     const stored = localStorage.getItem('starlight-theme');
-    if (stored === 'light' || stored === 'dark' || stored === 'auto') {
+    if (stored === 'light' || stored === 'dark') {
       return stored;
     }
+    // Starlight stores empty string for 'auto'
   }
   return 'auto';
 }
 
 function setTheme(theme: Theme) {
   if (typeof localStorage !== 'undefined') {
-    localStorage.setItem('starlight-theme', theme);
+    // Starlight expects empty string for 'auto', not the literal 'auto' string
+    localStorage.setItem(
+      'starlight-theme',
+      theme === 'light' || theme === 'dark' ? theme : '',
+    );
   }
 
   const root = document.documentElement;
