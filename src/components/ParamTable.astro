@@ -1,0 +1,16 @@
+---
+/**
+ * Pure Astro ParamTable component - no JavaScript shipped to client
+ */
+---
+
+<div class="param-table-wrapper my-4 border border-[var(--sl-color-hairline)] bg-[var(--sl-color-bg-nav)]">
+  <div class="px-4 py-2 border-b border-[var(--sl-color-hairline)] bg-[var(--sl-color-bg-sidebar)]">
+    <span class="text-xs font-medium uppercase tracking-wide text-[var(--sl-color-gray-2)]">
+      Parameters
+    </span>
+  </div>
+  <div class="px-4 py-3 divide-y divide-[var(--sl-color-hairline)]">
+    <slot />
+  </div>
+</div>
