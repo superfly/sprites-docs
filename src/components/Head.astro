@@ -1,6 +1,7 @@
 ---
 import Default from '@astrojs/starlight/components/Head.astro';
 
+const siteUrl = 'https://docs.sprites.dev';
 const pageTitle = Astro.locals.starlightRoute?.entry?.data?.title ?? 'Sprites Documentation';
 const ogImageUrl = `https://og-images.fly.dev/image?template=sprites&text=${encodeURIComponent(pageTitle)}`;
 const slug = Astro.locals.starlightRoute?.slug ?? Astro.locals.starlightRoute?.id;
@@ -10,7 +11,41 @@ const websiteSchema = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Sprites Documentation',
-  url: 'https://docs.sprites.dev',
+  url: siteUrl,
+};
+
+// Build breadcrumbs from URL path
+const formatSegment = (segment: string) =>
+  segment
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+const pathSegments = (slug || '')
+  .replace(/\.mdx?$/, '')
+  .split('/')
+  .filter(Boolean);
+
+const breadcrumbItems = [
+  { name: 'Sprites Documentation', url: siteUrl },
+  ...pathSegments.slice(0, -1).map((segment, index) => ({
+    name: formatSegment(segment),
+    url: `${siteUrl}/${pathSegments.slice(0, index + 1).join('/')}/`,
+  })),
+  ...(pathSegments.length > 0
+    ? [{ name: pageTitle, url: `${siteUrl}/${pathSegments.join('/')}/` }]
+    : []),
+];
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: breadcrumbItems.map((item, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: item.name,
+    item: item.url,
+  })),
 };
 ---
 
@@ -23,3 +58,5 @@ const websiteSchema = {
 {isHomePage && (
   <Fragment set:html={`<script type="application/ld+json">${JSON.stringify(websiteSchema)}</script>`} />
 )}
+
+<Fragment set:html={`<script type="application/ld+json">${JSON.stringify(breadcrumbSchema)}</script>`} />
