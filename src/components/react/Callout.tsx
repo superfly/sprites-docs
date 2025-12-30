@@ -17,29 +17,27 @@ const icons = {
 };
 
 const styles = {
-  info: 'border-blue-500/30 bg-blue-500/5 [&>svg]:text-blue-500',
-  warning: 'border-amber-500/30 bg-amber-500/5 [&>svg]:text-amber-500',
-  danger: 'border-red-500/30 bg-red-500/5 [&>svg]:text-red-500',
-  tip: 'border-emerald-500/30 bg-emerald-500/5 [&>svg]:text-emerald-500',
+  info: 'border-green-500/50 [&>svg]:text-green-500',
+  warning: 'border-amber-500/50 [&>svg]:text-amber-500',
+  danger: 'border-red-500/50 [&>svg]:text-red-500',
+  tip: 'border-blue-500/50 [&>svg]:text-blue-500',
 };
 
-const textStyles = {
-  info: 'text-blue-400',
-  warning: 'text-amber-400',
-  danger: 'text-red-400',
-  tip: 'text-emerald-400',
+const titleStyles = {
+  info: 'text-green-500',
+  warning: 'text-amber-500',
+  danger: 'text-red-500',
+  tip: 'text-blue-500',
 };
 
 export function Callout({ type = 'info', title, children }: CalloutProps) {
   const Icon = icons[type];
 
   return (
-    <Alert className={cn('my-6 rounded-none', styles[type], textStyles[type])}>
-      <Icon className="h-4 w-4" />
-      {title && <AlertTitle className={textStyles[type]}>{title}</AlertTitle>}
-      <AlertDescription className={cn('[&>p]:m-0', textStyles[type])}>
-        {children}
-      </AlertDescription>
+    <Alert className={cn('my-6', styles[type])}>
+      <Icon />
+      {title && <AlertTitle className={titleStyles[type]}>{title}</AlertTitle>}
+      <AlertDescription className="[&>p]:m-0">{children}</AlertDescription>
     </Alert>
   );
 }

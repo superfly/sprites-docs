@@ -125,6 +125,7 @@
 
 /* Tailwind v4 theme inline */
 @theme inline {
+  --spacing: 0.25rem;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
