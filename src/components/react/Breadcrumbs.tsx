@@ -81,7 +81,9 @@ export function ContentBreadcrumbs({
                 {isLast ? (
                   <BreadcrumbPage>{crumb.title}</BreadcrumbPage>
                 ) : crumb.href ? (
-                  <BreadcrumbLink href={crumb.href}>{crumb.title}</BreadcrumbLink>
+                  <BreadcrumbLink href={crumb.href}>
+                    {crumb.title}
+                  </BreadcrumbLink>
                 ) : (
                   <span className="text-muted-foreground">{crumb.title}</span>
                 )}
