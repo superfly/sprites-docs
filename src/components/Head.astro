@@ -3,6 +3,15 @@ import Default from '@astrojs/starlight/components/Head.astro';
 
 const pageTitle = Astro.locals.starlightRoute?.entry?.data?.title ?? 'Sprites Documentation';
 const ogImageUrl = `https://og-images.fly.dev/image?template=sprites&text=${encodeURIComponent(pageTitle)}`;
+const slug = Astro.locals.starlightRoute?.slug ?? Astro.locals.starlightRoute?.id;
+const isHomePage = slug === '' || slug === 'index' || slug === 'index.mdx';
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Sprites Documentation',
+  url: 'https://docs.sprites.dev',
+};
 ---
 
 <Default {...Astro.props}><slot /></Default>
@@ -10,3 +19,7 @@ const ogImageUrl = `https://og-images.fly.dev/image?template=sprites&text=${enco
 <!-- Dynamic OG Image -->
 <meta property="og:image" content={ogImageUrl} />
 <meta name="twitter:image" content={ogImageUrl} />
+
+{isHomePage && (
+  <Fragment set:html={`<script type="application/ld+json">${JSON.stringify(websiteSchema)}</script>`} />
+)}
