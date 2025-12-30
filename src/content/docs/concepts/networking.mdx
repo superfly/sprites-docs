@@ -6,34 +6,35 @@ description: HTTP access, URLs, port forwarding, and network configuration
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import { Snippet } from '@/components/react';
 
-Every Sprite has built-in networking capabilities including a unique HTTP URL and port forwarding. This page covers how to access your Sprites over the network.
+Sprites run your code in the cloud. This page is about how to talk to that code via HTTPS URLs and port forwarding that make remote services feel local. You get a public endpoint to hit your app over the Internet, and the ability to proxy ports straight to your laptop so you can test, debug, and connect tools like you're running everything on localhost.
 
 ## Sprite URLs
 
-Every Sprite has a unique URL for HTTP access:
+Every Sprite has a unique URL for HTTPS access, for example:
 
 ```bash
 sprite url
 # Output: https://my-sprite-abc123.sprites.dev
 ```
 
-This URL can be used to:
+If your code is listening on a port (say, 3000 or 8080), that URL routes traffic to it. This means you can:
 
 - Access web applications running in your Sprite
+- Test a dev server in the cloud
 - Make API requests to services
-- Connect to any HTTP-based service
+- Connect services to each other via HTTP
 
 ### URL Authentication
 
-By default, Sprite URLs require authentication. You can configure this:
+By default, Sprite URLs are private and they require a valid token. You can make them public if you want to share a demo, open up a webhook, or quickly put something onto the Internet:
 
 <Tabs>
 <TabItem label="CLI">
 ```bash
-# Make URL public (no authentication required)
+# Make URL public (no authentication required) - good for webhooks, public APIs, demos
 sprite url update --auth public
 
-# Require sprite authentication (default)
+# Require sprite authentication (default) - good for internal services, development
 sprite url update --auth default
 ```
 </TabItem>
@@ -47,32 +48,15 @@ console.log(info.url);
 </TabItem>
 </Tabs>
 
-| Auth Mode | Description | Use Case |
-|-----------|-------------|----------|
-| `sprite` | Requires Sprite token | Internal services, development |
-| `public` | No authentication | Public APIs, webhooks, demos |
-
 Updating URL settings is available via the CLI, Go SDK, or REST API (the JS SDK does not expose a helper yet).
-
-### Starting a Web Server
-
-Run a web server and access it via the Sprite URL:
-
-```bash
-# Start a simple HTTP server
-sprite exec -detachable "python -m http.server 8080"
-
-# Get the URL
-sprite url
-# Output: https://my-sprite-abc123.sprites.dev
-
-# Access via browser or curl (after making public)
-curl https://my-sprite-abc123.sprites.dev:8080/
-```
 
 ## Port Forwarding
 
-Forward local ports to your Sprite for direct access:
+Here's the trick that makes Sprites feel local: port forwarding.
+
+Now your laptop's localhost:3000 forwards to the Sprite's port 3000. You can open a browser, curl it, or connect with tools that expect a local port.
+
+Try these examples:
 
 <Tabs>
 <TabItem label="CLI">
@@ -115,93 +99,29 @@ defer func() {
 </TabItem>
 </Tabs>
 
-### Port Mapping
+Port forwarding works for TCP services — web servers, databases, message brokers, whatever. It's just sockets.
 
-You can map local ports to different remote ports:
+## Real-World Examples
 
-```go
-sessions, err := client.ProxyPorts(ctx, "my-sprite", []sprites.PortMapping{
-    {LocalPort: 3000, RemotePort: 8080},  // localhost:3000 -> sprite:8080
-    {LocalPort: 5433, RemotePort: 5432},  // localhost:5433 -> sprite:5432
-})
+### Starting a Web Server
+
+Run a web server and access it via the Sprite URL:
+
+```bash
+# Start a simple HTTP server
+sprite exec -detachable "python -m http.server 8080"
+
+# Get the URL
+sprite url
+# Output: https://my-sprite-abc123.sprites.dev
+
+# Access via browser or curl (after making public)
+curl https://my-sprite-abc123.sprites.dev:8080/
 ```
-
-### Forwarding to Specific Hosts
-
-For services bound to specific interfaces:
-
-```go
-sessions, err := client.ProxyPorts(ctx, "my-sprite", []sprites.PortMapping{
-    {LocalPort: 5432, RemotePort: 5432, RemoteHost: "10.0.0.1"},
-})
-```
-
-## Port Notifications
-
-Get notified when services start listening on ports inside your Sprite:
-
-<Tabs>
-<TabItem label="JavaScript">
-```javascript
-const cmd = sprite.spawn('npm', ['run', 'dev']);
-
-cmd.on('message', (msg) => {
-  if (msg.type === 'port_opened') {
-    console.log(`Port ${msg.port} opened on ${msg.address} by PID ${msg.pid}`);
-
-    // Auto-open browser
-    const url = `http://localhost:${msg.port}`;
-    exec(`open ${url}`); // macOS
-  } else if (msg.type === 'port_closed') {
-    console.log(`Port ${msg.port} closed`);
-  }
-});
-
-await cmd.wait();
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-cmd := sprite.Command("npm", "run", "dev")
-cmd.TextMessageHandler = func(data []byte) {
-    var notification sprites.PortNotificationMessage
-    if err := json.Unmarshal(data, &notification); err != nil {
-        return
-    }
-
-    switch notification.Type {
-    case "port_opened":
-        fmt.Printf("Port %d opened on %s by PID %d\n",
-            notification.Port, notification.Address, notification.PID)
-
-        // Could auto-forward port
-        session, _ := client.ProxyPort(ctx, "my-sprite",
-            notification.Port, notification.Port)
-
-    case "port_closed":
-        fmt.Printf("Port %d closed\n", notification.Port)
-    }
-}
-cmd.Run()
-```
-</TabItem>
-</Tabs>
-
-### Port Notification Structure
-
-```typescript
-interface PortNotification {
-  type: 'port_opened' | 'port_closed';
-  port: number;
-  address: string;
-  pid: number;
-}
-```
-
-## Common Patterns
 
 ### Development Server
+
+Let's say you've got a frontend or backend dev server that watches files and hot reloads.
 
 ```bash
 # Start dev server in detachable session
@@ -213,8 +133,11 @@ sprite proxy 3000
 # Open in browser
 open http://localhost:3000
 ```
+If your server starts dynamically (e.g. via a watcher), Sprites can emit events when a process binds a port. You can hook into those if you want to script around startup behavior.
 
 ### Database Access
+
+Running a database inside a Sprite is weirdly nice. You can spin up Postgres, forward its port, and connect with your usual tools:
 
 ```bash
 # Start PostgreSQL (if installed)
@@ -229,6 +152,8 @@ psql -h localhost -p 5432 -U postgres
 
 ### Multiple Services
 
+Sprites can run multiple processes. You can forward all the ports you care about:
+
 ```bash
 # Start multiple services
 sprite exec -detachable "cd /home/sprite/api && npm start"     # Port 3000
@@ -239,80 +164,46 @@ sprite exec -detachable "redis-server"                        # Port 6379
 sprite proxy 3000 3001 6379
 ```
 
-## Network Environment
-
-### Default Configuration
+## Network Behavior
 
 Sprites have full network access by default:
 
-- **Outbound**: All protocols and ports
-- **Inbound**: Via Sprite URL or port forwarding
-- **DNS**: Standard resolution working
+- **Outbound**: All protocols and ports. You can fetch packages, call APIs and more
+- **Inbound**: Only via Sprite URL or port forwarding
+- **DNS**: Standard resolution works
 
-### Making HTTP Requests
+The default environment includes common networt tools, and you can install additional ones as needed. You can run tools like `netcat`, `curl`, or `nmap` or `wget`. Nothing is artificially restricted and this isn't a locked-down environment.
 
-```bash
-# From inside the sprite
-sprite exec "curl https://api.example.com/data"
-sprite exec "wget https://files.example.com/archive.tar.gz"
-```
-
-### Installing Network Tools
-
-The default environment includes common tools. Install additional ones as needed:
-
+Example network tool installation:
 ```bash
 sprite exec "apt-get update && apt-get install -y nmap netcat"
 ```
 
-## Security Considerations
-
-### Public URLs
-
-When making a Sprite URL public:
-
-1. **Only expose what you need** - Run services on specific ports
-2. **Use application-level auth** - Implement your own authentication
-3. **Monitor access** - Check logs for unexpected traffic
-4. **Temporary exposure** - Make public only when needed
-
-### Firewall Rules
-
-Services inside your Sprite can bind to any port. Control access through:
-
-- URL authentication settings
-- Application-level security
-- Not exposing sensitive services
-
 ## Troubleshooting
 
-### Port Not Accessible
+**Not seeing your app on the URL?** Make sure it's listening on `0.0.0.0`, not `localhost`. The router can't see loopback-only services.
 
-```bash
-# Check if service is running
-sprite exec "ss -tlnp"
+**Forwarded port not responding?** Check the app is actually running, and that you forwarded the right port. Use `sprite ps` to see running processes.
 
-# Check if service is bound to correct interface
-sprite exec "netstat -tlnp"
+**Getting a 403 on your Sprite URL?** It's probably set to private. Make it public with `sprite url --public` or authenticate with a token.
 
-# Services should bind to 0.0.0.0, not 127.0.0.1
-```
+**Dynamic apps not ready right away?** If your service binds ports after startup, you can use port open events from the SDK to wait for readiness.
 
-### Connection Refused
+## Security Notes
 
-1. Verify the service is running
-2. Check the port number
-3. Ensure service binds to `0.0.0.0` not just `localhost`
-4. Verify port forwarding is active
+By default, your Sprite isn't publicly accessible. That's on purpose. You control what gets exposed — either by forwarding a port or making the Sprite's URL public.
 
-### Slow Connections
+A few things to keep in mind:
 
-- Check if Sprite is hibernated (first request wakes it)
-- Consider pre-warming for latency-sensitive applications
-- Use regions closer to your users
+- **Only expose what you actually need** - Run services on specific ports
+- **Use app-level auth** - If you're building anything real, implement your own authentication
+- **Forwarded ports are reachable from your machine** — Not the wider Internet.
+- **Temporary exposure** - Make public only when needed.
+
+We don't add firewalls or block inbound traffic to forwarded ports, but we also don't auto-protect what you expose. You're in control, which is powerful — and dangerous, if you're not paying attention. Keep it minimal and secure.
 
 ## Related Documentation
 
-- [Sprites Guide](/sprites) - Comprehensive guide
-- [CLI Commands](/cli/commands) - Port forwarding commands
+- [Working with Sprites](/working-with-sprites) - Beyond the basics guide to using Sprites
+- [CLI Commands](/cli/commands) - Command reference
 - [Configuration](/reference/configuration) - Network settings
