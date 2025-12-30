@@ -88,7 +88,10 @@ export default defineConfig({
         // Google Search Console verification
         {
           tag: 'meta',
-          attrs: { name: 'google-site-verification', content: 'OMPx4WGKmU7bVq2CxB97o4jZzhRULH3Dq1OJfA7UPTk' },
+          attrs: {
+            name: 'google-site-verification',
+            content: 'OMPx4WGKmU7bVq2CxB97o4jZzhRULH3Dq1OJfA7UPTk',
+          },
         },
         // OpenGraph / Social (og:image and twitter:image are set dynamically in Head.astro)
         {
