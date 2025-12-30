@@ -1,5 +1,6 @@
 'use client';
 
+import { Fragment } from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -74,16 +75,18 @@ export function ContentBreadcrumbs({
           const isLast = index === breadcrumbs.length - 1;
 
           return (
-            <BreadcrumbItem key={crumb.title}>
+            <Fragment key={crumb.title}>
               {index > 0 && <BreadcrumbSeparator />}
-              {isLast ? (
-                <BreadcrumbPage>{crumb.title}</BreadcrumbPage>
-              ) : crumb.href ? (
-                <BreadcrumbLink href={crumb.href}>{crumb.title}</BreadcrumbLink>
-              ) : (
-                <span className="text-muted-foreground">{crumb.title}</span>
-              )}
-            </BreadcrumbItem>
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage>{crumb.title}</BreadcrumbPage>
+                ) : crumb.href ? (
+                  <BreadcrumbLink href={crumb.href}>{crumb.title}</BreadcrumbLink>
+                ) : (
+                  <span className="text-muted-foreground">{crumb.title}</span>
+                )}
+              </BreadcrumbItem>
+            </Fragment>
           );
         })}
       </BreadcrumbList>
