@@ -1,5 +1,3 @@
-// @ts-check
-
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 import starlight from '@astrojs/starlight';
