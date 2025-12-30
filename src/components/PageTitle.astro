@@ -1,17 +1,23 @@
 ---
 import StarlightPageTitle from '@astrojs/starlight/components/PageTitle.astro';
 import CopyPageButton from './CopyPageButton.astro';
+import { ContentBreadcrumbs } from './react/Breadcrumbs';
+
+const currentPath = Astro.url.pathname;
+const sidebar = Astro.locals.starlightRoute?.sidebar ?? [];
 ---
 
-<div class="copy-page-row">
+<div class="page-nav-container">
+	<ContentBreadcrumbs client:load currentPath={currentPath} sidebar={sidebar} />
 	<CopyPageButton />
 </div>
 <StarlightPageTitle />
 
 <style>
-	.copy-page-row {
+	.page-nav-container {
 		display: flex;
-		justify-content: flex-end;
+		justify-content: space-between;
+		align-items: center;
 		margin-bottom: 0.5rem;
 	}
 </style>

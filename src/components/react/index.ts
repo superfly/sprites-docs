@@ -9,6 +9,7 @@ export {
 export { APIBody, APIEndpoint } from './APIEndpoint';
 export { BillingCalculator } from './BillingCalculator';
 export { BillingFAQ } from './BillingFAQ';
+export { ContentBreadcrumbs } from './Breadcrumbs';
 export { Callout } from './Callout';
 export { CodeTabs, Snippet } from './CodeTabs';
 export { CopyPageButton } from './CopyPageButton';

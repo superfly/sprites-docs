@@ -37,9 +37,7 @@ describe('Code Tabs', () => {
       .within(() => {
         cy.get('[role="tab"]').then(($tabs) => {
           if ($tabs.length >= 2) {
-            // Get text of second tab
-            const tabText = $tabs[1].textContent;
-            // Click it
+            // Click second tab
             cy.wrap($tabs[1]).click();
           }
         });
