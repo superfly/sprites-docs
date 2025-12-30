@@ -360,12 +360,25 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 [data-theme='light'] nav[aria-label="Main"] a:hover {
-  color: oklch(0.5 0.3 285) !important;
-  background-color: oklch(0.95 0.05 285) !important;
+  color: oklch(0.15 0 0) !important;
+  background-color: oklch(0.97 0 0) !important; /* #f5f5f5 neutral gray */
 }
 
 [data-theme='light'] nav[aria-label="Main"] a[aria-current="page"] {
-  color: oklch(0.45 0.22 285) !important;
+  color: oklch(0.15 0 0) !important;
+  background-color: oklch(0.97 0 0) !important; /* #f5f5f5 neutral gray */
+  font-weight: 600;
+}
+
+/* Sidebar navigation in dark mode */
+[data-theme='dark'] nav[aria-label="Main"] a:hover {
+  color: oklch(0.98 0 0) !important;
+  background-color: oklch(0.22 0 0) !important; /* lighter gray for visibility */
+}
+
+[data-theme='dark'] nav[aria-label="Main"] a[aria-current="page"] {
+  color: oklch(0.98 0 0) !important;
+  background-color: oklch(0.22 0 0) !important; /* lighter gray for visibility */
   font-weight: 600;
 }
 
