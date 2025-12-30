@@ -1,0 +1,11 @@
+extends: substitution
+
+message: "Use '%s' instead of '%s'."
+
+level: suggestion
+
+swap:
+  '(?<!local|virtual) machine': Machine
+  '(?<!local|virtual) machines': Machines
+  '(?<=local|virtual) Machine': machine
+  '(?<=local|virtual) Machines': machines

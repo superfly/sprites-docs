@@ -1,0 +1,14 @@
+extends: spelling
+message: "Is '%s' a typo?"
+level: suggestion
+
+custom: false
+
+filters:
+
+  - '\w+_\w+' # ignore config option names
+  - '--.' # ignore command options
+  - 'v[0.9].' # ignore flyctl versions
+
+ignore:
+  - words2ignore.txt

@@ -47,3 +47,8 @@ examples/**/env.d.ts
 cypress/screenshots
 cypress/videos
 cypress/downloads
+
+# Vale - external style packages (synced automatically)
+styles/Google/
+styles/proselint/
+styles/write-good/
