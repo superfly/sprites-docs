@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import ShinyText from '@/components/ShinyText';
 import StarBorder from '@/components/StarBorder';
 import { Kbd, KbdGroup } from '@/components/ui/kbd';
 import { Spinner } from '@/components/ui/spinner';
@@ -482,7 +483,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
         color="var(--primary)"
         speed="8s"
         thickness={1}
-        isAnimating={!query}
+        isAnimating={false}
       >
         <motion.div
           ref={dialogRef}
@@ -512,17 +513,28 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={
-                pagefindReady ? 'Search documentation...' : 'Loading search...'
-              }
-              disabled={!pagefindReady}
-              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm disabled:opacity-50"
-            />
+            <div className="relative flex-1">
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={!pagefindReady ? 'Loading search...' : ''}
+                disabled={!pagefindReady}
+                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm disabled:opacity-50"
+              />
+              {pagefindReady && !query && (
+                <div className="absolute inset-0 flex items-center pointer-events-none">
+                  <ShinyText
+                    text="Search documentation..."
+                    color="var(--muted-foreground)"
+                    shineColor="var(--foreground)"
+                    speed={3}
+                    className="text-sm"
+                  />
+                </div>
+              )}
+            </div>
             {query && (
               <button
                 type="button"

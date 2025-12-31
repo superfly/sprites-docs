@@ -90,7 +90,12 @@ export default defineConfig({
         },
         {
           tag: 'link',
-          attrs: { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/favicon-96x96.png' },
+          attrs: {
+            rel: 'icon',
+            type: 'image/png',
+            sizes: '96x96',
+            href: '/favicon-96x96.png',
+          },
         },
         {
           tag: 'link',
@@ -98,7 +103,11 @@ export default defineConfig({
         },
         {
           tag: 'link',
-          attrs: { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+          attrs: {
+            rel: 'apple-touch-icon',
+            sizes: '180x180',
+            href: '/apple-touch-icon.png',
+          },
         },
         {
           tag: 'link',
