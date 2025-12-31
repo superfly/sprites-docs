@@ -1,6 +1,7 @@
 // React island components for Astro
 // Use with client:load directive in MDX files
 
+export { default as ShinyText } from '../ShinyText';
 export {
   AnimatedItem,
   AnimatedList,
