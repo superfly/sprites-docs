@@ -4,7 +4,7 @@ description: Understanding Sprite hibernation, persistence, and state management
 ---
 
 import LifecycleDiagram from '@/components/LifecycleDiagram.astro';
-import { Callout } from '@/components/react';
+import { Callout, LinkCard, CardGrid } from '@/components/react';
 
 This page is about what happens to a Sprite after you create it. Where it lives, how it sleeps, when it wakes up, and what it remembers.
 
@@ -128,7 +128,33 @@ If you're running something where latency matters and you want to keep a Sprite 
 
 ## Related Documentation
 
-- [Services](/concepts/services/) — Run persistent processes that restart automatically on resume.
-- [Checkpoints](/concepts/checkpoints) - Save and restore state
-- [Configuration](/reference/configuration) - All configuration options
-- [Billing](/reference/billing) - Pricing details
+<CardGrid client:load>
+  <LinkCard
+    href="/concepts/services"
+    title="Services"
+    description="Run persistent processes that restart automatically on resume"
+    icon="cog"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/checkpoints"
+    title="Checkpoints"
+    description="Save and restore sprite state with checkpoints"
+    icon="folder"
+    client:load
+  />
+  <LinkCard
+    href="/reference/configuration"
+    title="Configuration"
+    description="All configuration options for Sprites"
+    icon="settings"
+    client:load
+  />
+  <LinkCard
+    href="/reference/billing"
+    title="Billing"
+    description="Pricing details and cost estimation"
+    icon="file-text"
+    client:load
+  />
+</CardGrid>

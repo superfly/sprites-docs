@@ -3,7 +3,7 @@ title: CLI Installation
 description: Install the Sprites CLI on macOS, Linux, or Windows
 ---
 
-import { Callout } from '@/components/react';
+import { Callout, LinkCard, CardGrid } from '@/components/react';
 
 The Sprites CLI (`sprite`) is available for macOS, Linux, and Windows.
 
@@ -161,5 +161,19 @@ xattr -d com.apple.quarantine /usr/local/bin/sprite
 
 ## Next Steps
 
-- [Authentication](/cli/authentication) - Set up your Fly.io account
-- [Commands Reference](/cli/commands) - Full CLI documentation
+<CardGrid client:load>
+  <LinkCard
+    href="/cli/authentication"
+    title="Authentication"
+    description="Set up your Fly.io account and manage tokens"
+    icon="settings"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="Commands Reference"
+    description="Full CLI documentation and examples"
+    icon="terminal"
+    client:load
+  />
+</CardGrid>

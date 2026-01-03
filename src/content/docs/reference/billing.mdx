@@ -6,6 +6,7 @@ description: Sprites pricing and billing details
 import BillingCalculator from '@/components/BillingCalculator.astro';
 import BillingFAQ from '@/components/BillingFAQ.astro';
 import PricingRates from '@/components/PricingRates.astro';
+import { LinkCard, CardGrid } from '@/components/react';
 
 Sprites offers flexible billing: **pay-as-you-go** for usage-based pricing with no commitment, or a **subscription plan** with included credits for predictable costs.
 
@@ -135,6 +136,33 @@ Usage and billing information is available through your Fly.io dashboard and org
 
 ## Related Documentation
 
-- [Lifecycle](/concepts/lifecycle) - Hibernation behavior
-- [Configuration](/reference/configuration) - Resource options
-- [Checkpoints](/concepts/checkpoints) - Checkpoint storage
+<CardGrid client:load>
+  <LinkCard
+    href="/concepts/lifecycle"
+    title="Lifecycle"
+    description="Understanding hibernation behavior"
+    icon="layers"
+    client:load
+  />
+  <LinkCard
+    href="/reference/configuration"
+    title="Configuration"
+    description="Resource options and settings"
+    icon="settings"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/checkpoints"
+    title="Checkpoints"
+    description="Checkpoint storage and management"
+    icon="folder"
+    client:load
+  />
+  <LinkCard
+    href="/quickstart"
+    title="Quickstart"
+    description="Get started with Sprites"
+    icon="rocket"
+    client:load
+  />
+</CardGrid>

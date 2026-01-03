@@ -3,6 +3,8 @@ title: Go SDK
 description: Use Sprites programmatically with the Go SDK
 ---
 
+import { LinkCard, CardGrid } from '@/components/react';
+
 The Sprites Go SDK provides an idiomatic Go interface for managing Sprites programmatically. The SDK mirrors the `os/exec` package API, making it a near drop-in replacement for local command execution.
 
 ## Installation
@@ -522,6 +524,33 @@ func main() {
 
 ## Related Documentation
 
-- [Sprites Guide](/sprites) - Comprehensive guide
-- [JavaScript SDK](/sdks/javascript) - JavaScript SDK reference
-- [REST API](/api/rest) - HTTP API reference
+<CardGrid client:load>
+  <LinkCard
+    href="/sprites"
+    title="Sprites Guide"
+    description="Comprehensive guide to working with Sprites"
+    icon="book-open"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/javascript"
+    title="JavaScript SDK"
+    description="JavaScript SDK reference documentation"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/api/rest"
+    title="REST API"
+    description="HTTP API reference"
+    icon="zap"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Reference"
+    description="Command-line interface documentation"
+    icon="terminal"
+    client:load
+  />
+</CardGrid>

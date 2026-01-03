@@ -4,7 +4,7 @@ description: HTTP API for managing Sprites programmatically
 ---
 
 import APIEndpoint from '@/components/APIEndpoint.astro';
-import { Callout, ParamTable, Param, StatusCodes, StatusBadge, APIBody } from '@/components/react';
+import { Callout, ParamTable, Param, StatusCodes, StatusBadge, APIBody, LinkCard, CardGrid } from '@/components/react';
 
 The Sprites REST API allows you to manage Sprites programmatically via HTTP requests.
 
@@ -351,6 +351,33 @@ done
 
 ## Related Documentation
 
-- [JavaScript SDK](/sdks/javascript) - Programmatic access
-- [Go SDK](/sdks/go) - Native Go client
-- [CLI Reference](/cli/commands) - Command-line interface
+<CardGrid client:load>
+  <LinkCard
+    href="/sdks/javascript"
+    title="JavaScript SDK"
+    description="Programmatic access with JavaScript and TypeScript"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/go"
+    title="Go SDK"
+    description="Native Go client for the Sprites API"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Reference"
+    description="Command-line interface documentation"
+    icon="terminal"
+    client:load
+  />
+  <LinkCard
+    href="/sprites"
+    title="Sprites Guide"
+    description="Comprehensive guide to working with Sprites"
+    icon="book-open"
+    client:load
+  />
+</CardGrid>

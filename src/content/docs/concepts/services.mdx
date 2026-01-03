@@ -3,6 +3,8 @@ title: Services
 description: Long-running processes that persist across Sprite reboots
 ---
 
+import { LinkCard, CardGrid } from '@/components/react';
+
 Services are long-running processes managed by the Sprite runtime that automatically restart when your Sprite boots. Unlike detachable sessions, services survive full Sprite restarts and are ideal for background daemons, development servers, and databases.
 
 ## Overview
@@ -238,6 +240,33 @@ tail -f /var/log/syslog
 
 ## Related Documentation
 
-- [Lifecycle and Persistence](/concepts/lifecycle) - Sprite lifecycle overview
-- [Checkpoints](/concepts/checkpoints) - Save and restore state
-- [Base Images](/reference/base-images) - Pre-installed tools
+<CardGrid client:load>
+  <LinkCard
+    href="/concepts/lifecycle"
+    title="Lifecycle and Persistence"
+    description="Understanding sprite hibernation and state management"
+    icon="layers"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/checkpoints"
+    title="Checkpoints"
+    description="Save and restore sprite state with checkpoints"
+    icon="folder"
+    client:load
+  />
+  <LinkCard
+    href="/reference/base-images"
+    title="Base Images"
+    description="Pre-installed tools and available images"
+    icon="terminal"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Commands"
+    description="Service management commands"
+    icon="terminal"
+    client:load
+  />
+</CardGrid>

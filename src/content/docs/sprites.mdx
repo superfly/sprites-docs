@@ -4,7 +4,7 @@ description: Create and manage persistent execution environments programmaticall
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
-import { Snippet } from '@/components/react';
+import { Snippet, LinkCard, CardGrid } from '@/components/react';
 
 Sprites provides a direct interface for defining containers at runtime and securely running arbitrary code inside them.
 
@@ -630,9 +630,47 @@ err := client.DeleteSprite(ctx, "my-sprite")
 
 ## Related Documentation
 
-- [Lifecycle and Persistence](/concepts/lifecycle)
-- [Networking and URLs](/concepts/networking)
-- [Checkpoints](/concepts/checkpoints)
-- [JavaScript SDK Reference](/sdks/javascript)
-- [Go SDK Reference](/sdks/go)
-- [CLI Reference](/cli/commands)
+<CardGrid client:load>
+  <LinkCard
+    href="/concepts/lifecycle"
+    title="Lifecycle and Persistence"
+    description="Understand sprite states, hibernation, and automatic persistence"
+    icon="layers"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/networking"
+    title="Networking and URLs"
+    description="Access sprites via HTTP and configure network settings"
+    icon="zap"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/checkpoints"
+    title="Checkpoints"
+    description="Save and restore sprite state with checkpoints"
+    icon="folder"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/javascript"
+    title="JavaScript SDK"
+    description="Programmatic sprite management in JavaScript and TypeScript"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/go"
+    title="Go SDK"
+    description="Native Go client for the Sprites API"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Reference"
+    description="Complete command-line interface documentation"
+    icon="terminal"
+    client:load
+  />
+</CardGrid>
