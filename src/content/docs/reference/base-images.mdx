@@ -322,19 +322,19 @@ cat /.sprite/languages/rust/llm.txt
 
 The base image includes several tools for interacting with the Sprite runtime from inside the environment.
 
-### curl-sprite-api
+### sprite-env
 
-A convenience wrapper for accessing the internal API via Unix socket:
+A convenience command for managing Sprite environment services and checkpoints:
 
 ```bash
 # Instead of:
 curl --unix-socket /.sprite/api.sock -H "Content-Type: application/json" http://sprite/v1/services
 
 # You can use:
-curl-sprite-api /v1/services
+sprite-env services list
 
-# See all available endpoints
-curl-sprite-api --help
+# See all available commands
+sprite-env --help
 ```
 
 The internal API manages:
@@ -362,7 +362,7 @@ Launches the appropriate login shell based on your local environment. When you r
 
 ### Internal API Socket
 
-The Sprite runtime exposes a Unix socket at `/.sprite/api.sock` for internal management. While `curl-sprite-api` is the recommended way to interact with it, you can also use it directly:
+The Sprite runtime exposes a Unix socket at `/.sprite/api.sock` for internal management. While `sprite-env` is the recommended way to interact with it, you can also use the socket directly with `sprite-env curl` or raw curl:
 
 ```bash
 # Using curl directly

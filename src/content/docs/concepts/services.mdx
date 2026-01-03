@@ -7,14 +7,14 @@ Services are long-running processes managed by the Sprite runtime that automatic
 
 ## Overview
 
-Services are managed through the internal API at `/.sprite/api.sock`. The `curl-sprite-api` command provides a convenient wrapper:
+Services are managed through the internal API at `/.sprite/api.sock`. The `sprite-env` command provides a convenient wrapper:
 
 ```bash
 # List all services
-curl-sprite-api /v1/services
+sprite-env services list
 
 # Get help and see all endpoints
-curl-sprite-api --help
+sprite-env services --help
 ```
 
 ## Creating Services
@@ -23,13 +23,13 @@ Create a service with a PUT request:
 
 ```bash
 # Simple service
-curl-sprite-api -X PUT /v1/services/myapp -d '{
+sprite-env curl -X PUT /v1/services/myapp -d '{
   "cmd": "/usr/bin/myapp",
   "args": ["--port", "8080"]
 }'
 
 # Service with dependencies
-curl-sprite-api -X PUT /v1/services/webapp -d '{
+sprite-env curl -X PUT /v1/services/webapp -d '{
   "cmd": "npm",
   "args": ["run", "dev"],
   "needs": ["database"]
@@ -50,7 +50,7 @@ When you create a service, the API streams logs in NDJSON format:
 
 ```bash
 # Stream logs for 10 seconds after creation
-curl-sprite-api -X PUT '/v1/services/myapp?duration=10s' -d '{
+sprite-env curl -X PUT '/v1/services/myapp?duration=10s' -d '{
   "cmd": "npm",
   "args": ["run", "dev"]
 }'
@@ -63,7 +63,7 @@ The default streaming duration is 5 seconds. Set `duration=0` to return immediat
 ### List Services
 
 ```bash
-curl-sprite-api /v1/services
+sprite-env services list
 ```
 
 Returns a JSON array of services with their current states:
@@ -88,13 +88,13 @@ Returns a JSON array of services with their current states:
 ### Get Service State
 
 ```bash
-curl-sprite-api /v1/services/webapp
+sprite-env services get webapp
 ```
 
 ### Delete a Service
 
 ```bash
-curl-sprite-api -X DELETE /v1/services/webapp
+sprite-env services delete webapp
 ```
 
 ### Send Signals
@@ -103,19 +103,19 @@ Send Unix signals to a service:
 
 ```bash
 # Graceful shutdown
-curl-sprite-api -X POST /v1/services/signal -d '{
+sprite-env curl -X POST /v1/services/signal -d '{
   "name": "webapp",
   "signal": "TERM"
 }'
 
 # Force kill
-curl-sprite-api -X POST /v1/services/signal -d '{
+sprite-env curl -X POST /v1/services/signal -d '{
   "name": "webapp",
   "signal": "KILL"
 }'
 
 # Reload configuration (for services that support it)
-curl-sprite-api -X POST /v1/services/signal -d '{
+sprite-env curl -X POST /v1/services/signal -d '{
   "name": "nginx",
   "signal": "HUP"
 }'
@@ -152,7 +152,7 @@ Choose the right approach for your use case:
 
 ```bash
 # Create a Node.js dev server service
-curl-sprite-api -X PUT /v1/services/devserver -d '{
+sprite-env curl -X PUT /v1/services/devserver -d '{
   "cmd": "npm",
   "args": ["run", "dev"]
 }'
@@ -162,13 +162,13 @@ curl-sprite-api -X PUT /v1/services/devserver -d '{
 
 ```bash
 # First, create the database service
-curl-sprite-api -X PUT /v1/services/postgres -d '{
+sprite-env curl -X PUT /v1/services/postgres -d '{
   "cmd": "/usr/lib/postgresql/16/bin/postgres",
   "args": ["-D", "/home/sprite/pgdata"]
 }'
 
 # Then create a service that depends on it
-curl-sprite-api -X PUT /v1/services/webapp -d '{
+sprite-env curl -X PUT /v1/services/webapp -d '{
   "cmd": "npm",
   "args": ["start"],
   "needs": ["postgres"]
@@ -178,7 +178,7 @@ curl-sprite-api -X PUT /v1/services/webapp -d '{
 ### Python Background Worker
 
 ```bash
-curl-sprite-api -X PUT /v1/services/worker -d '{
+sprite-env curl -X PUT /v1/services/worker -d '{
   "cmd": "python",
   "args": ["-m", "celery", "worker", "-A", "tasks"]
 }'
@@ -190,17 +190,17 @@ AI coding agents can manage services through the internal API. Point your LLM at
 
 ```bash
 # LLM creates a service for the project it's working on
-curl-sprite-api -X PUT /v1/services/devserver -d '{
+sprite-env curl -X PUT /v1/services/devserver -d '{
   "cmd": "npm",
   "args": ["run", "dev"],
   "dir": "/home/sprite/project"
 }'
 
 # Check if it's running
-curl-sprite-api /v1/services/devserver
+sprite-env services get devserver
 
 # Restart after making changes
-curl-sprite-api -X POST /v1/services/signal -d '{"name": "devserver", "signal": "TERM"}'
+sprite-env curl -X POST /v1/services/signal -d '{"name": "devserver", "signal": "TERM"}'
 # Service auto-restarts
 ```
 
@@ -225,7 +225,7 @@ The service manager will restart crashed services. If a service exits immediatel
 Stream logs when creating the service:
 
 ```bash
-curl-sprite-api -X PUT '/v1/services/myapp?duration=60s' -d '{...}'
+sprite-env curl -X PUT '/v1/services/myapp?duration=60s' -d '{...}'
 ```
 
 Or check system logs:

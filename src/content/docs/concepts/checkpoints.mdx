@@ -260,12 +260,6 @@ sprite checkpoint delete v3
 # Output: Deleted
 ```
 </TabItem>
-<TabItem label="cURL">
-```bash
-# Delete via internal API (from inside the Sprite)
-curl-sprite-api -X DELETE /v1/checkpoints/v3
-```
-</TabItem>
 </Tabs>
 
 ### Delete Restrictions
@@ -290,25 +284,19 @@ To delete an active checkpoint, first restore to a different checkpoint, then de
 
 You can create and restore checkpoints from within the Sprite itself using the internal API. This is particularly useful for LLMs and automation scripts.
 
-### Using curl-sprite-api
+### Using sprite-env
 
-The `curl-sprite-api` command simplifies access to the internal API:
+The `sprite-env` command simplifies access to the internal API:
 
 ```bash
 # List all checkpoints
-curl-sprite-api /v1/checkpoints
-
-# Get details for a specific checkpoint
-curl-sprite-api /v1/checkpoints/v2
+sprite-env checkpoints list
 
 # Create a new checkpoint (streams progress)
-curl-sprite-api -X POST /v1/checkpoint
+sprite-env checkpoints create
 
 # Restore from a checkpoint
-curl-sprite-api -X POST /v1/checkpoints/v1/restore
-
-# Delete a checkpoint
-curl-sprite-api -X DELETE /v1/checkpoints/v3
+sprite-env checkpoints restore v1
 ```
 
 ### Direct API Access
@@ -325,10 +313,6 @@ curl --unix-socket /.sprite/api.sock \
 curl --unix-socket /.sprite/api.sock \
   -H "Content-Type: application/json" \
   -X POST http://sprite/v1/checkpoint
-
-# Delete checkpoint
-curl --unix-socket /.sprite/api.sock \
-  -X DELETE http://sprite/v1/checkpoints/v3
 ```
 
 ### Checkpoint Creation Response
@@ -347,7 +331,7 @@ Restore requests return immediately with HTTP 202 (Accepted) and trigger the res
 
 ```bash
 # This returns immediately, then the sprite restarts with restored state
-curl-sprite-api -X POST /v1/checkpoints/v1/restore
+sprite-env checkpoints restore v1
 ```
 
 ### LLM Self-Checkpointing
@@ -356,17 +340,14 @@ AI coding agents can checkpoint their own work. Point your LLM at `/.sprite/llm.
 
 ```bash
 # Before risky operations
-curl-sprite-api -X POST /v1/checkpoint
+sprite-env checkpoints create
 # Output: {"status": "complete", "id": "v4"}
 
 # Try something risky...
 rm -rf node_modules && npm install
 
 # If things go wrong, restore
-curl-sprite-api -X POST /v1/checkpoints/v4/restore
-
-# Clean up old checkpoints when done
-curl-sprite-api -X DELETE /v1/checkpoints/v3
+sprite-env checkpoints restore v4
 ```
 
 This enables autonomous recovery when experiments fail.
