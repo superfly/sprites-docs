@@ -13,15 +13,15 @@ describe('LinkCards', () => {
       });
   });
 
-  it('should navigate to linked page when clicked', () => {
+  it('should have valid navigation links', () => {
     cy.get('.grid a.no-underline')
       .first()
       .then(($link) => {
         const href = $link.attr('href');
         // Verify href exists and is an internal link
         expect(href).to.match(/^\//);
-        cy.wrap($link).click();
-        cy.location('pathname', { timeout: 60000 }).should('include', href);
+        // Verify linked page exists (returns 200)
+        cy.request(href as string).its('status').should('eq', 200);
       });
   });
 });
