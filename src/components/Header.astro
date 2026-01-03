@@ -14,7 +14,7 @@ import Default from '@astrojs/starlight/components/Header.astro';
       link.className = 'dashboard-link';
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
-      link.innerHTML = `Dashboard <svg class="external-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z" clip-rule="evenodd" /></svg>`;
+      link.innerHTML = `Dashboard <svg class="pixel-arrow" viewBox="0 0 36 60" fill="currentColor"><path d="M24 48V36H12v12h12M0 48v12h12V48H0m12-24h12V12H12v12m24 0H24v12h12V24M12 12V0H0v12h12z" /></svg>`;
       rightGroup.appendChild(link);
     }
   }
@@ -76,9 +76,14 @@ import Default from '@astrojs/starlight/components/Header.astro';
     background: linear-gradient(180deg, #2dd464 0%, #1eb854 100%);
   }
 
-  .dashboard-link .external-icon {
-    width: 0.875rem;
-    height: 0.875rem;
-    opacity: 0.8;
+  .dashboard-link .pixel-arrow {
+    width: 0.625rem;
+    height: 0.625rem;
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
+  }
+
+  .dashboard-link:hover .pixel-arrow {
+    opacity: 1;
   }
 </style>
