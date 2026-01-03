@@ -63,7 +63,7 @@ const LinkCard: React.FC<LinkCardProps> = ({
       className="block no-underline group"
     >
       <SpotlightCard
-        className="h-full transition-colors hover:border-primary/30"
+        className="h-full"
         spotlightColor="color-mix(in oklch, var(--primary) 15%, transparent)"
       >
         <div className="flex flex-col gap-3">
