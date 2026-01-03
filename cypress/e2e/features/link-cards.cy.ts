@@ -21,7 +21,9 @@ describe('LinkCards', () => {
         // Verify href exists and is an internal link
         expect(href).to.match(/^\//);
         // Verify linked page exists (returns 200)
-        cy.request(href as string).its('status').should('eq', 200);
+        cy.request(href as string)
+          .its('status')
+          .should('eq', 200);
       });
   });
 });
