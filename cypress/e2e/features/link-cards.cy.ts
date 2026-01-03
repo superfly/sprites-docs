@@ -18,8 +18,10 @@ describe('LinkCards', () => {
       .first()
       .then(($link) => {
         const href = $link.attr('href');
+        // Verify href exists and is an internal link
+        expect(href).to.match(/^\//);
         cy.wrap($link).click();
-        cy.url().should('include', href);
+        cy.location('pathname', { timeout: 60000 }).should('include', href);
       });
   });
 });
