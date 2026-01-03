@@ -34,6 +34,22 @@ function cleanMdxContent(content: string): string {
     return results.length > 0 ? results.join('\n\n') : '';
   });
 
+  // Process CardGrid/LinkCard components - convert to markdown links
+  content = content.replace(/<CardGrid[^>]*>[\s\S]*?<\/CardGrid>/g, (match) => {
+    const links: string[] = [];
+    const linkCardRegex =
+      /<LinkCard\s+[^>]*href="([^"]*)"[^>]*title="([^"]*)"[^>]*description="([^"]*)"[^>]*\/>/g;
+
+    for (const [, href, title, description] of match.matchAll(linkCardRegex)) {
+      const fullUrl = href.startsWith('/')
+        ? `https://docs.sprites.dev${href}`
+        : href;
+      links.push(`- [${title}](${fullUrl}) - ${description}`);
+    }
+
+    return links.length > 0 ? links.join('\n') : '';
+  });
+
   // Remove self-closing JSX/MDX components
   content = content.replace(/<[A-Z][a-zA-Z]*\s+[^>]*\/>/g, '');
 
