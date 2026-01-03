@@ -3,7 +3,7 @@ title: CLI Commands Reference
 description: Complete reference for all Sprites CLI commands
 ---
 
-import { Callout } from '@/components/react';
+import { Callout, LinkCard, CardGrid } from '@/components/react';
 
 Complete reference for all `sprite` CLI commands.
 
@@ -447,3 +447,36 @@ sprite exec "python experiment.py"
 # Restore to clean state
 sprite restore <checkpoint-id>
 ```
+
+## Related Documentation
+
+<CardGrid client:load>
+  <LinkCard
+    href="/cli/installation"
+    title="Installation"
+    description="Install the Sprites CLI on your platform"
+    icon="rocket"
+    client:load
+  />
+  <LinkCard
+    href="/cli/authentication"
+    title="Authentication"
+    description="Set up your Fly.io account and manage tokens"
+    icon="settings"
+    client:load
+  />
+  <LinkCard
+    href="/working-with-sprites"
+    title="Working with Sprites"
+    description="Beyond the basics guide"
+    icon="book-open"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/checkpoints"
+    title="Checkpoints"
+    description="Save and restore sprite state"
+    icon="folder"
+    client:load
+  />
+</CardGrid>

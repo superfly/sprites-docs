@@ -4,7 +4,7 @@ description: Get up and running with Sprites in 5 minutes
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
-import { Callout } from '@/components/react';
+import { Callout, LinkCard, CardGrid } from '@/components/react';
 
 This guide shows you how to install the CLI, create your first Sprite, and start running commands. By the end, you'll have a working environment that sticks around between runs, serves traffic over HTTP, and wakes up automatically when you need it.
 
@@ -183,7 +183,34 @@ func main() {
 
 ## Next Steps
 
-- **[Working with Sprites](/working-with-sprites)** - Find out about sessions, ports, persistence, and everything beyond the basics
-- **[Core concepts: Lifecycle](/concepts/lifecycle)** - Take a deeper dive into Sprites core concepts, beginning with Lifecycle and Persistence
-- **[Billing and Cost Optimization](/reference/billing)** - Learn how Sprites are billed, estimate your costs, and try cost optimization strategies
+<CardGrid client:load>
+  <LinkCard
+    href="/working-with-sprites"
+    title="Working with Sprites"
+    description="Sessions, ports, persistence, and everything beyond the basics"
+    icon="book-open"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/lifecycle"
+    title="Lifecycle & Persistence"
+    description="Deep dive into how Sprites work under the hood"
+    icon="layers"
+    client:load
+  />
+  <LinkCard
+    href="/reference/billing"
+    title="Billing & Costs"
+    description="Pricing, cost estimation, and optimization strategies"
+    icon="file-text"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Reference"
+    description="Complete command-line documentation"
+    icon="terminal"
+    client:load
+  />
+</CardGrid>
 

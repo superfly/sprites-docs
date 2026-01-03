@@ -3,6 +3,8 @@ title: Base Images
 description: Pre-configured development environments for Sprites
 ---
 
+import { LinkCard, CardGrid } from '@/components/react';
+
 Sprites run on pre-configured base images that include common development tools, language runtimes, and AI coding agents. The base image is upgraded automatically without affecting your overlay filesystem.
 
 ## Ubuntu DevTools (Default)
@@ -382,3 +384,36 @@ cat /.sprite/policy/network.json
 ```
 
 Network policies must be updated externally via the Sprite API—the container cannot modify its own policy. See [Networking](/concepts/networking) for details.
+
+## Related Documentation
+
+<CardGrid client:load>
+  <LinkCard
+    href="/concepts/services"
+    title="Services"
+    description="Long-running processes that persist across reboots"
+    icon="cog"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/checkpoints"
+    title="Checkpoints"
+    description="Save and restore sprite state"
+    icon="folder"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/networking"
+    title="Networking"
+    description="URLs, ports, and network configuration"
+    icon="zap"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/lifecycle"
+    title="Lifecycle"
+    description="Hibernation and persistence behavior"
+    icon="layers"
+    client:load
+  />
+</CardGrid>

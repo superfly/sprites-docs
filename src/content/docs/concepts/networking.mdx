@@ -4,7 +4,7 @@ description: HTTP access, URLs, port forwarding, and network configuration
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
-import { Snippet } from '@/components/react';
+import { Snippet, LinkCard, CardGrid } from '@/components/react';
 
 Sprites run your code in the cloud. This page is about how to talk to that code via HTTPS URLs and port forwarding that make remote services feel local. You get a public endpoint to hit your app over the Internet, and the ability to proxy ports straight to your laptop so you can test, debug, and connect tools like you're running everything on localhost.
 
@@ -204,6 +204,33 @@ We don't add firewall rules or block inbound traffic to forwarded ports, but we 
 
 ## Related Documentation
 
-- [Working with Sprites](/working-with-sprites) - Beyond the basics guide to using Sprites
-- [CLI Commands](/cli/commands) - Command reference
-- [Configuration](/reference/configuration) - Network settings
+<CardGrid client:load>
+  <LinkCard
+    href="/working-with-sprites"
+    title="Working with Sprites"
+    description="Beyond the basics guide to using Sprites"
+    icon="book-open"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Commands"
+    description="Complete command reference"
+    icon="terminal"
+    client:load
+  />
+  <LinkCard
+    href="/reference/configuration"
+    title="Configuration"
+    description="Network settings and options"
+    icon="settings"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/lifecycle"
+    title="Lifecycle"
+    description="Hibernation and persistence behavior"
+    icon="layers"
+    client:load
+  />
+</CardGrid>

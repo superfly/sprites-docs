@@ -3,6 +3,8 @@ title: JavaScript SDK
 description: Use Sprites programmatically with the JavaScript/TypeScript SDK
 ---
 
+import { LinkCard, CardGrid } from '@/components/react';
+
 The Sprites JavaScript SDK (`@fly/sprites`) provides a Node.js interface for managing Sprites programmatically. The SDK mirrors the Node.js `child_process` API, making it familiar and easy to use.
 
 ## Installation
@@ -400,6 +402,33 @@ main();
 
 ## Related Documentation
 
-- [Sprites Guide](/sprites) - Comprehensive guide
-- [Go SDK](/sdks/go) - Go SDK reference
-- [REST API](/api/rest) - HTTP API reference
+<CardGrid client:load>
+  <LinkCard
+    href="/sprites"
+    title="Sprites Guide"
+    description="Comprehensive guide to working with Sprites"
+    icon="book-open"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/go"
+    title="Go SDK"
+    description="Go SDK reference documentation"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/api/rest"
+    title="REST API"
+    description="HTTP API reference"
+    icon="zap"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Reference"
+    description="Command-line interface documentation"
+    icon="terminal"
+    client:load
+  />
+</CardGrid>

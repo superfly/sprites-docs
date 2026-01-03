@@ -4,7 +4,7 @@ description: Beyond the basics, sessions, ports, persistence, checkpoints
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
-import { Callout } from '@/components/react';
+import { Callout, LinkCard, CardGrid } from '@/components/react';
 
 After you've made it through the Quickstart, you've got a working Sprite and a sense of how to use it. This page covers what comes next: how Sprites behave over time, how to run persistent processes, how networking works, and how to shape the environment to fit your stack. Use it as a reference as you start building more with Sprites.
 
@@ -587,8 +587,47 @@ sc my-sprite  # Mounts and cd's to the sprite's filesystem
 
 ## Next Steps
 
-- **[CLI Reference](/cli/commands)** - Full command documentation
-- **[JavaScript SDK](/sdks/javascript)** - Complete SDK reference
-- **[Go SDK](/sdks/go)** - Native Go integration
-- **[Lifecycle & Persistence](/concepts/lifecycle)** - Deep dive into how Sprites work
-- **[Networking](/concepts/networking)** - URLs, ports, and connectivity
+<CardGrid client:load>
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Reference"
+    description="Full command documentation and examples"
+    icon="terminal"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/javascript"
+    title="JavaScript SDK"
+    description="Complete SDK reference for Node.js"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/go"
+    title="Go SDK"
+    description="Native Go integration mirroring os/exec"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/lifecycle"
+    title="Lifecycle & Persistence"
+    description="Deep dive into how Sprites work"
+    icon="layers"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/networking"
+    title="Networking"
+    description="URLs, ports, and connectivity"
+    icon="zap"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/checkpoints"
+    title="Checkpoints"
+    description="Save and restore sprite state"
+    icon="folder"
+    client:load
+  />
+</CardGrid>

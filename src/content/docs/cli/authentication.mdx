@@ -3,6 +3,8 @@ title: CLI Authentication
 description: Authenticate the Sprites CLI with your Fly.io account
 ---
 
+import { LinkCard, CardGrid } from '@/components/react';
+
 Sprites uses your Fly.io account for authentication. This guide covers setting up authentication and managing API tokens.
 
 ## Quick Setup
@@ -239,5 +241,19 @@ If you get permission errors after authentication:
 
 ## Next Steps
 
-- [Commands Reference](/cli/commands) - Full CLI documentation
-- [Quickstart](/quickstart) - Create your first Sprite
+<CardGrid client:load>
+  <LinkCard
+    href="/cli/commands"
+    title="Commands Reference"
+    description="Full CLI documentation and command examples"
+    icon="terminal"
+    client:load
+  />
+  <LinkCard
+    href="/quickstart"
+    title="Quickstart"
+    description="Create your first Sprite in minutes"
+    icon="rocket"
+    client:load
+  />
+</CardGrid>

@@ -3,6 +3,8 @@ title: Configuration Reference
 description: All configuration options for Sprites
 ---
 
+import { LinkCard, CardGrid } from '@/components/react';
+
 This page documents all configuration options available for Sprites, including environment settings and client configuration.
 
 ## URL Settings
@@ -251,6 +253,33 @@ cmd := sprite.CommandContext(ctx, "long-command")
 
 ## Related Documentation
 
-- [Lifecycle](/concepts/lifecycle) - Hibernation and persistence
-- [Billing](/reference/billing) - Pricing details
-- [CLI Commands](/cli/commands) - Full CLI reference
+<CardGrid client:load>
+  <LinkCard
+    href="/concepts/lifecycle"
+    title="Lifecycle"
+    description="Hibernation and persistence behavior"
+    icon="layers"
+    client:load
+  />
+  <LinkCard
+    href="/reference/billing"
+    title="Billing"
+    description="Pricing details and cost estimation"
+    icon="file-text"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Commands"
+    description="Full CLI reference documentation"
+    icon="terminal"
+    client:load
+  />
+  <LinkCard
+    href="/reference/base-images"
+    title="Base Images"
+    description="Pre-installed tools and runtimes"
+    icon="folder"
+    client:load
+  />
+</CardGrid>

@@ -4,6 +4,8 @@ description: Persistent, hardware-isolated execution environments for arbitrary 
 tableOfContents: false
 ---
 
+import { LinkCard, CardGrid } from '@/components/react';
+
 **Sprites are persistent, hardware-isolated Linux environments for running arbitrary code.** It's like having a small, stateful computer you can spin up on demand. Unlike serverless functions, Sprites keep their filesystem and memory between runs. They're useful for things like AI agents, persistent development environments, or user-submitted code.
 
 ## What makes Sprites different?
@@ -42,7 +44,33 @@ Every Sprite gets a unique URL, making it easy to expose web services or APIs ru
 
 ## Get Started
 
-- **[Quickstart](/quickstart)** - Install the CLI, create your first Sprite, and learn about all the features
-- **[JavaScript SDK](/sdks/javascript)** - Build with Sprites in Node.js applications
-- **[Go SDK](/sdks/go)** - Use the native Go client mirroring os/exec
-- **[CLI Reference](/cli/commands)** -Review the complete command documentation
+<CardGrid client:load>
+  <LinkCard
+    href="/quickstart"
+    title="Quickstart"
+    description="Install the CLI, create your first Sprite, and explore the features"
+    icon="rocket"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/javascript"
+    title="JavaScript SDK"
+    description="Build with Sprites in Node.js applications"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/go"
+    title="Go SDK"
+    description="Use the native Go client mirroring os/exec"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Reference"
+    description="Review the complete command documentation"
+    icon="terminal"
+    client:load
+  />
+</CardGrid>

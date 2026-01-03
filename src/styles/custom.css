@@ -96,18 +96,18 @@
   --card-foreground: oklch(0.985 0.001 106.423);
   --popover: oklch(0.216 0.006 56.043);
   --popover-foreground: oklch(0.985 0.001 106.423);
-  --primary: oklch(0.648 0.2 131.684);
+  --primary: oklch(0.723 0.191 145.579);
   --primary-foreground: oklch(0.986 0.031 120.757);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.268 0.007 34.298);
   --muted-foreground: oklch(0.709 0.01 56.259);
-  --accent: oklch(0.25 0.05 131.684);
-  --accent-foreground: oklch(0.95 0.01 131.684);
+  --accent: oklch(0.25 0.05 145.579);
+  --accent-foreground: oklch(0.95 0.01 145.579);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.648 0.2 131.684);
+  --ring: oklch(0.723 0.191 145.579);
   --chart-1: oklch(0.871 0.15 154.449);
   --chart-2: oklch(0.723 0.219 149.579);
   --chart-3: oklch(0.627 0.194 149.214);
@@ -115,12 +115,12 @@
   --chart-5: oklch(0.448 0.119 151.328);
   --sidebar: oklch(0.216 0.006 56.043);
   --sidebar-foreground: oklch(0.985 0.001 106.423);
-  --sidebar-primary: oklch(0.768 0.233 130.85);
+  --sidebar-primary: oklch(0.723 0.191 145.579);
   --sidebar-primary-foreground: oklch(0.986 0.031 120.757);
-  --sidebar-accent: oklch(0.25 0.05 131.684);
-  --sidebar-accent-foreground: oklch(0.95 0.01 131.684);
+  --sidebar-accent: oklch(0.25 0.05 145.579);
+  --sidebar-accent-foreground: oklch(0.95 0.01 145.579);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.648 0.2 131.684);
+  --sidebar-ring: oklch(0.723 0.191 145.579);
 }
 
 /* Tailwind v4 theme inline */
@@ -167,10 +167,10 @@
 /* Starlight CSS Custom Properties */
 :root,
 [data-theme='dark'] {
-  /* Primary accent color - Teal */
-  --sl-color-accent-low: oklch(0.3 0.1 131.684);
-  --sl-color-accent: oklch(0.648 0.2 131.684);
-  --sl-color-accent-high: oklch(0.8 0.15 131.684);
+  /* Primary accent color - Sprites Green (#22c55e) */
+  --sl-color-accent-low: oklch(0.3 0.1 145.579);
+  --sl-color-accent: oklch(0.723 0.191 145.579);
+  --sl-color-accent-high: oklch(0.8 0.15 145.579);
 
   /* Text colors */
   --sl-color-white: oklch(0.985 0.001 106.423);
@@ -434,22 +434,22 @@ header.header .site-title img {
 
 /* Link styling - dotted underline always visible, violet on hover */
 /* Exclude: badges, buttons, cards, edit link, pagination */
-main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]) {
+main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline) {
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 3px;
 }
 
 /* Links inherit text color by default, violet on hover */
-main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]) {
+main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline) {
   color: inherit;
 }
 
-main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):hover {
+main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline):hover {
   color: oklch(0.55 0.25 285) !important;
 }
 
-[data-theme='dark'] main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):hover {
+[data-theme='dark'] main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline):hover {
   color: oklch(0.7 0.2 285) !important;
 }
 
