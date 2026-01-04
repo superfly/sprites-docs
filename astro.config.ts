@@ -143,6 +143,7 @@ export default defineConfig({
         ThemeSelect: './src/components/ThemeSelect.astro',
         PageTitle: './src/components/PageTitle.astro',
         SiteTitle: './src/components/SiteTitle.astro',
+        Pagination: './src/components/Pagination.astro',
       },
     }),
     react(),
