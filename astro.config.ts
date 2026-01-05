@@ -141,6 +141,7 @@ export default defineConfig({
         Header: './src/components/Header.astro',
         Search: './src/components/Search.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
+        ThemeProvider: './src/components/ThemeProvider.astro',
         PageTitle: './src/components/PageTitle.astro',
         SiteTitle: './src/components/SiteTitle.astro',
         Pagination: './src/components/Pagination.astro',

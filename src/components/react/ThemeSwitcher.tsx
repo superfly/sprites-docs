@@ -22,12 +22,12 @@ const themes = [
 function getTheme(): Theme {
   if (typeof localStorage !== 'undefined') {
     const stored = localStorage.getItem('starlight-theme');
-    if (stored === 'light' || stored === 'dark') {
-      return stored;
+    if (stored === 'light' || stored === 'dark' || stored === '') {
+      // Starlight stores empty string for 'auto'
+      return stored === '' ? 'auto' : stored;
     }
-    // Starlight stores empty string for 'auto'
   }
-  return 'auto';
+  return 'dark';
 }
 
 function setTheme(theme: Theme) {
