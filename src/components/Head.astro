@@ -116,9 +116,9 @@ const breadcrumbSchema = {
       }, { capture: true });
     });
 
-    // Mobile fade overlay - inject actual DOM element since pseudo-elements don't work with ExpressiveCode
+    // Mobile fade overlay - inject into frame (sibling to pre, outside scroll)
     if (window.innerWidth <= 640) {
-      document.querySelectorAll('.expressive-code .frame').forEach((frame) => {
+      document.querySelectorAll('.expressive-code:not(.is-output-block) .frame').forEach((frame) => {
         if (frame.querySelector('.code-fade-overlay')) return;
 
         const overlay = document.createElement('div');

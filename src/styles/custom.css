@@ -346,16 +346,11 @@ pre[data-bash-prompt] > code {
   inset-block-start: calc(var(--ec-brdWd) + 0.4rem);
 }
 
-/* Fade overlay - hidden by default, shown on mobile */
-.expressive-code .code-fade-overlay {
-  display: none;
-}
-
-/* Mobile: smaller copy button and fade overlay on code */
+/* Mobile: smaller copy button with fade overlay */
 @media (max-width: 640px) {
   /* Always show copy button on mobile (no hover state) */
   .expressive-code .copy {
-    z-index: 2; /* Above fade overlay */
+    z-index: 2;
   }
 
   .expressive-code .copy button {
@@ -369,22 +364,23 @@ pre[data-bash-prompt] > code {
     height: 14px;
   }
 
-  /* Fade overlay - only first line height */
-  .expressive-code .code-fade-overlay {
-    display: block;
+  /* Padding so content can scroll past the fade/button area */
+  .expressive-code:not(.is-output-block) pre {
+    padding-right: 3rem !important;
+  }
+
+  /* Fade overlay - top line only, inside border */
+  .expressive-code:not(.is-output-block) .frame .code-fade-overlay {
     position: absolute;
     top: var(--ec-brdWd, 1px);
     right: var(--ec-brdWd, 1px);
-    height: 2.5rem; /* Approximately first line height */
-    width: 8rem;
-    border-top-right-radius: var(--ec-brdRad, 0.5rem);
+    height: 2.75rem;
+    width: 5rem;
+    border-top-right-radius: calc(var(--ec-brdRad, 0.5rem) - 1px);
     background: linear-gradient(
       to right,
-      transparent 0px,
-      color-mix(in oklch, var(--code-background) 40%, transparent) 16px,
-      color-mix(in oklch, var(--code-background) 70%, transparent) 32px,
-      color-mix(in oklch, var(--code-background) 90%, transparent) 48px,
-      var(--code-background) 56px
+      transparent 0%,
+      var(--ec-codeBg) 40%
     );
     pointer-events: none;
     z-index: 1;
