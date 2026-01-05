@@ -67,6 +67,28 @@ const breadcrumbSchema = {
   const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-icon"><path d="M5 12l5 5L20 7"/></svg>`;
 
   function initCodeBlocks() {
+    // Output section styling - merge ```output blocks with preceding code block
+    document.querySelectorAll('.expressive-code').forEach((block) => {
+      if (block.dataset.outputProcessed) return;
+      block.dataset.outputProcessed = 'true';
+
+      // Check if this is an output block (language="output")
+      const pre = block.querySelector('pre');
+      if (!pre || pre.dataset.language !== 'output') return;
+
+      // Find the preceding code block
+      let prevSibling = block.previousElementSibling;
+      while (prevSibling && !prevSibling.classList.contains('expressive-code')) {
+        prevSibling = prevSibling.previousElementSibling;
+      }
+
+      if (!prevSibling) return;
+
+      // Mark this as an output block and hide its frame chrome
+      block.classList.add('is-output-block');
+      prevSibling.classList.add('has-output-block');
+    });
+
     // Custom copy buttons
     document.querySelectorAll('.expressive-code .copy button').forEach((button) => {
       if (button.dataset.customized) return;

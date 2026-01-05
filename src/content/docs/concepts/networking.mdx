@@ -14,7 +14,10 @@ Every Sprite has a unique URL for HTTPS access, for example:
 
 ```bash
 sprite url
-# Output: https://my-sprite-abc123.sprites.dev
+```
+
+```output
+https://my-sprite-abc123.sprites.dev
 ```
 
 If your code is listening on a port (say, 3000 or 8080), that URL routes traffic to it. This means you can:
@@ -113,8 +116,13 @@ sprite exec -detachable "python -m http.server 8080"
 
 # Get the URL
 sprite url
-# Output: https://my-sprite-abc123.sprites.dev
+```
 
+```output
+https://my-sprite-abc123.sprites.dev
+```
+
+```bash
 # Access via browser or curl (after making public)
 curl https://my-sprite-abc123.sprites.dev:8080/
 ```

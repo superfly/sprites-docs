@@ -32,8 +32,10 @@ Checkpoints do **not** capture:
 ```bash
 # Create a checkpoint of the current sprite
 sprite checkpoint create
+```
 
-# Output: Checkpoint created: v1
+```output
+Checkpoint created: v1
 ```
 </TabItem>
 <TabItem label="Go">
@@ -90,8 +92,13 @@ sprite exec "npm install"
 
 # Save the clean state
 sprite checkpoint create
-# Output: Checkpoint created: v1
+```
 
+```output
+Checkpoint created: v1
+```
+
+```bash
 # Now experiment freely
 sprite exec "pip install experimental-package"
 sprite exec "rm -rf node_modules"  # Oops!
@@ -108,12 +115,13 @@ sprite restore v1
 ```bash
 # List all checkpoints for the current sprite
 sprite checkpoint list
+```
 
-# Output:
-# ID                             CREATED             COMMENT
-# ------------------------------ ------------------- ------------------------
-# v1                             2024-01-15 10:30:00 After npm install
-# v0                             2024-01-14 15:45:00 Base (clean) state
+```output
+ID                             CREATED             COMMENT
+------------------------------ ------------------- ------------------------
+v1                             2024-01-15 10:30:00 After npm install
+v0                             2024-01-14 15:45:00 Base (clean) state
 ```
 </TabItem>
 <TabItem label="Go">
@@ -149,12 +157,13 @@ Get details about a specific checkpoint:
 <TabItem label="CLI">
 ```bash
 sprite checkpoint info v1
+```
 
-# Output:
-# ID: v1
-# Created: 2024-01-15T10:30:00Z
-# Comment: After npm install
-# History: (none)
+```output
+ID: v1
+Created: 2024-01-15T10:30:00Z
+Comment: After npm install
+History: (none)
 ```
 </TabItem>
 <TabItem label="Go">
@@ -256,8 +265,10 @@ You can delete individual checkpoints by their ID. Deleted checkpoints cannot be
 ```bash
 # Delete a specific checkpoint
 sprite checkpoint delete v3
+```
 
-# Output: Deleted
+```output
+Deleted
 ```
 </TabItem>
 </Tabs>
@@ -341,8 +352,13 @@ AI coding agents can checkpoint their own work. Point your LLM at `/.sprite/llm.
 ```bash
 # Before risky operations
 sprite-env checkpoints create
-# Output: {"status": "complete", "id": "v4"}
+```
 
+```output
+{"status": "complete", "id": "v4"}
+```
+
+```bash
 # Try something risky...
 rm -rf node_modules && npm install
 
@@ -445,12 +461,20 @@ Checkpoints use sequential version IDs (v0, v1, v2, etc.). Add comments to descr
 ```bash
 # Create checkpoint with a descriptive comment
 sprite checkpoint create --comment "Clean Python 3.11 + Node 20 setup"
-# Output: Checkpoint created: v1
+```
 
+```output
+Checkpoint created: v1
+```
+
+```bash
 # List checkpoints to see comments
 sprite checkpoint list
-# ID    CREATED              COMMENT
-# v1    2024-01-15 10:30:00  Clean Python 3.11 + Node 20 setup
+```
+
+```output
+ID    CREATED              COMMENT
+v1    2024-01-15 10:30:00  Clean Python 3.11 + Node 20 setup
 ```
 </TabItem>
 <TabItem label="Go">

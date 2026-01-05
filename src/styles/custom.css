@@ -92,7 +92,7 @@
 [data-theme='dark'] {
   --background: oklch(0.147 0.004 49.25);
   --foreground: oklch(0.985 0.001 106.423);
-  --card: oklch(0.216 0.006 56.043);
+  --card: var(--sl-color-gray-6);
   --card-foreground: oklch(0.985 0.001 106.423);
   --popover: oklch(0.216 0.006 56.043);
   --popover-foreground: oklch(0.985 0.001 106.423);
@@ -443,6 +443,46 @@ pre[data-bash-prompt] > code {
 
 .expressive-code .copy button.copied .check-icon path {
   stroke-dashoffset: 0;
+}
+
+/* Output block styling - for ```output code blocks */
+.expressive-code.has-output-block figure {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom: none;
+}
+
+.expressive-code.has-output-block figure pre {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-bottom: none !important;
+}
+
+.expressive-code.is-output-block {
+  margin-top: 0 !important;
+}
+
+.expressive-code.is-output-block figure {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+  position: relative;
+}
+
+.expressive-code.is-output-block figure pre {
+  border-top: 1px dashed var(--sl-color-gray-4);
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  background: oklch(0.18 0 0) !important;
+}
+
+.expressive-code.is-output-block .ec-line {
+  opacity: 0.7;
+}
+
+/* Hide copy button on output blocks */
+.expressive-code.is-output-block .copy {
+  display: none;
 }
 
 /* Button pop animation */
