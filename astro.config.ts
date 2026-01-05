@@ -71,7 +71,7 @@ export default defineConfig({
         },
         {
           label: 'API',
-          items: [{ label: 'REST API', slug: 'api/rest' }],
+          items: [{ label: 'Sprites API v1', link: 'https://sprites.dev/api' }],
         },
         {
           label: 'Reference',
