@@ -22,4 +22,18 @@ const pageUrl = Astro.url.href
     display: flex;
     align-items: center;
   }
+
+  /* Match search box styling in dark mode */
+  :global([data-theme='dark']) .copy-page-button-wrapper :global(button) {
+    background: var(--sl-color-gray-6);
+  }
+
+  :global([data-theme='dark']) .copy-page-button-wrapper :global(button:hover) {
+    background: var(--sl-color-gray-5);
+  }
+
+  /* Make separator visible */
+  :global([data-theme='dark']) .copy-page-button-wrapper :global([data-slot='button-group-separator']) {
+    background: var(--sl-color-gray-4);
+  }
 </style>

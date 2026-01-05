@@ -131,7 +131,7 @@ export function CopyPageButton({
   return (
     <ButtonGroup>
       <Button
-        variant="outline"
+        variant="secondary"
         size="sm"
         className="gap-1 !text-xs h-7"
         onClick={handleCopy}
@@ -153,7 +153,7 @@ export function CopyPageButton({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             className="px-1.5 h-7"
             aria-label="More options"
