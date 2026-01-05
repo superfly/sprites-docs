@@ -611,6 +611,7 @@ body.search-dialog-open .page {
   [data-theme='dark'] body:has(.page)::after {
     bottom: 0;
     mask-image: linear-gradient(to top right, rgb(0 0 0 / 1), rgb(0 0 0 / 0) 20%);
+    opacity: 0.6;
   }
 }
 

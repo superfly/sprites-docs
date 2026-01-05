@@ -1,104 +1,13 @@
 ---
+import { Pagination as PaginationReact } from './react/Pagination';
+
 const { dir, pagination } = Astro.locals.starlightRoute;
 const { prev, next } = pagination;
-const isRtl = dir === 'rtl';
 ---
 
-<div class="pagination-links print:hidden" dir={dir}>
-	{
-		prev && (
-			<a href={prev.href} rel="prev" class="pagination-pill">
-				<svg class="pixel-arrow pixel-arrow-left" viewBox="0 0 36 60" fill="currentColor" aria-hidden="true">
-					<path d="M24 48V36H12v12h12M0 48v12h12V48H0m12-24h12V12H12v12m24 0H24v12h12V24M12 12V0H0v12h12z" />
-				</svg>
-				<span class="link-title">{prev.label}</span>
-			</a>
-		)
-	}
-	{
-		next && (
-			<a href={next.href} rel="next" class="pagination-pill">
-				<span class="link-title">{next.label}</span>
-				<svg class="pixel-arrow" viewBox="0 0 36 60" fill="currentColor" aria-hidden="true">
-					<path d="M24 48V36H12v12h12M0 48v12h12V48H0m12-24h12V12H12v12m24 0H24v12h12V24M12 12V0H0v12h12z" />
-				</svg>
-			</a>
-		)
-	}
-</div>
-
-<style>
-	.pagination-links {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 1rem;
-		margin-top: 2rem;
-	}
-
-	.pagination-pill {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.5rem 1rem;
-		border: 1px solid var(--sl-color-gray-5);
-		border-radius: var(--radius, 0.5rem);
-		text-decoration: none;
-		color: var(--sl-color-white);
-		font-size: 0.9375rem;
-		font-weight: 500;
-		transition: all 0.15s ease;
-		white-space: nowrap;
-	}
-
-	.pagination-pill:hover {
-		border-color: var(--sl-color-gray-3);
-		background: var(--sl-color-gray-6);
-	}
-
-	[rel='prev'] {
-		margin-right: auto;
-	}
-
-	[rel='next'] {
-		margin-left: auto;
-	}
-
-	.link-title {
-		line-height: 1;
-	}
-
-	.pixel-arrow {
-		width: 0.625rem;
-		height: 0.625rem;
-		flex-shrink: 0;
-		opacity: 0.6;
-		transition: opacity 0.15s ease, transform 0.15s ease;
-	}
-
-	.pixel-arrow-left {
-		transform: scaleX(-1);
-	}
-
-	.pagination-pill:hover .pixel-arrow {
-		opacity: 1;
-	}
-
-	[rel='prev']:hover .pixel-arrow {
-		transform: scaleX(-1) translateX(2px);
-	}
-
-	[rel='next']:hover .pixel-arrow {
-		transform: translateX(2px);
-	}
-
-	:global([data-theme='light']) .pagination-pill {
-		color: var(--sl-color-gray-1);
-		border-color: var(--sl-color-gray-4);
-	}
-
-	:global([data-theme='light']) .pagination-pill:hover {
-		border-color: var(--sl-color-gray-3);
-		background: var(--sl-color-gray-6);
-	}
-</style>
+<PaginationReact
+  client:load
+  prev={prev ? { href: prev.href, label: prev.label } : undefined}
+  next={next ? { href: next.href, label: next.label } : undefined}
+  dir={dir}
+/>
