@@ -1,5 +1,6 @@
 ---
 import Default from '@astrojs/starlight/components/Head.astro';
+import Background from './Background.astro';
 
 const siteUrl = 'https://docs.sprites.dev';
 const pageTitle = Astro.locals.starlightRoute?.entry?.data?.title ?? 'Sprites Documentation';
@@ -50,6 +51,7 @@ const breadcrumbSchema = {
 ---
 
 <Default {...Astro.props}><slot /></Default>
+<Background />
 
 <!-- Dynamic OG Image -->
 <meta property="og:image" content={ogImageUrl} />
