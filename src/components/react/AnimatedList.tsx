@@ -16,6 +16,11 @@ interface AnimatedItemProps {
   index: number;
   onMouseEnter?: MouseEventHandler<HTMLDivElement>;
   onClick?: MouseEventHandler<HTMLDivElement>;
+  // Accessibility props
+  role?: string;
+  id?: string;
+  'aria-selected'?: boolean;
+  tabIndex?: number;
 }
 
 export const AnimatedItem: React.FC<AnimatedItemProps> = ({
@@ -24,6 +29,10 @@ export const AnimatedItem: React.FC<AnimatedItemProps> = ({
   index,
   onMouseEnter,
   onClick,
+  role,
+  id,
+  'aria-selected': ariaSelected,
+  tabIndex,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount: 0.5, once: false });
@@ -34,6 +43,10 @@ export const AnimatedItem: React.FC<AnimatedItemProps> = ({
       data-index={index}
       onMouseEnter={onMouseEnter}
       onClick={onClick}
+      role={role}
+      id={id}
+      aria-selected={ariaSelected}
+      tabIndex={tabIndex}
       initial={{ scale: 0.8, opacity: 0, y: 15 }}
       animate={
         inView

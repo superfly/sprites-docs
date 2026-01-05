@@ -93,6 +93,7 @@ const PageResultItem: React.FC<{
     >
       <div className="flex items-center gap-3">
         <svg
+          aria-hidden="true"
           className={cn(
             'w-4 h-4 flex-shrink-0',
             isSelected ? 'text-primary' : 'text-muted-foreground',
@@ -117,6 +118,7 @@ const PageResultItem: React.FC<{
           {item.title}
         </span>
         <Kbd
+          aria-hidden="true"
           className={cn(
             'transition-opacity',
             isSelected ? 'opacity-100' : 'opacity-0',
@@ -137,7 +139,10 @@ const SectionResultItem: React.FC<{
   return (
     <div className="flex items-stretch">
       {/* Tree connector */}
-      <div className="w-7 ml-5 flex items-center justify-center relative">
+      <div
+        aria-hidden="true"
+        className="w-7 ml-5 flex items-center justify-center relative"
+      >
         {/* Vertical line */}
         <div
           className={cn(
@@ -175,6 +180,7 @@ const SectionResultItem: React.FC<{
             )}
           </div>
           <Kbd
+            aria-hidden="true"
             className={cn(
               'flex-shrink-0 transition-opacity',
               isSelected ? 'opacity-100' : 'opacity-0',
@@ -209,6 +215,8 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
   const listRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const searchIdRef = useRef<number>(0);
+  const listboxId = 'search-results-listbox';
+  const getOptionId = (index: number) => `search-option-${index}`;
 
   // Load Pagefind once on mount
   useEffect(() => {
@@ -306,6 +314,37 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
     }
 
     return unlockScroll;
+  }, [isOpen]);
+
+  // Focus trap for modal accessibility
+  useEffect(() => {
+    if (!isOpen || !dialogRef.current) return;
+
+    const dialog = dialogRef.current;
+    const focusableElements = dialog.querySelectorAll<HTMLElement>(
+      'input, button, [tabindex]:not([tabindex="-1"])',
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement?.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement?.focus();
+        }
+      }
+    };
+
+    dialog.addEventListener('keydown', handleTabKey);
+    return () => dialog.removeEventListener('keydown', handleTabKey);
   }, [isOpen]);
 
   // Search effect with manual debouncing
@@ -466,6 +505,14 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
 
   if (!isOpen) return null;
 
+  // Generate status message for screen readers
+  const getStatusMessage = () => {
+    if (isLoading) return 'Searching...';
+    if (!query) return '';
+    if (selectableItems.length === 0) return `No results found for "${query}"`;
+    return `${results.length} result${results.length !== 1 ? 's' : ''} found for "${query}"`;
+  };
+
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 px-6 sm:pt-[10vh] sm:px-4">
       {/* Backdrop */}
@@ -475,7 +522,13 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
         exit={{ opacity: 0 }}
         className="absolute inset-0 bg-background/70"
         onClick={onClose}
+        aria-hidden="true"
       />
+
+      {/* Live region for search status announcements */}
+      <output aria-live="polite" aria-atomic="true" className="sr-only">
+        {getStatusMessage()}
+      </output>
 
       {/* Dialog */}
       <StarBorder
@@ -487,6 +540,9 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
       >
         <motion.div
           ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Search documentation"
           initial={{ opacity: 0, scale: 0.96, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: -10 }}
@@ -501,6 +557,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
             )}
           >
             <svg
+              aria-hidden="true"
               className="w-5 h-5 text-muted-foreground flex-shrink-0"
               fill="none"
               viewBox="0 0 24 24"
@@ -521,10 +578,24 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={!pagefindReady ? 'Loading search...' : ''}
                 disabled={!pagefindReady}
+                aria-label="Search documentation"
+                aria-autocomplete="list"
+                aria-controls={listboxId}
+                aria-activedescendant={
+                  selectableItems.length > 0
+                    ? getOptionId(selectedIndex)
+                    : undefined
+                }
+                role="combobox"
+                aria-expanded={selectableItems.length > 0}
+                aria-haspopup="listbox"
                 className="w-full bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm disabled:opacity-50"
               />
               {pagefindReady && !query && (
-                <div className="absolute inset-0 flex items-center pointer-events-none">
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 flex items-center pointer-events-none"
+                >
                   <ShinyText
                     text="Search documentation..."
                     color="var(--muted-foreground)"
@@ -539,9 +610,11 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
               <button
                 type="button"
                 onClick={() => setQuery('')}
+                aria-label="Clear search"
                 className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 <svg
+                  aria-hidden="true"
                   className="w-4 h-4"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -556,7 +629,9 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                 </svg>
               </button>
             )}
-            <Kbd className="hidden sm:inline-flex">Esc</Kbd>
+            <Kbd aria-hidden="true" className="hidden sm:inline-flex">
+              Esc
+            </Kbd>
           </div>
 
           {/* Results count */}
@@ -572,6 +647,9 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
             <div className="relative">
               <div
                 ref={listRef}
+                id={listboxId}
+                role="listbox"
+                aria-label="Search results"
                 className="max-h-[60vh] overflow-y-auto p-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full"
                 onScroll={handleScroll}
                 style={{
@@ -599,6 +677,10 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                         window.location.href = item.url;
                         onClose();
                       }}
+                      role="option"
+                      id={getOptionId(index)}
+                      aria-selected={selectedIndex === index}
+                      tabIndex={-1}
                     >
                       {item.type === 'section' ? (
                         <SectionResultItem
@@ -618,10 +700,12 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
 
               {/* Gradient overlays */}
               <div
+                aria-hidden="true"
                 className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-popover to-transparent pointer-events-none transition-opacity duration-300"
                 style={{ opacity: topGradientOpacity }}
               />
               <div
+                aria-hidden="true"
                 className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-popover to-transparent pointer-events-none transition-opacity duration-300"
                 style={{ opacity: bottomGradientOpacity }}
               />
@@ -630,7 +714,10 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
 
           {/* Footer */}
           {selectableItems.length > 0 && (
-            <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex items-center justify-end gap-4">
+            <div
+              aria-hidden="true"
+              className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex items-center justify-end gap-4"
+            >
               <span className="flex items-center gap-1">
                 <KbdGroup>
                   <Kbd>↑</Kbd>
