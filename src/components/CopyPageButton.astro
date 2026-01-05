@@ -23,17 +23,18 @@ const pageUrl = Astro.url.href
     align-items: center;
   }
 
-  /* Match search box styling in dark mode */
-  :global([data-theme='dark']) .copy-page-button-wrapper :global(button) {
+  /* Match search box styling */
+  .copy-page-button-wrapper :global(button) {
     background: var(--sl-color-gray-6);
+    border: none;
   }
 
-  :global([data-theme='dark']) .copy-page-button-wrapper :global(button:hover) {
+  .copy-page-button-wrapper :global(button:hover) {
     background: var(--sl-color-gray-5);
   }
 
   /* Make separator visible */
-  :global([data-theme='dark']) .copy-page-button-wrapper :global([data-slot='button-group-separator']) {
-    background: var(--sl-color-gray-4);
+  .copy-page-button-wrapper :global([data-slot='button-group-separator']) {
+    background: var(--sl-color-gray-5);
   }
 </style>
