@@ -72,7 +72,8 @@ const breadcrumbSchema = {
       if (button.dataset.customized) return;
       button.dataset.customized = 'true';
 
-      const code = button.dataset.code || '';
+      // ExpressiveCode stores newlines as \u007f (DEL char) in data-code, convert back
+      const code = (button.dataset.code || '').replace(/\u007f/g, '\n');
 
       button.innerHTML = `
         <span class="copy-icon-wrapper">${copyIcon}</span>
