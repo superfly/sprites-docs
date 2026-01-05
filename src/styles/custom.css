@@ -404,6 +404,7 @@ pre[data-bash-prompt] > code {
   align-items: center;
   justify-content: center;
   transition: opacity 0.15s ease, transform 0.2s ease;
+  color: var(--sl-color-text); /* Prevent mobile browsers from applying blue tap color */
 }
 
 .expressive-code .copy button .check-icon-wrapper {
