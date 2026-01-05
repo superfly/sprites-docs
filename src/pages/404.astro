@@ -132,7 +132,7 @@ import '@/styles/custom.css';
       }
 
       .prompt {
-        color: oklch(0.648 0.2 131.684);
+        color: var(--primary);
         user-select: none;
       }
 
@@ -165,7 +165,7 @@ import '@/styles/custom.css';
         display: inline-block;
         width: 0.5rem;
         height: 1.1em;
-        background: oklch(0.648 0.2 131.684);
+        background: var(--primary);
         margin-left: 0.25rem;
         animation: blink 1s step-end infinite;
         vertical-align: text-bottom;
@@ -201,13 +201,14 @@ import '@/styles/custom.css';
       }
 
       .btn-primary {
-        color: oklch(0.147 0.004 49.25);
-        background: oklch(0.648 0.2 131.684);
+        color: var(--primary-foreground);
+        background: var(--primary);
         border: none;
       }
 
       .btn-primary:hover {
-        background: oklch(0.768 0.233 130.85);
+        background: var(--primary);
+        filter: brightness(1.15);
       }
 
       .btn-secondary {
