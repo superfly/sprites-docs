@@ -9,7 +9,6 @@ export {
 } from './AnimatedList';
 export { APIBody, APIEndpoint } from './APIEndpoint';
 export { BillingCalculator } from './BillingCalculator';
-export { BillingFAQ } from './BillingFAQ';
 export { ContentBreadcrumbs } from './Breadcrumbs';
 export { Callout } from './Callout';
 export { default as CardGrid } from './CardGrid';
