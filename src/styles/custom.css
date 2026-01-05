@@ -582,43 +582,56 @@ body.search-dialog-open .page {
 }
 
 /* Dark mode green background - matching sprites-api /api route */
-/* Only applies to pages with Starlight .page wrapper */
+/* Only applies to pages with Starlight .page wrapper, hidden on mobile */
 [data-theme='dark'] body:has(.page)::before,
 [data-theme='dark'] body:has(.page)::after {
-  content: '';
-  position: fixed;
-  left: 0;
-  right: 0;
-  height: 100vh;
-  z-index: -10;
-  pointer-events: none;
-  background-color: oklch(0.45 0.15 145); /* green-600 equivalent */
+  content: none;
 }
 
-/* Top background - fades from transparent at bottom to visible at top */
-[data-theme='dark'] body:has(.page)::before {
-  top: 0;
-  mask-image: linear-gradient(15deg, rgb(0 0 0 / 0) 80%, rgb(0 0 0 / 1));
+@media (min-width: 768px) {
+  [data-theme='dark'] body:has(.page)::before,
+  [data-theme='dark'] body:has(.page)::after {
+    content: '';
+    position: fixed;
+    left: 0;
+    right: 0;
+    height: 100vh;
+    z-index: -10;
+    pointer-events: none;
+    background-color: oklch(0.45 0.15 145); /* green-600 equivalent */
+  }
+
+  /* Top background - fades from transparent at bottom to visible at top */
+  [data-theme='dark'] body:has(.page)::before {
+    top: 0;
+    mask-image: linear-gradient(15deg, rgb(0 0 0 / 0) 80%, rgb(0 0 0 / 1));
+  }
+
+  /* Bottom background - fades from visible at bottom to transparent at top */
+  [data-theme='dark'] body:has(.page)::after {
+    bottom: 0;
+    mask-image: linear-gradient(to top right, rgb(0 0 0 / 1), rgb(0 0 0 / 0) 20%);
+  }
 }
 
-/* Bottom background - fades from visible at bottom to transparent at top */
-[data-theme='dark'] body:has(.page)::after {
-  bottom: 0;
-  mask-image: linear-gradient(to top right, rgb(0 0 0 / 1), rgb(0 0 0 / 0) 20%);
-}
-
-/* Background image overlay for dark mode */
+/* Background image overlay for dark mode - hidden on mobile */
 [data-theme='dark'] .page::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -9;
-  pointer-events: none;
-  background-image: url('/images/bmxy.png');
-  background-repeat: no-repeat;
-  background-size: 150% auto;
-  background-position: center;
-  opacity: 0.25;
+  content: none;
+}
+
+@media (min-width: 768px) {
+  [data-theme='dark'] .page::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -9;
+    pointer-events: none;
+    background-image: url('/images/bmxy.png');
+    background-repeat: no-repeat;
+    background-size: 150% auto;
+    background-position: center;
+    opacity: 0.25;
+  }
 }
 
 @media (min-width: 1280px) {
