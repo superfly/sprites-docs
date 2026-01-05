@@ -4,7 +4,6 @@ description: Sprites pricing and billing details
 ---
 
 import BillingCalculator from '@/components/BillingCalculator.astro';
-import BillingFAQ from '@/components/BillingFAQ.astro';
 import PricingRates from '@/components/PricingRates.astro';
 import { LinkCard, CardGrid } from '@/components/react';
 
@@ -132,7 +131,26 @@ Usage and billing information is available through your Fly.io dashboard and org
 
 ## Billing FAQ
 
-<BillingFAQ />
+**When does billing start?**
+> Compute billing starts when you execute a command and stops when the command completes or the Sprite hibernates.
+
+**Do I pay while hibernated?**
+> No compute charges while hibernated. You only pay for storage.
+
+**How is storage measured?**
+> Storage is measured based on actual data on disk, not allocated capacity. It's sampled periodically throughout the month.
+
+**Are checkpoints billed?**
+> Yes, checkpoints count toward your storage usage.
+
+**What happens if I exceed my included credits?**
+> You'll be charged overage rates for any usage beyond your plan's included credits. Overage is billed at the rates shown in the Overage Pricing section above.
+
+**Is there a minimum charge?**
+> Your subscription plan has a fixed monthly cost. Within your included credits, there's no additional charge—you can run commands as short or long as you need.
+
+**How do I see my bill?**
+> Usage and billing information is available through your Fly.io dashboard and organization settings.
 
 ## Related Documentation
 
