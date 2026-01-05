@@ -311,6 +311,88 @@ pre[data-bash-prompt] > code {
   --ec-brdCol: var(--sl-color-hairline);
 }
 
+/* Hide terminal header bar for CLI/bash blocks */
+.expressive-code .frame.is-terminal .header {
+  display: none;
+}
+
+.expressive-code .frame.is-terminal pre {
+  border-top: var(--ec-brdWd) solid var(--ec-brdCol) !important;
+  border-top-left-radius: calc(var(--ec-brdRad) + var(--ec-brdWd));
+  border-top-right-radius: calc(var(--ec-brdRad) + var(--ec-brdWd));
+}
+
+/* Reposition copy button for terminal blocks without header */
+.expressive-code .frame.is-terminal .copy {
+  inset-block-start: calc(var(--ec-brdWd) + 0.4rem);
+}
+
+/* Custom copy button with animated green check */
+.expressive-code .copy button {
+  position: relative;
+}
+
+/* Hide the default ExpressiveCode copy icon (rendered via ::after) */
+.expressive-code .copy button[data-customized]::after {
+  display: none !important;
+}
+
+/* Also hide the inner div that ExpressiveCode uses for hover background */
+.expressive-code .copy button[data-customized] > div {
+  display: none;
+}
+
+.expressive-code .copy button .copy-icon-wrapper,
+.expressive-code .copy button .check-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, transform 0.2s ease;
+}
+
+.expressive-code .copy button .check-icon-wrapper {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(0.5);
+  color: oklch(0.723 0.191 145.579); /* Sprites green */
+}
+
+/* Copied state */
+.expressive-code .copy button.copied .copy-icon-wrapper {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+.expressive-code .copy button.copied .check-icon-wrapper {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Check icon stroke animation */
+.expressive-code .copy button .check-icon path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset 0.3s ease-out 0.1s;
+}
+
+.expressive-code .copy button.copied .check-icon path {
+  stroke-dashoffset: 0;
+}
+
+/* Button pop animation */
+@keyframes copy-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Keep button visible during copied state even when not hovering */
+.expressive-code .copy button.copied {
+  animation: copy-pop 0.2s ease-out;
+  opacity: 1 !important;
+}
+
 :not(pre) > code {
   background: var(--sl-color-bg-inline-code);
   padding: 0.2em 0.4em;
