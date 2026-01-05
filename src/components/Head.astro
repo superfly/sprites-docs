@@ -66,21 +66,19 @@ const breadcrumbSchema = {
   const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
   const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-icon"><path d="M5 12l5 5L20 7"/></svg>`;
 
-  function initCopyButtons() {
+  function initCodeBlocks() {
+    // Custom copy buttons
     document.querySelectorAll('.expressive-code .copy button').forEach((button) => {
       if (button.dataset.customized) return;
       button.dataset.customized = 'true';
 
-      // Store original click handler data
       const code = button.dataset.code || '';
 
-      // Replace button content with custom icons
       button.innerHTML = `
         <span class="copy-icon-wrapper">${copyIcon}</span>
         <span class="check-icon-wrapper">${checkIcon}</span>
       `;
 
-      // Add custom click handler
       button.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -94,13 +92,31 @@ const breadcrumbSchema = {
         }
       }, { capture: true });
     });
+
+    // Mobile fade overlay - inject actual DOM element since pseudo-elements don't work with ExpressiveCode
+    if (window.innerWidth <= 640) {
+      document.querySelectorAll('.expressive-code .frame').forEach((frame) => {
+        if (frame.querySelector('.code-fade-overlay')) return;
+
+        const overlay = document.createElement('div');
+        overlay.className = 'code-fade-overlay';
+        frame.appendChild(overlay);
+      });
+    }
   }
 
   // Run on initial load and page transitions
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initCopyButtons);
+    document.addEventListener('DOMContentLoaded', initCodeBlocks);
   } else {
-    initCopyButtons();
+    initCodeBlocks();
   }
-  document.addEventListener('astro:page-load', initCopyButtons);
+  document.addEventListener('astro:page-load', initCodeBlocks);
+
+  // Re-check on resize for mobile overlay
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(initCodeBlocks, 100);
+  });
 </script>

@@ -296,9 +296,16 @@ pre[data-bash-prompt] > code {
   background: var(--sl-color-bg-sidebar);
 }
 
-/* Dark mode - transparent sidebar to show green background */
-[data-theme='dark'] .sidebar-pane {
-  background: transparent;
+/* Dark mode - transparent sidebar to show green background (desktop only) */
+@media (min-width: 50rem) {
+  [data-theme='dark'] .sidebar-pane {
+    background: transparent;
+  }
+}
+
+/* Mobile menu needs solid background when expanded */
+[data-theme='dark'] nav.sidebar[data-mobile-menu-expanded] {
+  background: var(--sl-color-bg);
 }
 
 .site-title {
@@ -309,6 +316,11 @@ pre[data-bash-prompt] > code {
 .expressive-code {
   --ec-brdRad: 0.5rem;
   --ec-brdCol: var(--sl-color-hairline);
+}
+
+/* Ensure frame has relative positioning for overlays */
+.expressive-code .frame {
+  position: relative;
 }
 
 /* Hide terminal header bar for CLI/bash blocks */
@@ -325,6 +337,50 @@ pre[data-bash-prompt] > code {
 /* Reposition copy button for terminal blocks without header */
 .expressive-code .frame.is-terminal .copy {
   inset-block-start: calc(var(--ec-brdWd) + 0.4rem);
+}
+
+/* Fade overlay - hidden by default, shown on mobile */
+.expressive-code .code-fade-overlay {
+  display: none;
+}
+
+/* Mobile: smaller copy button and fade overlay on code */
+@media (max-width: 640px) {
+  /* Always show copy button on mobile (no hover state) */
+  .expressive-code .copy {
+    z-index: 2; /* Above fade overlay */
+  }
+
+  .expressive-code .copy button {
+    width: 2rem;
+    height: 2rem;
+    opacity: 1 !important;
+  }
+
+  .expressive-code .copy button svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Fade overlay - only first line height */
+  .expressive-code .code-fade-overlay {
+    display: block;
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 2.5rem; /* Approximately first line height */
+    width: 8rem;
+    background: linear-gradient(
+      to right,
+      transparent 0px,
+      color-mix(in srgb, var(--code-background) 40%, transparent) 16px,
+      color-mix(in srgb, var(--code-background) 70%, transparent) 32px,
+      color-mix(in srgb, var(--code-background) 90%, transparent) 48px,
+      var(--code-background) 56px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
 }
 
 /* Custom copy button with animated green check */
