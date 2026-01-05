@@ -18,6 +18,7 @@ export { CopyPageButton } from './CopyPageButton';
 export { DotPattern } from './DotPattern';
 export { LifecycleDiagram } from './LifecycleDiagram';
 export { default as LinkCard } from './LinkCard';
+export { Pagination } from './Pagination';
 export { Param, ParamInline, ParamTable } from './ParamTable';
 export { PricingRates } from './PricingRates';
 export { SearchDialog } from './SearchDialog';
