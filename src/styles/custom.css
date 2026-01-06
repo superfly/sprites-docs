@@ -586,7 +586,7 @@ nav.sidebar {
   vertical-align: middle;
 }
 
-/* Headings use JetBrains Mono with balanced typography (inspired by Claude Code docs) */
+/* Headings use JetBrains Mono with balanced typography */
 h1, h2, h3, h4, h5, h6 {
   font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
