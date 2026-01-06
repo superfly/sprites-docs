@@ -19,40 +19,17 @@ const BADGE_CONFIG = {
   updatedThresholdDays: 0,
 };
 
-/**
- * Get the first commit date (publish date) for a file
- */
-function getPublishDate(filePath: string): Date | null {
-  try {
-    const result = execSync(
-      `git log --follow --format=%aI --diff-filter=A -- "${filePath}" | tail -1`,
-      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
-    ).trim();
-
-    if (!result) {
-      // Fallback: get the oldest commit that touched this file
-      const fallback = execSync(
-        `git log --follow --format=%aI -- "${filePath}" | tail -1`,
-        { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
-      ).trim();
-      return fallback ? new Date(fallback) : null;
-    }
-
-    return new Date(result);
-  } catch {
-    return null;
-  }
+function daysSince(date: Date): number {
+  return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-/**
- * Get the last commit date (update date) for a file
- */
-function getLastUpdatedDate(filePath: string): Date | null {
+function getGitDate(filePath: string, mode: 'first' | 'last'): Date | null {
   try {
-    const result = execSync(`git log -1 --format=%aI -- "${filePath}"`, {
-      encoding: 'utf-8',
-      stdio: ['pipe', 'pipe', 'pipe'],
-    }).trim();
+    const flags = mode === 'first' ? '--follow --diff-filter=A' : '-1';
+    const result = execSync(
+      `git log ${flags} --format=%aI -- "${filePath}" | tail -1`,
+      { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] },
+    ).trim();
     return result ? new Date(result) : null;
   } catch {
     return null;
@@ -64,44 +41,30 @@ function getLastUpdatedDate(filePath: string): Date | null {
  */
 function computeBadge(slug: string): SidebarBadge | undefined {
   const docsDir = path.resolve(process.cwd(), 'src/content/docs');
-  // Handle index page
   const fileName = slug === 'index' ? 'index.mdx' : `${slug}.mdx`;
   const filePath = path.join(docsDir, fileName);
 
-  const now = new Date();
-  const publishDate = getPublishDate(filePath);
-  const lastUpdated = getLastUpdatedDate(filePath);
+  const publishDate = getGitDate(filePath, 'first');
+  if (!publishDate) return undefined;
 
-  if (!publishDate || !lastUpdated) {
-    return undefined;
+  // "New" takes priority
+  if (daysSince(publishDate) <= BADGE_CONFIG.newThresholdDays) {
+    return { text: 'New', variant: 'success', class: 'sidebar-badge-new' };
   }
 
-  const daysSincePublish = Math.floor(
-    (now.getTime() - publishDate.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  const daysSinceUpdate = Math.floor(
-    (now.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24),
-  );
-
-  // "New" takes priority - show for recently published content
-  if (daysSincePublish <= BADGE_CONFIG.newThresholdDays) {
-    return {
-      text: 'New',
-      variant: 'success',
-      class: 'sidebar-badge-new',
-    };
-  }
-
-  // "Updated" for content that was recently modified (but not new)
-  if (
-    BADGE_CONFIG.updatedThresholdDays > 0 &&
-    daysSinceUpdate < BADGE_CONFIG.updatedThresholdDays
-  ) {
-    return {
-      text: 'Updated',
-      variant: 'note',
-      class: 'sidebar-badge-updated',
-    };
+  // "Updated" - only check if enabled
+  if (BADGE_CONFIG.updatedThresholdDays > 0) {
+    const lastUpdated = getGitDate(filePath, 'last');
+    if (
+      lastUpdated &&
+      daysSince(lastUpdated) < BADGE_CONFIG.updatedThresholdDays
+    ) {
+      return {
+        text: 'Updated',
+        variant: 'note',
+        class: 'sidebar-badge-updated',
+      };
+    }
   }
 
   return undefined;
