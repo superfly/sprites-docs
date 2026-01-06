@@ -140,6 +140,13 @@ const breadcrumbSchema = {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         copyWithFeedback(link, link.href);
+        // Update URL and scroll to the target section
+        const hash = link.getAttribute('href');
+        if (hash) {
+          history.pushState(null, '', hash);
+          const target = document.getElementById(hash.slice(1));
+          target?.scrollIntoView({ behavior: 'smooth' });
+        }
       });
     });
 

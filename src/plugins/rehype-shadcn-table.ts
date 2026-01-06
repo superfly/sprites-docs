@@ -5,50 +5,32 @@
 import type { Element, Root } from 'hast';
 import { visit } from 'unist-util-visit';
 
+const TAG_TO_SLOT: Record<string, string> = {
+  table: 'table',
+  thead: 'table-header',
+  tbody: 'table-body',
+  tr: 'table-row',
+  th: 'table-head',
+  td: 'table-cell',
+};
+
 export default function rehypeShadcnTable() {
   return (tree: Root) => {
     visit(tree, 'element', (node, index, parent) => {
-      if (node.tagName === 'table') {
-        node.properties = node.properties || {};
-        node.properties['data-slot'] = 'table';
+      const slot = TAG_TO_SLOT[node.tagName];
+      if (!slot) return;
 
-        // Wrap table in a container div for horizontal scrolling
+      node.properties = { ...node.properties, 'data-slot': slot };
+
+      // Wrap table in a container div for horizontal scrolling
+      if (node.tagName === 'table' && parent && typeof index === 'number') {
         const wrapper: Element = {
           type: 'element',
           tagName: 'div',
           properties: { 'data-slot': 'table-container' },
           children: [node],
         };
-
-        // Replace table with wrapper in parent
-        if (parent && typeof index === 'number') {
-          (parent.children as Element[])[index] = wrapper;
-        }
-      }
-
-      if (node.tagName === 'thead') {
-        node.properties = node.properties || {};
-        node.properties['data-slot'] = 'table-header';
-      }
-
-      if (node.tagName === 'tbody') {
-        node.properties = node.properties || {};
-        node.properties['data-slot'] = 'table-body';
-      }
-
-      if (node.tagName === 'tr') {
-        node.properties = node.properties || {};
-        node.properties['data-slot'] = 'table-row';
-      }
-
-      if (node.tagName === 'th') {
-        node.properties = node.properties || {};
-        node.properties['data-slot'] = 'table-head';
-      }
-
-      if (node.tagName === 'td') {
-        node.properties = node.properties || {};
-        node.properties['data-slot'] = 'table-cell';
+        (parent.children as Element[])[index] = wrapper;
       }
     });
   };

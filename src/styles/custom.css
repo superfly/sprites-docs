@@ -850,22 +850,22 @@ header.header .site-title img {
 
 /* Link styling - dotted underline always visible, violet on hover */
 /* Exclude: badges, buttons, cards, edit link, pagination */
-main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline) {
+main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .no-underline) {
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 3px;
+
+  /* Content links (not anchor links) inherit color, violet on hover */
+  &:not(.sl-anchor-link) {
+    color: inherit;
+
+    &:hover {
+      color: oklch(0.55 0.25 285) !important;
+    }
+  }
 }
 
-/* Links inherit text color by default, violet on hover */
-main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline):not(.sl-anchor-link) {
-  color: inherit;
-}
-
-main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline):not(.sl-anchor-link):hover {
-  color: oklch(0.55 0.25 285) !important;
-}
-
-[data-theme='dark'] main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline):not(.sl-anchor-link):hover {
+[data-theme='dark'] main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .no-underline):not(.sl-anchor-link):hover {
   color: oklch(0.7 0.2 285) !important;
 }
 
