@@ -194,14 +194,43 @@ jobs:
           echo "Preview did not become ready in time"
           exit 1
 
+      - name: Get changed pages
+        id: changed-pages
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const baseUrl = '${{ needs.preview.outputs.url }}';
+            const urls = new Set([baseUrl]); // Always test homepage
+
+            for (const file of files) {
+              // Match .mdx files in src/content/docs/
+              const match = file.filename.match(/^src\/content\/docs\/(.+)\.mdx$/);
+              if (match && file.status !== 'removed') {
+                let path = match[1];
+                // index.mdx maps to root, others map to their path
+                if (path === 'index') {
+                  urls.add(baseUrl);
+                } else {
+                  urls.add(`${baseUrl}/${path}/`);
+                }
+              }
+            }
+
+            const urlList = Array.from(urls).join('\n');
+            console.log('URLs to test:\n' + urlList);
+            core.setOutput('urls', urlList);
+
       - name: Run Lighthouse CI
         id: lighthouse
         uses: treosh/lighthouse-ci-action@v12
         with:
-          urls: |
-            ${{ needs.preview.outputs.url }}
-            ${{ needs.preview.outputs.url }}/quickstart/
-            ${{ needs.preview.outputs.url }}/reference/configuration/
+          urls: ${{ steps.changed-pages.outputs.urls }}
           configPath: ./lighthouserc.json
           budgetPath: ./budget.json
           uploadArtifacts: true
