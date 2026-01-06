@@ -3,6 +3,7 @@ import sitemap from '@astrojs/sitemap';
 import starlight from '@astrojs/starlight';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
+import rehypeShadcnTable from './src/plugins/rehype-shadcn-table';
 
 // https://astro.build/config
 export default defineConfig({
@@ -161,6 +162,9 @@ export default defineConfig({
     react(),
     sitemap(),
   ],
+  markdown: {
+    rehypePlugins: [rehypeShadcnTable],
+  },
   vite: {
     plugins: [tailwindcss()],
   },

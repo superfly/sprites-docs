@@ -531,26 +531,196 @@ nav.sidebar {
   border: none;
 }
 
-/* Table styling */
-table {
+/* Table styling - shadcn/ui Table (applied via rehype-shadcn-table plugin) */
+.sl-markdown-content [data-slot="table-container"] {
+  position: relative;
   width: 100%;
+  overflow-x: auto;
+}
+
+.sl-markdown-content [data-slot="table"] {
+  display: table;
+  width: 100%;
+  caption-side: bottom;
+  font-size: 0.875rem;
   border-collapse: collapse;
 }
 
-th, td {
-  border: 1px solid var(--sl-color-hairline);
-  padding: 0.75rem 1rem;
-  text-align: left;
+.sl-markdown-content [data-slot="table-header"] {
+  border-bottom: 1px solid var(--border);
 }
 
-th {
-  background: var(--sl-color-bg-nav);
+.sl-markdown-content [data-slot="table-body"] [data-slot="table-row"]:last-child {
+  border-bottom: none;
+}
+
+.sl-markdown-content [data-slot="table-row"] {
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.15s ease;
+}
+
+.sl-markdown-content [data-slot="table-row"]:hover {
+  background-color: var(--muted);
+}
+
+.sl-markdown-content [data-slot="table-head"] {
+  height: 2.75rem;
+  padding: 0.5rem 1rem;
+  text-align: left;
+  vertical-align: middle;
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.sl-markdown-content [data-slot="table-cell"] {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+/* Headings use JetBrains Mono with balanced typography (inspired by Claude Code docs) */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Content heading typography - balanced sizes */
+.sl-markdown-content h1 {
+  font-size: 1.5rem;
+  line-height: 1.33;
+  letter-spacing: -0.025em;
   font-weight: 600;
 }
 
-/* Headings use JetBrains Mono */
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+.sl-markdown-content h2 {
+  font-size: 1.5rem;
+  line-height: 1.33;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+}
+
+.sl-markdown-content h3 {
+  font-size: 1.25rem;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.sl-markdown-content h4 {
+  font-size: 1.125rem;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Body text line height for better readability */
+.sl-markdown-content p,
+.sl-markdown-content li {
+  line-height: 1.65;
+}
+
+/* Heading anchor links - positioned before text (on the left) */
+.sl-heading-wrapper {
+  position: relative;
+}
+
+.sl-anchor-link {
+  position: absolute;
+  right: calc(100% + 0.5rem);
+  top: 50%;
+  transform: translateY(-35%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  border: 1px solid var(--sl-color-gray-4);
+  border-radius: 0.25rem;
+  opacity: 0;
+  color: var(--sl-color-white) !important;
+  text-decoration: none !important;
+  transition: opacity 0.15s ease;
+}
+
+[data-theme='light'] .sl-anchor-link {
+  color: var(--sl-color-black) !important;
+}
+
+.sl-anchor-link svg {
+  width: 1rem;
+  height: 1rem;
+  display: block;
+}
+
+.sl-heading-wrapper:hover .sl-anchor-link,
+.sl-anchor-link:focus {
+  opacity: 1;
+}
+
+/* Mobile: anchor links always visible, positioned right of heading */
+@media (max-width: 50rem) {
+  .sl-heading-wrapper {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .sl-heading-wrapper > :is(h1, h2, h3, h4, h5, h6) {
+    margin: 0 !important;
+  }
+
+  .sl-anchor-link {
+    position: static;
+    transform: none;
+    opacity: 0.6;
+  }
+}
+
+/* Anchor link icon animation */
+.sl-anchor-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.sl-anchor-icon .link-icon-wrapper,
+.sl-anchor-icon .check-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, transform 0.2s ease;
+}
+
+.sl-anchor-icon .check-icon-wrapper {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(0.5);
+  color: oklch(0.723 0.191 145.579);
+}
+
+.sl-anchor-link.copied .link-icon-wrapper {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+.sl-anchor-link.copied .check-icon-wrapper {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.sl-anchor-icon .check-icon path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  transition: stroke-dashoffset 0.3s ease-out 0.1s;
+}
+
+.sl-anchor-link.copied .check-icon path {
+  stroke-dashoffset: 0;
 }
 
 /* Utilities */
@@ -687,15 +857,15 @@ main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="b
 }
 
 /* Links inherit text color by default, violet on hover */
-main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline) {
+main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline):not(.sl-anchor-link) {
   color: inherit;
 }
 
-main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline):hover {
+main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline):not(.sl-anchor-link):hover {
   color: oklch(0.55 0.25 285) !important;
 }
 
-[data-theme='dark'] main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline):hover {
+[data-theme='dark'] main .sl-markdown-content a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.no-underline):not(.sl-anchor-link):hover {
   color: oklch(0.7 0.2 285) !important;
 }
 

@@ -305,7 +305,10 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
       const scrollY = window.scrollY;
       document.body.style.top = `-${scrollY}px`;
       document.body.classList.add('search-dialog-open');
-      setTimeout(() => inputRef.current?.focus(), 50);
+      // Use requestAnimationFrame to focus after render but within user gesture chain for mobile keyboards
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
       setQuery('');
       setResults([]);
       setSelectedIndex(0);
