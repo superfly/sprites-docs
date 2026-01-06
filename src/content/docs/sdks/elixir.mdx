@@ -149,12 +149,12 @@ Returns `{:ok, command}` and sends messages to the owner process. Best for long-
 ```elixir
 {:ok, cmd} = Sprites.spawn(sprite, "npm", ["run", "dev"])
 
-# Receive messages
+# Receive messages (match on cmd.ref)
 receive do
-  {:stdout, ^cmd, data} -> IO.write(data)
-  {:stderr, ^cmd, data} -> IO.write(:stderr, data)
-  {:exit, ^cmd, code} -> IO.puts("Exited: #{code}")
-  {:error, ^cmd, reason} -> IO.inspect(reason)
+  {:stdout, %{ref: ref}, data} when ref == cmd.ref -> IO.write(data)
+  {:stderr, %{ref: ref}, data} when ref == cmd.ref -> IO.write(:stderr, data)
+  {:exit, %{ref: ref}, code} when ref == cmd.ref -> IO.puts("Exited: #{code}")
+  {:error, %{ref: ref}, reason} when ref == cmd.ref -> IO.inspect(reason)
 end
 ```
 
@@ -162,11 +162,13 @@ end
 
 | Message | Description |
 |---------|-------------|
-| `{:stdout, command, data}` | Stdout data received |
-| `{:stderr, command, data}` | Stderr data received |
-| `{:exit, command, exit_code}` | Command completed |
-| `{:error, command, reason}` | Error occurred |
-| `{:port, command, port}` | Port assignment (TTY mode) |
+| `{:stdout, %{ref: ref}, data}` | Stdout data received |
+| `{:stderr, %{ref: ref}, data}` | Stderr data received |
+| `{:exit, %{ref: ref}, exit_code}` | Command completed |
+| `{:error, %{ref: ref}, reason}` | Error occurred |
+| `{:port, %{ref: ref}, port}` | Port assignment (TTY mode) |
+
+Note: Match messages using `cmd.ref` to identify which command the message belongs to.
 
 ### `stream/4` - Lazy Stream Interface
 
@@ -266,8 +268,8 @@ Sprites.resize(cmd, 40, 120)
 
 # Receive output
 receive do
-  {:stdout, ^cmd, data} -> IO.write(data)
-  {:exit, ^cmd, _} -> :ok
+  {:stdout, %{ref: ref}, data} when ref == cmd.ref -> IO.write(data)
+  {:exit, %{ref: ref}, _} when ref == cmd.ref -> :ok
 end
 ```
 
@@ -369,7 +371,8 @@ Save and restore sprite state:
 Enum.each(messages, fn
   %Sprites.StreamMessage{type: "info", data: data} -> IO.puts(data)
   %Sprites.StreamMessage{type: "error", error: err} -> IO.puts(:stderr, err)
-  msg -> IO.inspect(msg)
+  %Sprites.StreamMessage{type: "complete", data: data} -> IO.puts("Done: #{data}")
+  _ -> :ok
 end)
 
 # Restore from checkpoint
@@ -501,16 +504,17 @@ defmodule CIRunner do
   end
 
   defp stream_output(cmd) do
+    ref = cmd.ref
     receive do
-      {:stdout, ^cmd, data} ->
+      {:stdout, %{ref: ^ref}, data} ->
         IO.write(data)
         stream_output(cmd)
-      {:stderr, ^cmd, data} ->
+      {:stderr, %{ref: ^ref}, data} ->
         IO.write(:stderr, data)
         stream_output(cmd)
-      {:exit, ^cmd, code} ->
+      {:exit, %{ref: ^ref}, code} ->
         code
-      {:error, ^cmd, reason} ->
+      {:error, %{ref: ^ref}, reason} ->
         Logger.error("Command failed: #{inspect(reason)}")
         1
     end
