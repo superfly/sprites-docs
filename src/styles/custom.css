@@ -472,6 +472,15 @@ pre[data-bash-prompt] > code {
   background: oklch(0.18 0 0) !important;
 }
 
+[data-theme='light'] .expressive-code.is-output-block figure pre {
+  border-top-color: oklch(0.75 0 0);
+  background: oklch(0.94 0 0) !important;
+}
+
+[data-theme='light'] .expressive-code.is-output-block .ec-line {
+  color: oklch(0.35 0 0);
+}
+
 .expressive-code.is-output-block .ec-line {
   opacity: 0.7;
 }
