@@ -519,6 +519,11 @@ header.header {
   border-inline-start: none;
 }
 
+/* Align ToC with main content (below header row) */
+.right-sidebar-panel {
+  padding-top: 1.25rem;
+}
+
 .content-panel {
   border-top: none;
 }
