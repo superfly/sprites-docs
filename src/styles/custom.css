@@ -505,7 +505,11 @@ header.header {
   border-bottom-color: var(--sl-color-hairline);
 }
 
-/* Lighter separator between social icons and theme select in dark mode */
+/* Separator between social icons and theme select */
+header.header .social-icons::after {
+  margin-inline-start: 0.5rem;
+}
+
 [data-theme='dark'] header.header .social-icons::after {
   border-color: rgba(255, 255, 255, 0.2);
 }
