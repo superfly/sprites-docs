@@ -3,6 +3,7 @@ import sitemap from '@astrojs/sitemap';
 import starlight from '@astrojs/starlight';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
+import { sidebarConfig, withBadges } from './src/lib/sidebar';
 import rehypeShadcnTable from './src/plugins/rehype-shadcn-table';
 
 // https://astro.build/config
@@ -48,53 +49,7 @@ export default defineConfig({
       editLink: {
         baseUrl: 'https://github.com/superfly/sprites-docs/edit/main/',
       },
-      sidebar: [
-        {
-          label: 'Getting Started',
-          items: [
-            { label: 'Overview', slug: 'index' },
-            { label: 'Quickstart', slug: 'quickstart' },
-            { label: 'Working with Sprites', slug: 'working-with-sprites' },
-          ],
-        },
-        {
-          label: 'Concepts',
-          items: [
-            { label: 'Lifecycle', slug: 'concepts/lifecycle' },
-            { label: 'Services', slug: 'concepts/services' },
-            { label: 'Networking', slug: 'concepts/networking' },
-            { label: 'Checkpoints', slug: 'concepts/checkpoints' },
-          ],
-        },
-        {
-          label: 'CLI',
-          items: [
-            { label: 'Installation', slug: 'cli/installation' },
-            { label: 'Authentication', slug: 'cli/authentication' },
-            { label: 'Commands', slug: 'cli/commands' },
-          ],
-        },
-        {
-          label: 'SDKs',
-          items: [
-            { label: 'JavaScript', slug: 'sdks/javascript' },
-            { label: 'Go', slug: 'sdks/go' },
-            { label: 'Elixir', slug: 'sdks/elixir' },
-          ],
-        },
-        {
-          label: 'API',
-          items: [{ label: 'Sprites API v1', link: 'https://sprites.dev/api' }],
-        },
-        {
-          label: 'Reference',
-          items: [
-            { label: 'Base Images', slug: 'reference/base-images' },
-            { label: 'Configuration', slug: 'reference/configuration' },
-            { label: 'Billing', slug: 'reference/billing' },
-          ],
-        },
-      ],
+      sidebar: withBadges(sidebarConfig),
       head: [
         // Upgrade HTTP requests to HTTPS (workaround for Astro prefetch bug #13570)
         {
