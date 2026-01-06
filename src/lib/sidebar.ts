@@ -3,7 +3,6 @@ import path from 'node:path';
 import type { StarlightUserConfig } from '@astrojs/starlight/types';
 
 type SidebarConfig = NonNullable<StarlightUserConfig['sidebar']>;
-type SidebarItem = Extract<SidebarConfig[number], { items: unknown }>['items'][number];
 type SidebarGroup = Extract<SidebarConfig[number], { items: unknown }>;
 
 interface SidebarBadge {
@@ -94,7 +93,10 @@ function computeBadge(slug: string): SidebarBadge | undefined {
   }
 
   // "Updated" for content that was recently modified (but not new)
-  if (BADGE_CONFIG.updatedThresholdDays > 0 && daysSinceUpdate < BADGE_CONFIG.updatedThresholdDays) {
+  if (
+    BADGE_CONFIG.updatedThresholdDays > 0 &&
+    daysSinceUpdate < BADGE_CONFIG.updatedThresholdDays
+  ) {
     return {
       text: 'Updated',
       variant: 'note',
