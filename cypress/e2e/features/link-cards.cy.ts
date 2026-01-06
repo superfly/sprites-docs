@@ -8,8 +8,10 @@ describe('LinkCards', () => {
       .first()
       .within(() => {
         cy.get('svg').should('exist');
-        cy.get('h3').should('exist').and('not.be.empty');
-        cy.get('p').should('exist').and('not.be.empty');
+        cy.get('[data-slot="item-title"]').should('exist').and('not.be.empty');
+        cy.get('[data-slot="item-description"]')
+          .should('exist')
+          .and('not.be.empty');
       });
   });
 
