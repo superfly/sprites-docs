@@ -73,7 +73,7 @@ importers:
         version: 12.23.26(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       postprocessing:
         specifier: ^6.36.0
-        version: 6.38.2(three@0.167.1)
+        version: 6.38.2(three@0.182.0)
       react:
         specifier: ^19.2.3
         version: 19.2.3
@@ -90,8 +90,8 @@ importers:
         specifier: ^4.1.18
         version: 4.1.18
       three:
-        specifier: ^0.167.1
-        version: 0.167.1
+        specifier: ^0.182.0
+        version: 0.182.0
       unist-util-visit:
         specifier: ^5.0.0
         version: 5.0.0
@@ -3412,8 +3412,8 @@ packages:
     resolution: {integrity: sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==}
     engines: {node: '>=6'}
 
-  three@0.167.1:
-    resolution: {integrity: sha512-gYTLJA/UQip6J/tJvl91YYqlZF47+D/kxiWrbTon35ZHlXEN0VOo+Qke2walF1/x92v55H6enomymg4Dak52kw==}
+  three@0.182.0:
+    resolution: {integrity: sha512-GbHabT+Irv+ihI1/f5kIIsZ+Ef9Sl5A1Y7imvS5RQjWgtTPfPnZ43JmlYI7NtCRDK9zir20lQpfg8/9Yd02OvQ==}
 
   throttleit@1.0.1:
     resolution: {integrity: sha512-vDZpf9Chs9mAdfY046mcPt8fg5QSZr37hEH4TXYBnDF+izxgrbRGUAAaBvIk/fJm9aOFCGFd1EsNg5AZCbnQCQ==}
@@ -7178,9 +7178,9 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  postprocessing@6.38.2(three@0.167.1):
+  postprocessing@6.38.2(three@0.182.0):
     dependencies:
-      three: 0.167.1
+      three: 0.182.0
 
   pretty-bytes@5.6.0: {}
 
@@ -7683,7 +7683,7 @@ snapshots:
 
   tapable@2.3.0: {}
 
-  three@0.167.1: {}
+  three@0.182.0: {}
 
   throttleit@1.0.1: {}
 
