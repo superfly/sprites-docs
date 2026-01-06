@@ -9,7 +9,9 @@ describe('LinkCards', () => {
       .within(() => {
         cy.get('svg').should('exist');
         cy.get('[data-slot="item-title"]').should('exist').and('not.be.empty');
-        cy.get('[data-slot="item-description"]').should('exist').and('not.be.empty');
+        cy.get('[data-slot="item-description"]')
+          .should('exist')
+          .and('not.be.empty');
       });
   });
 
