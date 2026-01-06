@@ -655,7 +655,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 [data-theme='light'] .sl-anchor-link {
-  color: var(--sl-color-black) !important;
+  color: var(--sl-color-white) !important;
 }
 
 .sl-anchor-link svg {
@@ -672,7 +672,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Mobile: anchor links always visible, positioned right of heading */
 @media (max-width: 50rem) {
   .sl-heading-wrapper {
-    display: inline-flex !important;
+    display: flex !important;
     align-items: center;
     gap: 0.5rem;
   }
