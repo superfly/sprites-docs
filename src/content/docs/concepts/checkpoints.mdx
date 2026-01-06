@@ -71,6 +71,19 @@ while (true) {
 }
 ```
 </TabItem>
+<TabItem label="Elixir">
+```elixir
+# Create a checkpoint
+{:ok, messages} = Sprites.create_checkpoint(sprite, comment: "My checkpoint")
+
+# Process streaming progress messages
+Enum.each(messages, fn
+  %{"status" => "complete", "id" => id} -> IO.puts("Checkpoint created: #{id}")
+  %{"type" => "info", "data" => data} -> IO.puts(data)
+  _ -> :ok
+end)
+```
+</TabItem>
 </Tabs>
 
 ### When to Create Checkpoints
@@ -147,6 +160,15 @@ for (const cp of checkpoints) {
 }
 ```
 </TabItem>
+<TabItem label="Elixir">
+```elixir
+{:ok, checkpoints} = Sprites.list_checkpoints(sprite)
+
+for cp <- checkpoints do
+  IO.puts("#{cp.id}  #{cp.create_time}  #{cp.comment}")
+end
+```
+</TabItem>
 </Tabs>
 
 ### Checkpoint Information
@@ -189,6 +211,15 @@ console.log(`Created: ${cp.createTime.toISOString()}`);
 console.log(`Comment: ${cp.comment}`);
 ```
 </TabItem>
+<TabItem label="Elixir">
+```elixir
+{:ok, cp} = Sprites.get_checkpoint(sprite, "v1")
+
+IO.puts("ID: #{cp.id}")
+IO.puts("Created: #{cp.create_time}")
+IO.puts("Comment: #{cp.comment}")
+```
+</TabItem>
 </Tabs>
 
 ## Restoring from Checkpoints
@@ -229,6 +260,18 @@ while (true) {
   if (done) break;
   console.log(decoder.decode(value));
 }
+```
+</TabItem>
+<TabItem label="Elixir">
+```elixir
+{:ok, messages} = Sprites.restore_checkpoint(sprite, "v1")
+
+# Process streaming progress messages
+Enum.each(messages, fn
+  %{"status" => "complete"} -> IO.puts("Restore complete")
+  %{"type" => "info", "data" => data} -> IO.puts(data)
+  _ -> :ok
+end)
 ```
 </TabItem>
 </Tabs>
@@ -505,6 +548,19 @@ while (true) {
   if (done) break;
   console.log(decoder.decode(value));
 }
+```
+</TabItem>
+<TabItem label="Elixir">
+```elixir
+# Create checkpoint with comment
+{:ok, messages} = Sprites.create_checkpoint(sprite,
+  comment: "Clean Python 3.11 + Node 20 setup"
+)
+
+Enum.each(messages, fn
+  %{"status" => "complete", "id" => id} -> IO.puts("Checkpoint created: #{id}")
+  _ -> :ok
+end)
 ```
 </TabItem>
 </Tabs>

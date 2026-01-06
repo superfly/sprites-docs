@@ -63,6 +63,14 @@ cmd.Dir = "/home/sprite/project"
 output, err := cmd.Output()
 ```
 </TabItem>
+
+<TabItem label="Elixir">
+```elixir
+{output, 0} = Sprites.cmd(sprite, "npm", ["test"],
+  dir: "/home/sprite/project"
+)
+```
+</TabItem>
 </Tabs>
 
 ### Environment Variables
@@ -89,6 +97,15 @@ cmd := sprite.Command("bash", "-c", "echo $MY_SECRET")
 cmd.Env = []string{"MY_SECRET=hello"}
 output, _ := cmd.Output()
 fmt.Println(string(output)) // hello
+```
+</TabItem>
+
+<TabItem label="Elixir">
+```elixir
+{output, 0} = Sprites.cmd(sprite, "bash", ["-c", "echo $MY_SECRET"],
+  env: [{"MY_SECRET", "hello"}]
+)
+IO.puts(output) # hello
 ```
 </TabItem>
 </Tabs>
@@ -133,6 +150,19 @@ sprite.Command("npm", "install", "-g", "typescript").Run()
 
 // Clone a repository
 sprite.Command("git", "clone", "https://github.com/your/repo.git", "/home/sprite/project").Run()
+```
+</TabItem>
+
+<TabItem label="Elixir">
+```elixir
+{:ok, sprite} = Sprites.create(client, "my-sprite")
+
+# Install custom dependencies
+Sprites.cmd(sprite, "pip", ["install", "pandas", "numpy", "matplotlib"])
+Sprites.cmd(sprite, "npm", ["install", "-g", "typescript"])
+
+# Clone a repository
+Sprites.cmd(sprite, "git", ["clone", "https://github.com/your/repo.git", "/home/sprite/project"])
 ```
 </TabItem>
 </Tabs>
@@ -195,6 +225,27 @@ cmd.Resize(30, 100)
 cmd.Wait()
 ```
 </TabItem>
+
+<TabItem label="Elixir">
+```elixir
+{:ok, cmd} = Sprites.spawn(sprite, "bash", [],
+  tty: true,
+  tty_rows: 24,
+  tty_cols: 80
+)
+
+# Write to stdin
+Sprites.write(cmd, "echo hello\n")
+
+# Receive output
+receive do
+  {:stdout, ^cmd, data} -> IO.write(data)
+end
+
+# Resize terminal
+Sprites.resize(cmd, 30, 100)
+```
+</TabItem>
 </Tabs>
 
 ### Detachable Sessions
@@ -249,6 +300,27 @@ cmd.Stdout = os.Stdout
 cmd.Run()
 ```
 </TabItem>
+
+<TabItem label="Elixir">
+```elixir
+# Create a detachable session
+{:ok, cmd} = Sprites.spawn(sprite, "npm", ["run", "dev"],
+  detachable: true
+)
+
+# Get the session ID from the message
+session_id = receive do
+  {:session_info, ^cmd, %{session_id: id}} -> id
+end
+
+# ... later, attach to it
+{:ok, cmd} = Sprites.attach_session(sprite, session_id)
+
+receive do
+  {:stdout, ^cmd, data} -> IO.write(data)
+end
+```
+</TabItem>
 </Tabs>
 
 ### Listing Sessions
@@ -275,6 +347,15 @@ sessions, _ := client.ListSessions(ctx, "my-sprite")
 for _, session := range sessions {
     fmt.Printf("%s: %s\n", session.ID, session.Command)
 }
+```
+</TabItem>
+
+<TabItem label="Elixir">
+```elixir
+{:ok, sessions} = Sprites.list_sessions(sprite)
+for session <- sessions do
+  IO.puts("#{session.id}: #{session.command}")
+end
 ```
 </TabItem>
 </Tabs>
@@ -313,6 +394,16 @@ sprite := client.Sprite("my-sprite")
 
 // Get sprite and verify it exists
 sprite, err := client.GetSprite(ctx, "my-sprite")
+```
+</TabItem>
+
+<TabItem label="Elixir">
+```elixir
+# Get sprite by name (doesn't verify it exists)
+sprite = Sprites.sprite(client, "my-sprite")
+
+# Get sprite and verify it exists
+{:ok, sprite} = Sprites.get_sprite(client, "my-sprite")
 ```
 </TabItem>
 </Tabs>
@@ -367,6 +458,21 @@ if page.HasMore {
 }
 ```
 </TabItem>
+
+<TabItem label="Elixir">
+```elixir
+# List all sprites
+{:ok, sprites} = Sprites.list(client)
+
+# List with prefix filter
+{:ok, dev_sprites} = Sprites.list(client, prefix: "dev-")
+
+# Iterate through sprites
+for sprite <- sprites do
+  IO.puts(sprite.name)
+end
+```
+</TabItem>
 </Tabs>
 
 ---
@@ -404,9 +510,20 @@ info, _ := client.GetSprite(ctx, "my-sprite")
 fmt.Println(info.URL)
 ```
 </TabItem>
+
+<TabItem label="Elixir">
+```elixir
+# Get sprite info including URL
+{:ok, info} = Sprites.get_sprite(client, "my-sprite")
+IO.puts(info.url)
+
+# Update URL settings
+Sprites.update_url_settings(sprite, public: true)
+```
+</TabItem>
 </Tabs>
 
-Updating URL settings is available via the CLI, Go SDK, or REST API (the JS SDK does not expose a helper yet).
+Updating URL settings is available via the CLI, Go SDK, Elixir SDK, or REST API (the JS SDK does not expose a helper yet).
 
 ---
 
@@ -437,6 +554,24 @@ sessions, _ := client.ProxyPorts(ctx, "my-sprite", []sprites.PortMapping{
     {LocalPort: 3000, RemotePort: 3000},
     {LocalPort: 8080, RemotePort: 80},
 })
+```
+</TabItem>
+
+<TabItem label="Elixir">
+```elixir
+# Forward single port
+{:ok, session} = Sprites.proxy_port(sprite, 3000, 3000)
+# localhost:3000 now forwards to sprite:3000
+
+# Forward multiple ports
+mappings = [
+  %Sprites.Proxy.PortMapping{local_port: 3000, remote_port: 3000},
+  %Sprites.Proxy.PortMapping{local_port: 8080, remote_port: 80}
+]
+{:ok, sessions} = Sprites.proxy_ports(sprite, mappings)
+
+# Stop proxy when done
+Sprites.Proxy.Session.stop(session)
 ```
 </TabItem>
 </Tabs>
@@ -473,6 +608,21 @@ cmd.TextMessageHandler = func(data []byte) {
 cmd.Run()
 ```
 </TabItem>
+
+<TabItem label="Elixir">
+```elixir
+{:ok, cmd} = Sprites.spawn(sprite, "npm", ["run", "dev"])
+
+# Handle port notifications in receive loop
+receive do
+  {:port_opened, ^cmd, %{port: port, address: addr, pid: pid}} ->
+    IO.puts("Port #{port} opened on #{addr} by PID #{pid}")
+
+  {:stdout, ^cmd, data} ->
+    IO.write(data)
+end
+```
+</TabItem>
 </Tabs>
 
 ---
@@ -492,6 +642,19 @@ sprite checkpoint list
 
 # Restore from checkpoint
 sprite restore <checkpoint-id>
+```
+</TabItem>
+
+<TabItem label="Elixir">
+```elixir
+# Create a checkpoint
+{:ok, checkpoint} = Sprites.create_checkpoint(sprite, comment: "before deploy")
+
+# List checkpoints
+{:ok, checkpoints} = Sprites.list_checkpoints(sprite)
+
+# Restore from checkpoint
+{:ok, _} = Sprites.restore_checkpoint(sprite, checkpoint.id)
 ```
 </TabItem>
 </Tabs>
@@ -531,6 +694,19 @@ if err != nil {
 }
 ```
 </TabItem>
+
+<TabItem label="Elixir">
+```elixir
+case Sprites.cmd(sprite, "bash", ["-lc", "exit 1"]) do
+  {_output, 0} ->
+    IO.puts("Success")
+
+  {output, exit_code} ->
+    IO.puts("Exit code: #{exit_code}")
+    IO.puts("Output: #{output}")
+end
+```
+</TabItem>
 </Tabs>
 
 ---
@@ -557,6 +733,14 @@ await client.deleteSprite('my-sprite');
 <TabItem label="Go">
 ```go
 err := client.DeleteSprite(ctx, "my-sprite")
+```
+</TabItem>
+
+<TabItem label="Elixir">
+```elixir
+:ok = Sprites.destroy(sprite)
+# or
+:ok = Sprites.destroy(client, "my-sprite")
 ```
 </TabItem>
 </Tabs>
@@ -612,6 +796,13 @@ sc my-sprite  # Mounts and cd's to the sprite's filesystem
     client:load
   />
   <LinkCard
+    href="/sdks/elixir"
+    title="Elixir SDK"
+    description="Idiomatic Elixir with Streams and message passing"
+    icon="code"
+    client:load
+  />
+  <LinkCard
     href="/concepts/lifecycle"
     title="Lifecycle & Persistence"
     description="Deep dive into how Sprites work"
@@ -623,13 +814,6 @@ sc my-sprite  # Mounts and cd's to the sprite's filesystem
     title="Networking"
     description="URLs, ports, and connectivity"
     icon="zap"
-    client:load
-  />
-  <LinkCard
-    href="/concepts/checkpoints"
-    title="Checkpoints"
-    description="Save and restore sprite state"
-    icon="folder"
     client:load
   />
 </CardGrid>

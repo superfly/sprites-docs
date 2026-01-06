@@ -100,6 +100,27 @@ defer func() {
 }()
 ```
 </TabItem>
+
+<TabItem label="Elixir">
+```elixir
+# Forward single port
+{:ok, session} = Sprites.proxy_port(sprite, 3000, 3000)
+
+# localhost:3000 now forwards to sprite:3000
+IO.puts("Proxy active at localhost:3000")
+
+# Forward multiple ports
+mappings = [
+  %Sprites.Proxy.PortMapping{local_port: 3000, remote_port: 3000},
+  %Sprites.Proxy.PortMapping{local_port: 8080, remote_port: 80},
+  %Sprites.Proxy.PortMapping{local_port: 5432, remote_port: 5432}
+]
+{:ok, sessions} = Sprites.proxy_ports(sprite, mappings)
+
+# Stop proxy when done
+Sprites.Proxy.Session.stop(session)
+```
+</TabItem>
 </Tabs>
 
 Port forwarding works for TCP services — web servers, databases, message brokers, whatever. It's just sockets.

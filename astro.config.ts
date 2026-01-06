@@ -79,6 +79,7 @@ export default defineConfig({
           items: [
             { label: 'JavaScript', slug: 'sdks/javascript' },
             { label: 'Go', slug: 'sdks/go' },
+            { label: 'Elixir', slug: 'sdks/elixir' },
           ],
         },
         {

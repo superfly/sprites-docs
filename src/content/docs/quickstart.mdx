@@ -177,6 +177,26 @@ func main() {
 }
 ```
 </TabItem>
+
+<TabItem label="Elixir">
+```elixir
+client = Sprites.new(System.get_env("SPRITE_TOKEN"))
+
+{:ok, sprite} = Sprites.create(client, "my-sprite")
+
+# Execute a command
+{output, 0} = Sprites.cmd(sprite, "python", ["-c", "print('hello')"])
+IO.puts(output)
+
+# Stream output from long-running commands
+sprite
+|> Sprites.stream("bash", ["-c", "for i in {1..10}; do date +%T; sleep 0.5; done"])
+|> Stream.each(&IO.write/1)
+|> Stream.run()
+
+Sprites.destroy(sprite)
+```
+</TabItem>
 </Tabs>
 
 ---
