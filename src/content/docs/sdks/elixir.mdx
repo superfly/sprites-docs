@@ -364,13 +364,12 @@ Save and restore sprite state:
 # Get a specific checkpoint
 {:ok, checkpoint} = Sprites.get_checkpoint(sprite, "v1")
 
-# Create a checkpoint (returns stream of messages)
+# Create a checkpoint (returns list of stream messages)
 {:ok, messages} = Sprites.create_checkpoint(sprite, comment: "Before deploy")
 Enum.each(messages, fn
-  %{"type" => "info", "data" => data} -> IO.puts(data)
-  %{"type" => "error", "error" => err} -> IO.puts(:stderr, err)
-  %{"status" => "complete", "id" => id} -> IO.puts("Checkpoint created: #{id}")
-  _ -> :ok
+  %Sprites.StreamMessage{type: "info", data: data} -> IO.puts(data)
+  %Sprites.StreamMessage{type: "error", error: err} -> IO.puts(:stderr, err)
+  msg -> IO.inspect(msg)
 end)
 
 # Restore from checkpoint
@@ -391,36 +390,47 @@ Enum.each(messages, &IO.inspect/1)
 
 ## Error Handling
 
-```elixir
-alias Sprites.Error.{APIError, CommandError, ConnectionError, TimeoutError}
+Most SDK functions return `{:ok, result}` or `{:error, reason}` tuples:
 
-# Pattern match on errors
+```elixir
+# Pattern match on error tuples
 case Sprites.create(client, "my-sprite") do
   {:ok, sprite} ->
     # Success
   {:error, {:api_error, status, body}} ->
     IO.puts("API error #{status}: #{inspect(body)}")
+  {:error, {:not_found, _}} ->
+    IO.puts("Sprite not found")
   {:error, reason} ->
     IO.puts("Error: #{inspect(reason)}")
 end
+```
 
-# Errors raised by cmd/4
+The `cmd/4` function raises exceptions on failure:
+
+```elixir
 try do
   Sprites.cmd(sprite, "exit", ["1"], timeout: 5000)
 rescue
-  e in TimeoutError ->
+  e in Sprites.Error.TimeoutError ->
     IO.puts("Timed out after #{e.timeout}ms")
 end
 ```
 
-### Error Types
+### Error Tuples
 
 | Error | Description |
 |-------|-------------|
-| `Sprites.Error.APIError` | API returned an error response |
-| `Sprites.Error.CommandError` | Command exited with non-zero code |
-| `Sprites.Error.ConnectionError` | WebSocket connection failed |
-| `Sprites.Error.TimeoutError` | Operation timed out |
+| `{:error, {:api_error, status, body}}` | API returned an error response |
+| `{:error, {:not_found, body}}` | Resource not found (404) |
+| `{:error, {:invalid_policy, body}}` | Invalid network policy |
+| `{:error, :timeout}` | Operation timed out (from `await/2`) |
+
+### Exceptions (raised by `cmd/4`)
+
+| Exception | Description |
+|-----------|-------------|
+| `Sprites.Error.TimeoutError` | Command execution timed out |
 
 ## Type Reference
 
@@ -439,6 +449,9 @@ end
 
 # Checkpoint metadata
 @type Sprites.Checkpoint.t()
+
+# Streaming message (from checkpoint create/restore)
+@type Sprites.StreamMessage.t()
 
 # Network policy
 @type Sprites.Policy.t()
