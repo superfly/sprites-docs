@@ -37,4 +37,17 @@ const pageUrl = Astro.url.href
   .copy-page-button-wrapper :global([data-slot='button-group-separator']) {
     background: var(--sl-color-gray-5);
   }
+
+  /* Larger touch target on mobile */
+  @media (max-width: 640px) {
+    .copy-page-button-wrapper :global(button) {
+      height: 2.5rem;
+      padding-inline: 0.75rem;
+    }
+
+    .copy-page-button-wrapper :global(button svg) {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
 </style>
