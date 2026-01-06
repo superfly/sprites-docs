@@ -95,6 +95,14 @@ export default defineConfig({
         },
       ],
       head: [
+        // Upgrade HTTP requests to HTTPS (workaround for Astro prefetch bug #13570)
+        {
+          tag: 'meta',
+          attrs: {
+            'http-equiv': 'Content-Security-Policy',
+            content: 'upgrade-insecure-requests',
+          },
+        },
         // Favicons for Google Search and browsers
         {
           tag: 'link',
