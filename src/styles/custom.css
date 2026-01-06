@@ -930,7 +930,8 @@ body.search-dialog-open {
   overflow: hidden;
   position: fixed;
   inset: 0;
-  touch-action: none;
+  /* Use manipulation instead of none to allow keyboard/input interactions on mobile */
+  touch-action: manipulation;
 }
 
 body.search-dialog-open .page {

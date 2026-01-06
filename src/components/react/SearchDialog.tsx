@@ -1,6 +1,13 @@
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import type React from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { createPortal } from 'react-dom';
 import ShinyText from '@/components/ShinyText';
 import StarBorder from '@/components/StarBorder';
@@ -199,546 +206,591 @@ export interface SearchDialogProps {
   onClose: () => void;
 }
 
-export const SearchDialog: React.FC<SearchDialogProps> = ({
-  isOpen,
-  onClose,
-}) => {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<PagefindResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [topGradientOpacity, setTopGradientOpacity] = useState(0);
-  const [bottomGradientOpacity, setBottomGradientOpacity] = useState(0);
-  const [pagefindReady, setPagefindReady] = useState(false);
+export interface SearchDialogHandle {
+  focusInput: () => void;
+}
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const searchIdRef = useRef<number>(0);
-  const listboxId = 'search-results-listbox';
-  const getOptionId = (index: number) => `search-option-${index}`;
+export const SearchDialog = forwardRef<SearchDialogHandle, SearchDialogProps>(
+  ({ isOpen, onClose }, ref) => {
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState<PagefindResult[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [topGradientOpacity, setTopGradientOpacity] = useState(0);
+    const [bottomGradientOpacity, setBottomGradientOpacity] = useState(0);
+    const [pagefindReady, setPagefindReady] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
 
-  // Load Pagefind once on mount
-  useEffect(() => {
-    const loadPagefind = async () => {
-      if (window.pagefind) {
-        setPagefindReady(true);
-        return;
-      }
+    const proxyInputRef = useRef<HTMLInputElement>(null);
+    const visibleInputRef = useRef<HTMLInputElement>(null);
+    const listRef = useRef<HTMLDivElement>(null);
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const searchIdRef = useRef<number>(0);
+    const listboxId = 'search-results-listbox';
+    const getOptionId = (index: number) => `search-option-${index}`;
 
-      try {
-        const pagefindPath = '/pagefind/pagefind.js';
-        const module = await (Function(
-          `return import("${pagefindPath}")`,
-        )() as Promise<Pagefind>);
-        window.pagefind = module;
+    // Expose focusInput method to parent for iOS keyboard activation
+    // This focuses the hidden proxy input which is always in DOM
+    useImperativeHandle(ref, () => ({
+      focusInput: () => {
+        if (proxyInputRef.current) {
+          proxyInputRef.current.focus();
+          proxyInputRef.current.setSelectionRange(0, 0);
+        }
+      },
+    }));
 
-        // Configure options
-        await module.options({
-          excerptLength: 20,
-          highlightParam: 'highlight',
+    // Track client-side mounting for SSR safety
+    useEffect(() => {
+      setIsMounted(true);
+    }, []);
+
+    // Load Pagefind once on mount
+    useEffect(() => {
+      const loadPagefind = async () => {
+        if (window.pagefind) {
+          setPagefindReady(true);
+          return;
+        }
+
+        try {
+          const pagefindPath = '/pagefind/pagefind.js';
+          const module = await (Function(
+            `return import("${pagefindPath}")`,
+          )() as Promise<Pagefind>);
+          window.pagefind = module;
+
+          // Configure options
+          await module.options({
+            excerptLength: 20,
+            highlightParam: 'highlight',
+          });
+
+          setPagefindReady(true);
+        } catch (error) {
+          console.error('Failed to load Pagefind:', error);
+        }
+      };
+
+      loadPagefind();
+    }, []);
+
+    // Flatten results into selectable items
+    const selectableItems = useMemo((): SelectableItem[] => {
+      const items: SelectableItem[] = [];
+
+      results.forEach((result) => {
+        // Get sub_results, filtering out the main page URL if it appears first
+        const subResults = result.sub_results || [];
+        const sections = subResults.filter((sub, idx) => {
+          // Keep if URL has a hash (it's a section link)
+          if (sub.url.includes('#')) return true;
+          // Skip first item if it's just the page URL without hash
+          if (idx === 0 && sub.url === result.url) return false;
+          return true;
         });
 
-        setPagefindReady(true);
-      } catch (error) {
-        console.error('Failed to load Pagefind:', error);
-      }
-    };
-
-    loadPagefind();
-  }, []);
-
-  // Flatten results into selectable items
-  const selectableItems = useMemo((): SelectableItem[] => {
-    const items: SelectableItem[] = [];
-
-    results.forEach((result) => {
-      // Get sub_results, filtering out the main page URL if it appears first
-      const subResults = result.sub_results || [];
-      const sections = subResults.filter((sub, idx) => {
-        // Keep if URL has a hash (it's a section link)
-        if (sub.url.includes('#')) return true;
-        // Skip first item if it's just the page URL without hash
-        if (idx === 0 && sub.url === result.url) return false;
-        return true;
-      });
-
-      // Add main page result
-      items.push({
-        id: result.id,
-        url: result.url,
-        title: result.meta.title || 'Untitled',
-        excerpt: '',
-        type: 'page',
-        isLastInGroup: sections.length === 0,
-      });
-
-      // Add section results (limit to 3)
-      sections.slice(0, 3).forEach((sub, idx) => {
+        // Add main page result
         items.push({
-          id: `${result.id}-${idx}`,
-          url: sub.url,
-          title: sub.title || sub.anchor?.text || 'Section',
-          excerpt: sub.excerpt || '',
-          type: 'section',
-          isLastInGroup: idx === Math.min(sections.length, 3) - 1,
+          id: result.id,
+          url: result.url,
+          title: result.meta.title || 'Untitled',
+          excerpt: '',
+          type: 'page',
+          isLastInGroup: sections.length === 0,
+        });
+
+        // Add section results (limit to 3)
+        sections.slice(0, 3).forEach((sub, idx) => {
+          items.push({
+            id: `${result.id}-${idx}`,
+            url: sub.url,
+            title: sub.title || sub.anchor?.text || 'Section',
+            excerpt: sub.excerpt || '',
+            type: 'section',
+            isLastInGroup: idx === Math.min(sections.length, 3) - 1,
+          });
         });
       });
-    });
 
-    return items;
-  }, [results]);
+      return items;
+    }, [results]);
 
-  // Focus input and blur page content when dialog opens
-  useEffect(() => {
-    const unlockScroll = () => {
-      const scrollY = document.body.style.top;
-      document.body.classList.remove('search-dialog-open');
-      document.body.style.top = '';
-      if (scrollY) {
-        window.scrollTo(0, Number.parseInt(scrollY, 10) * -1);
-      }
-    };
-
-    if (isOpen) {
-      // Save scroll position before locking
-      const scrollY = window.scrollY;
-      document.body.style.top = `-${scrollY}px`;
-      document.body.classList.add('search-dialog-open');
-      // Use requestAnimationFrame to focus after render but within user gesture chain for mobile keyboards
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-      });
-      setQuery('');
-      setResults([]);
-      setSelectedIndex(0);
-    } else {
-      unlockScroll();
-    }
-
-    return unlockScroll;
-  }, [isOpen]);
-
-  // Focus trap for modal accessibility
-  useEffect(() => {
-    if (!isOpen || !dialogRef.current) return;
-
-    const dialog = dialogRef.current;
-    const focusableElements = dialog.querySelectorAll<HTMLElement>(
-      'input, button, [tabindex]:not([tabindex="-1"])',
-    );
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    const handleTabKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') return;
-
-      if (e.shiftKey) {
-        if (document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement?.focus();
+    // Focus input and blur page content when dialog opens
+    useEffect(() => {
+      const unlockScroll = () => {
+        const scrollY = document.body.style.top;
+        document.body.classList.remove('search-dialog-open');
+        document.body.style.top = '';
+        if (scrollY) {
+          window.scrollTo(0, Number.parseInt(scrollY, 10) * -1);
         }
+      };
+
+      if (isOpen) {
+        // Save scroll position before locking
+        const scrollY = window.scrollY;
+        document.body.style.top = `-${scrollY}px`;
+        document.body.classList.add('search-dialog-open');
+        // Transfer focus from proxy input to visible input after render
+        // The proxy input was already focused synchronously to activate iOS keyboard
+        requestAnimationFrame(() => {
+          visibleInputRef.current?.focus();
+        });
+        setQuery('');
+        setResults([]);
+        setSelectedIndex(0);
       } else {
-        if (document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement?.focus();
-        }
+        unlockScroll();
       }
-    };
 
-    dialog.addEventListener('keydown', handleTabKey);
-    return () => dialog.removeEventListener('keydown', handleTabKey);
-  }, [isOpen]);
+      return unlockScroll;
+    }, [isOpen]);
 
-  // Search effect with manual debouncing
-  useEffect(() => {
-    // Increment search ID to invalidate any pending searches
-    const currentSearchId = ++searchIdRef.current;
+    // Focus trap for modal accessibility
+    useEffect(() => {
+      if (!isOpen || !dialogRef.current) return;
 
-    // Clear results immediately when query is empty
-    if (!query.trim()) {
-      setResults([]);
-      setIsLoading(false);
-      setSelectedIndex(0);
-      return;
-    }
+      const dialog = dialogRef.current;
+      const focusableElements = dialog.querySelectorAll<HTMLElement>(
+        'input, button, [tabindex]:not([tabindex="-1"])',
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
 
-    if (!window.pagefind) {
-      return;
-    }
+      const handleTabKey = (e: KeyboardEvent) => {
+        if (e.key !== 'Tab') return;
 
-    setIsLoading(true);
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            e.preventDefault();
+            lastElement?.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            e.preventDefault();
+            firstElement?.focus();
+          }
+        }
+      };
 
-    // Preload indexes for faster search
-    if (query.length >= 2) {
-      window.pagefind.preload(query);
-    }
+      dialog.addEventListener('keydown', handleTabKey);
+      return () => dialog.removeEventListener('keydown', handleTabKey);
+    }, [isOpen]);
 
-    // Debounce the actual search
-    const timeoutId = setTimeout(async () => {
-      // Check if this search is still valid
-      if (searchIdRef.current !== currentSearchId) {
+    // Search effect with manual debouncing
+    useEffect(() => {
+      // Increment search ID to invalidate any pending searches
+      const currentSearchId = ++searchIdRef.current;
+
+      // Clear results immediately when query is empty
+      if (!query.trim()) {
+        setResults([]);
+        setIsLoading(false);
+        setSelectedIndex(0);
         return;
       }
 
-      try {
-        const search = await window.pagefind?.search(query);
+      if (!window.pagefind) {
+        return;
+      }
 
-        // Check again after async operation
+      setIsLoading(true);
+
+      // Preload indexes for faster search
+      if (query.length >= 2) {
+        window.pagefind.preload(query);
+      }
+
+      // Debounce the actual search
+      const timeoutId = setTimeout(async () => {
+        // Check if this search is still valid
         if (searchIdRef.current !== currentSearchId) {
           return;
         }
 
-        if (!search || search.results.length === 0) {
-          setResults([]);
+        try {
+          const search = await window.pagefind?.search(query);
+
+          // Check again after async operation
+          if (searchIdRef.current !== currentSearchId) {
+            return;
+          }
+
+          if (!search || search.results.length === 0) {
+            setResults([]);
+            setSelectedIndex(0);
+            setIsLoading(false);
+            return;
+          }
+
+          // Load first 10 page results
+          const loadedResults = await Promise.all(
+            search.results.slice(0, 10).map((r) => r.data()),
+          );
+
+          // Final check before setting state
+          if (searchIdRef.current !== currentSearchId) {
+            return;
+          }
+
+          setResults(loadedResults);
           setSelectedIndex(0);
           setIsLoading(false);
-          return;
-        }
-
-        // Load first 10 page results
-        const loadedResults = await Promise.all(
-          search.results.slice(0, 10).map((r) => r.data()),
-        );
-
-        // Final check before setting state
-        if (searchIdRef.current !== currentSearchId) {
-          return;
-        }
-
-        setResults(loadedResults);
-        setSelectedIndex(0);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Search error:', error);
-        if (searchIdRef.current === currentSearchId) {
-          setResults([]);
-          setIsLoading(false);
-        }
-      }
-    }, 150);
-
-    // Cleanup: clear timeout if query changes before it fires
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [query]);
-
-  // Handle scroll for gradients
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } =
-      e.target as HTMLDivElement;
-    setTopGradientOpacity(Math.min(scrollTop / 50, 1));
-    const bottomDistance = scrollHeight - (scrollTop + clientHeight);
-    setBottomGradientOpacity(
-      scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1),
-    );
-  };
-
-  // Check initial scroll state
-  useEffect(() => {
-    if (!listRef.current || selectableItems.length === 0) {
-      setBottomGradientOpacity(0);
-      return;
-    }
-    const { scrollHeight, clientHeight } = listRef.current;
-    setBottomGradientOpacity(scrollHeight <= clientHeight ? 0 : 1);
-  }, [selectableItems]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'ArrowDown':
-          e.preventDefault();
-          setSelectedIndex((prev) =>
-            Math.min(prev + 1, selectableItems.length - 1),
-          );
-          break;
-        case 'ArrowUp':
-          e.preventDefault();
-          setSelectedIndex((prev) => Math.max(prev - 1, 0));
-          break;
-        case 'Enter':
-          e.preventDefault();
-          if (selectableItems[selectedIndex]) {
-            window.location.href = selectableItems[selectedIndex].url;
-            onClose();
+        } catch (error) {
+          console.error('Search error:', error);
+          if (searchIdRef.current === currentSearchId) {
+            setResults([]);
+            setIsLoading(false);
           }
-          break;
-        case 'Escape':
-          e.preventDefault();
+        }
+      }, 150);
+
+      // Cleanup: clear timeout if query changes before it fires
+      return () => {
+        clearTimeout(timeoutId);
+      };
+    }, [query]);
+
+    // Handle scroll for gradients
+    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } =
+        e.target as HTMLDivElement;
+      setTopGradientOpacity(Math.min(scrollTop / 50, 1));
+      const bottomDistance = scrollHeight - (scrollTop + clientHeight);
+      setBottomGradientOpacity(
+        scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1),
+      );
+    };
+
+    // Check initial scroll state
+    useEffect(() => {
+      if (!listRef.current || selectableItems.length === 0) {
+        setBottomGradientOpacity(0);
+        return;
+      }
+      const { scrollHeight, clientHeight } = listRef.current;
+      setBottomGradientOpacity(scrollHeight <= clientHeight ? 0 : 1);
+    }, [selectableItems]);
+
+    // Keyboard navigation
+    useEffect(() => {
+      if (!isOpen) return;
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        switch (e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            setSelectedIndex((prev) =>
+              Math.min(prev + 1, selectableItems.length - 1),
+            );
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            setSelectedIndex((prev) => Math.max(prev - 1, 0));
+            break;
+          case 'Enter':
+            e.preventDefault();
+            if (selectableItems[selectedIndex]) {
+              window.location.href = selectableItems[selectedIndex].url;
+              onClose();
+            }
+            break;
+          case 'Escape':
+            e.preventDefault();
+            onClose();
+            break;
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, selectableItems, selectedIndex, onClose]);
+
+    // Scroll selected item into view
+    useEffect(() => {
+      if (!listRef.current || selectedIndex < 0) return;
+
+      const selectedItem = listRef.current.querySelector(
+        `[data-index="${selectedIndex}"]`,
+      ) as HTMLElement | null;
+
+      if (selectedItem) {
+        selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }, [selectedIndex]);
+
+    // Click outside to close
+    useEffect(() => {
+      if (!isOpen) return;
+
+      const handleClick = (e: MouseEvent) => {
+        if (
+          dialogRef.current &&
+          !dialogRef.current.contains(e.target as Node)
+        ) {
           onClose();
-          break;
-      }
+        }
+      };
+
+      document.addEventListener('mousedown', handleClick);
+      return () => document.removeEventListener('mousedown', handleClick);
+    }, [isOpen, onClose]);
+
+    // Generate status message for screen readers
+    const getStatusMessage = () => {
+      if (isLoading) return 'Searching...';
+      if (!query) return '';
+      if (selectableItems.length === 0)
+        return `No results found for "${query}"`;
+      return `${results.length} result${results.length !== 1 ? 's' : ''} found for "${query}"`;
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, selectableItems, selectedIndex, onClose]);
+    // Don't render during SSR - document is not available
+    if (!isMounted) return null;
 
-  // Scroll selected item into view
-  useEffect(() => {
-    if (!listRef.current || selectedIndex < 0) return;
-
-    const selectedItem = listRef.current.querySelector(
-      `[data-index="${selectedIndex}"]`,
-    ) as HTMLElement | null;
-
-    if (selectedItem) {
-      selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-  }, [selectedIndex]);
-
-  // Click outside to close
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClick = (e: MouseEvent) => {
-      if (dialogRef.current && !dialogRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  // Generate status message for screen readers
-  const getStatusMessage = () => {
-    if (isLoading) return 'Searching...';
-    if (!query) return '';
-    if (selectableItems.length === 0) return `No results found for "${query}"`;
-    return `${results.length} result${results.length !== 1 ? 's' : ''} found for "${query}"`;
-  };
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 px-6 sm:pt-[10vh] sm:px-4">
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-background/70"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Live region for search status announcements */}
-      <output aria-live="polite" aria-atomic="true" className="sr-only">
-        {getStatusMessage()}
-      </output>
-
-      {/* Dialog */}
-      <StarBorder
-        className="w-full max-w-2xl rounded-lg"
-        color="var(--primary)"
-        speed="8s"
-        thickness={1}
-        isAnimating={false}
-      >
-        <motion.div
-          ref={dialogRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Search documentation"
-          initial={{ opacity: 0, scale: 0.96, y: -10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: -10 }}
-          transition={{ duration: 0.15 }}
-          className="relative w-full bg-popover border border-border rounded-lg shadow-lg overflow-hidden"
-        >
-          {/* Search input */}
-          <div
-            className={cn(
-              'flex items-center gap-3 px-4 py-3',
-              query && 'border-b border-border',
-            )}
-          >
-            <svg
-              aria-hidden="true"
-              className="w-5 h-5 text-muted-foreground flex-shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+    // Always render portal so input exists in DOM for iOS keyboard activation
+    return createPortal(
+      <>
+        {/* Hidden proxy input for iOS keyboard activation - must exist in DOM before user tap */}
+        {/* Note: Cannot use aria-hidden since this receives focus to trigger iOS keyboard */}
+        <input
+          ref={proxyInputRef}
+          type="text"
+          tabIndex={-1}
+          aria-label="Search activation"
+          className="sr-only fixed"
+        />
+        <AnimatePresence>
+          {isOpen && (
+            <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 px-6 sm:pt-[10vh] sm:px-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-background/70"
+                onClick={onClose}
+                aria-hidden="true"
               />
-            </svg>
-            <div className="relative flex-1">
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={!pagefindReady ? 'Loading search...' : ''}
-                disabled={!pagefindReady}
-                aria-label="Search documentation"
-                aria-autocomplete="list"
-                aria-controls={listboxId}
-                aria-activedescendant={
-                  selectableItems.length > 0
-                    ? getOptionId(selectedIndex)
-                    : undefined
-                }
-                role="combobox"
-                aria-expanded={selectableItems.length > 0}
-                aria-haspopup="listbox"
-                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm disabled:opacity-50"
-              />
-              {pagefindReady && !query && (
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-0 flex items-center pointer-events-none"
-                >
-                  <ShinyText
-                    text="Search documentation..."
-                    color="var(--muted-foreground)"
-                    shineColor="var(--foreground)"
-                    speed={3}
-                    className="text-sm"
-                  />
-                </div>
-              )}
-            </div>
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                aria-label="Clear search"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <svg
-                  aria-hidden="true"
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            )}
-            <Kbd aria-hidden="true" className="hidden sm:inline-flex">
-              Esc
-            </Kbd>
-          </div>
 
-          {/* Results count */}
-          {!isLoading && query && results.length > 0 && (
-            <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
-              {results.length} result{results.length !== 1 ? 's' : ''} for "
-              {query}"
-            </div>
-          )}
+              {/* Live region for search status announcements */}
+              <output aria-live="polite" aria-atomic="true" className="sr-only">
+                {getStatusMessage()}
+              </output>
 
-          {/* Results - only show when there's a query */}
-          {query && (
-            <div className="relative">
-              <div
-                ref={listRef}
-                id={listboxId}
-                role="listbox"
-                aria-label="Search results"
-                className="max-h-[60vh] overflow-y-auto p-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full"
-                onScroll={handleScroll}
-                style={{
-                  scrollbarWidth: 'thin',
-                  scrollbarColor: 'var(--border) transparent',
-                }}
+              {/* Dialog */}
+              <StarBorder
+                className="w-full max-w-2xl rounded-lg"
+                color="var(--primary)"
+                speed="8s"
+                thickness={1}
+                isAnimating={false}
               >
-                {isLoading ? (
-                  <div className="py-8 flex items-center justify-center gap-2 text-muted-foreground text-sm">
-                    <Spinner className="size-4" />
-                    <span>Searching...</span>
-                  </div>
-                ) : selectableItems.length === 0 ? (
-                  <div className="py-8 text-center text-muted-foreground text-sm">
-                    No results found for "{query}"
-                  </div>
-                ) : (
-                  selectableItems.map((item, index) => (
-                    <AnimatedItem
-                      key={item.id}
-                      index={index}
-                      delay={0.03}
-                      onMouseEnter={() => setSelectedIndex(index)}
-                      onClick={() => {
-                        window.location.href = item.url;
-                        onClose();
-                      }}
-                      role="option"
-                      id={getOptionId(index)}
-                      aria-selected={selectedIndex === index}
-                      tabIndex={-1}
+                <motion.div
+                  ref={dialogRef}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Search documentation"
+                  initial={{ opacity: 0, scale: 0.96, y: -10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96, y: -10 }}
+                  transition={{ duration: 0.15 }}
+                  className="relative w-full bg-popover border border-border rounded-lg shadow-lg overflow-hidden"
+                >
+                  {/* Search input */}
+                  <div
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-3',
+                      query && 'border-b border-border',
+                    )}
+                  >
+                    <svg
+                      aria-hidden="true"
+                      className="w-5 h-5 text-muted-foreground flex-shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
                     >
-                      {item.type === 'section' ? (
-                        <SectionResultItem
-                          item={item}
-                          isSelected={selectedIndex === index}
-                        />
-                      ) : (
-                        <PageResultItem
-                          item={item}
-                          isSelected={selectedIndex === index}
-                        />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                    <div className="relative flex-1">
+                      <input
+                        ref={visibleInputRef}
+                        type="text"
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={!pagefindReady ? 'Loading search...' : ''}
+                        disabled={!pagefindReady}
+                        aria-label="Search documentation"
+                        aria-autocomplete="list"
+                        aria-controls={listboxId}
+                        aria-activedescendant={
+                          selectableItems.length > 0
+                            ? getOptionId(selectedIndex)
+                            : undefined
+                        }
+                        role="combobox"
+                        aria-expanded={selectableItems.length > 0}
+                        aria-haspopup="listbox"
+                        className="w-full bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-sm disabled:opacity-50 caret-current"
+                      />
+                      {pagefindReady && !query && (
+                        <div
+                          aria-hidden="true"
+                          className="absolute inset-0 flex items-center pointer-events-none"
+                        >
+                          <ShinyText
+                            text="Search documentation..."
+                            color="var(--muted-foreground)"
+                            shineColor="var(--foreground)"
+                            speed={3}
+                            className="text-sm"
+                          />
+                        </div>
                       )}
-                    </AnimatedItem>
-                  ))
-                )}
-              </div>
+                    </div>
+                    {query && (
+                      <button
+                        type="button"
+                        onClick={() => setQuery('')}
+                        aria-label="Clear search"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <svg
+                          aria-hidden="true"
+                          className="w-4 h-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                    <Kbd aria-hidden="true" className="hidden sm:inline-flex">
+                      Esc
+                    </Kbd>
+                  </div>
 
-              {/* Gradient overlays */}
-              <div
-                aria-hidden="true"
-                className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-popover to-transparent pointer-events-none transition-opacity duration-300"
-                style={{ opacity: topGradientOpacity }}
-              />
-              <div
-                aria-hidden="true"
-                className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-popover to-transparent pointer-events-none transition-opacity duration-300"
-                style={{ opacity: bottomGradientOpacity }}
-              />
+                  {/* Results count */}
+                  {!isLoading && query && results.length > 0 && (
+                    <div className="px-4 py-2 text-xs text-muted-foreground border-b border-border">
+                      {results.length} result{results.length !== 1 ? 's' : ''}{' '}
+                      for "{query}"
+                    </div>
+                  )}
+
+                  {/* Results - only show when there's a query */}
+                  {query && (
+                    <div className="relative">
+                      <div
+                        ref={listRef}
+                        id={listboxId}
+                        role="listbox"
+                        aria-label="Search results"
+                        className="max-h-[60vh] overflow-y-auto p-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full"
+                        onScroll={handleScroll}
+                        style={{
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: 'var(--border) transparent',
+                        }}
+                      >
+                        {isLoading ? (
+                          <div className="py-8 flex items-center justify-center gap-2 text-muted-foreground text-sm">
+                            <Spinner className="size-4" />
+                            <span>Searching...</span>
+                          </div>
+                        ) : selectableItems.length === 0 ? (
+                          <div className="py-8 text-center text-muted-foreground text-sm">
+                            No results found for "{query}"
+                          </div>
+                        ) : (
+                          selectableItems.map((item, index) => (
+                            <AnimatedItem
+                              key={item.id}
+                              index={index}
+                              delay={0.03}
+                              onMouseEnter={() => setSelectedIndex(index)}
+                              onClick={() => {
+                                window.location.href = item.url;
+                                onClose();
+                              }}
+                              role="option"
+                              id={getOptionId(index)}
+                              aria-selected={selectedIndex === index}
+                              tabIndex={-1}
+                            >
+                              {item.type === 'section' ? (
+                                <SectionResultItem
+                                  item={item}
+                                  isSelected={selectedIndex === index}
+                                />
+                              ) : (
+                                <PageResultItem
+                                  item={item}
+                                  isSelected={selectedIndex === index}
+                                />
+                              )}
+                            </AnimatedItem>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Gradient overlays */}
+                      <div
+                        aria-hidden="true"
+                        className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-popover to-transparent pointer-events-none transition-opacity duration-300"
+                        style={{ opacity: topGradientOpacity }}
+                      />
+                      <div
+                        aria-hidden="true"
+                        className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-popover to-transparent pointer-events-none transition-opacity duration-300"
+                        style={{ opacity: bottomGradientOpacity }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Footer */}
+                  {selectableItems.length > 0 && (
+                    <div
+                      aria-hidden="true"
+                      className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex items-center justify-end gap-4"
+                    >
+                      <span className="flex items-center gap-1">
+                        <KbdGroup>
+                          <Kbd>↑</Kbd>
+                          <Kbd>↓</Kbd>
+                        </KbdGroup>
+                        <span className="ml-1">Navigate</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Kbd>↵</Kbd>
+                        <span className="ml-1">Open</span>
+                      </span>
+                    </div>
+                  )}
+                </motion.div>
+              </StarBorder>
             </div>
           )}
+        </AnimatePresence>
+      </>,
+      document.body,
+    );
+  },
+);
 
-          {/* Footer */}
-          {selectableItems.length > 0 && (
-            <div
-              aria-hidden="true"
-              className="px-4 py-2 border-t border-border text-xs text-muted-foreground flex items-center justify-end gap-4"
-            >
-              <span className="flex items-center gap-1">
-                <KbdGroup>
-                  <Kbd>↑</Kbd>
-                  <Kbd>↓</Kbd>
-                </KbdGroup>
-                <span className="ml-1">Navigate</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <Kbd>↵</Kbd>
-                <span className="ml-1">Open</span>
-              </span>
-            </div>
-          )}
-        </motion.div>
-      </StarBorder>
-    </div>,
-    document.body,
-  );
-};
+SearchDialog.displayName = 'SearchDialog';
 
 export default SearchDialog;
