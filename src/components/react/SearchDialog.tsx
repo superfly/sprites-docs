@@ -469,9 +469,11 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
           e.preventDefault();
           if (selectableItems[selectedIndex]) {
             const item = selectableItems[selectedIndex];
-            window.plausible?.('Search', {
-              props: { query, path: item.url },
-            });
+            if (query) {
+              window.plausible?.('Search', {
+                props: { query, path: item.url },
+              });
+            }
             window.location.href = item.url;
             onClose();
           }
@@ -685,9 +687,11 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                       delay={0.03}
                       onMouseEnter={() => setSelectedIndex(index)}
                       onClick={() => {
-                        window.plausible?.('Search', {
-                          props: { query, path: item.url },
-                        });
+                        if (query) {
+                          window.plausible?.('Search', {
+                            props: { query, path: item.url },
+                          });
+                        }
                         window.location.href = item.url;
                         onClose();
                       }}
