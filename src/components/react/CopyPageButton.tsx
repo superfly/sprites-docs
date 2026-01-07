@@ -1,4 +1,4 @@
-import { ArrowUpRight, Check, Copy, Ellipsis } from 'lucide-react';
+import { ArrowUpRight, Check, Copy, Ellipsis, Github } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +17,7 @@ interface CopyPageButtonProps {
   pageMarkdown: string;
   pageUrl: string;
   pageTitle: string;
+  githubUrl: string;
 }
 
 // ChatGPT logo
@@ -86,6 +87,7 @@ export function CopyPageButton({
   pageMarkdown,
   pageUrl,
   pageTitle,
+  githubUrl,
 }: CopyPageButtonProps) {
   const [copied, setCopied] = React.useState(false);
 
@@ -237,6 +239,25 @@ export function CopyPageButton({
               aria-hidden="true"
             >
               Open raw markdown in new tab
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => window.open(githubUrl, '_blank')}
+            className="flex flex-col items-start gap-0.5 py-2"
+          >
+            <div className="flex items-center gap-2">
+              <Github className="size-4" aria-hidden="true" />
+              <span className="font-medium">
+                View on GitHub
+                <VisuallyHidden> (opens in new tab)</VisuallyHidden>
+              </span>
+              <ArrowUpRight className="size-3 opacity-50" aria-hidden="true" />
+            </div>
+            <span
+              className="text-xs text-muted-foreground pl-6"
+              aria-hidden="true"
+            >
+              View source on GitHub
             </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
