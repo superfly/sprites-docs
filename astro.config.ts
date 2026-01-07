@@ -46,9 +46,9 @@ export default defineConfig({
           href: 'https://github.com/superfly/sprites-docs',
         },
       ],
-      editLink: {
-        baseUrl: 'https://github.com/superfly/sprites-docs/edit/main/',
-      },
+      // editLink: {
+      //   baseUrl: 'https://github.com/superfly/sprites-docs/edit/main/',
+      // },
       sidebar: withBadges(sidebarConfig),
       head: [
         // Upgrade HTTP requests to HTTPS (workaround for Astro prefetch bug #13570)
