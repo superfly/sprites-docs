@@ -6,6 +6,11 @@ const { entry, slug } = Astro.locals.starlightRoute || {}
 const pageTitle = entry?.data?.title || 'Documentation'
 const pageMarkdown = entry?.body || ''
 const pageUrl = Astro.url.href
+
+// Construct GitHub URL for this page
+const githubBaseUrl = 'https://github.com/superfly/sprites-docs/blob/main/src/content/docs/'
+const filePath = slug ? `${slug}.mdx` : 'index.mdx'
+const githubUrl = `${githubBaseUrl}${filePath}`
 ---
 
 <div class="copy-page-button-wrapper">
@@ -14,6 +19,7 @@ const pageUrl = Astro.url.href
     pageMarkdown={pageMarkdown}
     pageUrl={pageUrl}
     pageTitle={pageTitle}
+    githubUrl={githubUrl}
   />
 </div>
 
