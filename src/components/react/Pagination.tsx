@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { PageFeedback } from './PageFeedback';
 
 interface PaginationLink {
   href: string;
@@ -30,26 +31,26 @@ const PixelArrow = ({
 
 export function Pagination({ prev, next, dir = 'ltr' }: PaginationProps) {
   return (
-    <div
-      className="flex justify-between items-center gap-4 mt-8 print:hidden"
-      dir={dir}
-    >
-      {prev && (
-        <Button variant="outline" size="sm" asChild className="group mr-auto">
-          <a href={prev.href} rel="prev">
-            <PixelArrow direction="left" />
-            <span className="leading-none">{prev.label}</span>
-          </a>
-        </Button>
-      )}
-      {next && (
-        <Button variant="outline" size="sm" asChild className="group ml-auto">
-          <a href={next.href} rel="next">
-            <span className="leading-none">{next.label}</span>
-            <PixelArrow direction="right" />
-          </a>
-        </Button>
-      )}
+    <div className="print:hidden" dir={dir}>
+      <PageFeedback />
+      <div className="flex justify-between items-center gap-4">
+        {prev && (
+          <Button variant="outline" size="sm" asChild className="group mr-auto">
+            <a href={prev.href} rel="prev">
+              <PixelArrow direction="left" />
+              <span className="leading-none">{prev.label}</span>
+            </a>
+          </Button>
+        )}
+        {next && (
+          <Button variant="outline" size="sm" asChild className="group ml-auto">
+            <a href={next.href} rel="next">
+              <span className="leading-none">{next.label}</span>
+              <PixelArrow direction="right" />
+            </a>
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

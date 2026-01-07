@@ -53,3 +53,32 @@ Custom Starlight components in `src/components/` override defaults: `Head.astro`
 - Dark mode is default; light mode uses violet accent (hue 285), dark uses teal/green (hue ~145)
 - Tailwind v4 custom variant: `@custom-variant dark (&:is(.dark *, [data-theme="dark"] *))`
 - Tables are auto-styled via rehype plugin with `data-slot` attributes for CSS targeting
+
+### Starlight CSS Specificity
+
+Starlight's CSS can override Tailwind classes due to cascade layers. When Tailwind margin/padding classes don't work in React components, use inline styles instead:
+```tsx
+// Tailwind class may not apply
+<div className="mb-6">  // ❌ May be overridden
+
+// Inline style works
+<div style={{ marginBottom: '2.5rem' }}>  // ✅ Guaranteed
+```
+
+### Starlight Layout Structure
+
+Key spacing sources in Starlight's default layout:
+- `footer.sl-flex` has `gap: 1.5rem` and `flex-direction: column`
+- `footer .meta` (EditLink/LastUpdated container) has `margin-top: 3rem`
+- `.sl-container > * + *` adds `margin-top: 1.5rem` between children
+- `.content-panel` has `padding: 1.5rem var(--sl-content-pad-x)`
+
+To reduce gaps when hiding EditLink, override in `custom.css`:
+```css
+footer.sl-flex .meta {
+  margin-top: 0;
+}
+footer.sl-flex .meta:empty {
+  display: none;
+}
+```

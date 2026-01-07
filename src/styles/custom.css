@@ -995,3 +995,12 @@ body.search-dialog-open .page {
   color: oklch(0.45 0 0);
   border: 1px solid oklch(0.5 0 0 / 20%);
 }
+
+/* Reduce gap before pagination when EditLink/LastUpdated are hidden */
+footer.sl-flex .meta {
+  margin-top: 0;
+}
+
+footer.sl-flex .meta:empty {
+  display: none;
+}
