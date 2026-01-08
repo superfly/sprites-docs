@@ -24,3 +24,36 @@ export { SearchDialog } from './SearchDialog';
 export { SearchDialogWrapper } from './SearchDialogWrapper';
 export { StatusBadge, StatusCodes } from './StatusCodes';
 export { ThemeSwitcher } from './ThemeSwitcher';
+
+// API Documentation Components - Legacy
+export {
+  CodeSnippet,
+  EndpointCard,
+  EndpointHeader,
+  MethodBadge,
+  ParameterList,
+  PropertyRow,
+  ResponseExample,
+  SnippetTabs,
+  TypeReference,
+  WebSocketBadge,
+  type Parameter,
+  type PropertyRowProps,
+  type TypeField,
+} from './api';
+
+// API Documentation Components - Double-Pane Layout (Stainless Style)
+export {
+  CollapsibleSnippet,
+  MethodHeader,
+  MethodPage,
+  MethodPageLeft,
+  MethodPageRight,
+  PropertyTree,
+  SDKSelector,
+  SnippetPanel,
+  type CodeExample,
+  type HttpMethod,
+  type Property,
+  type SDKLanguage,
+} from './api';
