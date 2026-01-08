@@ -6,8 +6,6 @@ description: Save and restore Sprite state with checkpoints
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import { Snippet, LinkCard, CardGrid } from '@/components/react';
 
-## Introduction
-
 **Sprites are programmable Linux environments you can spin up, script, and share. Checkpoints let you save a Sprite's entire state and bring it back later.** They capture persistent state: your filesystem, installed packages, environment config, dotfiles. They don't include running processes, network connections, or anything in memory.
 
 They're fast to create, safe to restore, and useful anywhere you'd want a clean slate or an undo button. This guide walks through how they work and how to use them in your tooling.
