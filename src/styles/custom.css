@@ -1004,3 +1004,693 @@ footer.sl-flex .meta {
 footer.sl-flex .meta:empty {
   display: none;
 }
+
+/* ============================================================================
+   API Documentation Styles - Machines API Layout Replication
+   ============================================================================ */
+
+/* HTTP Method Colors */
+:root {
+  --http-get: oklch(0.723 0.219 142.7);
+  --http-post: oklch(0.623 0.214 259);
+  --http-put: oklch(0.705 0.213 47.6);
+  --http-delete: oklch(0.577 0.245 27.3);
+  --http-patch: oklch(0.606 0.25 292.7);
+  --http-ws: oklch(0.558 0.288 302.3);
+
+  --http-get-faint: oklch(0.723 0.219 142.7 / 0.15);
+  --http-post-faint: oklch(0.623 0.214 259 / 0.15);
+  --http-put-faint: oklch(0.705 0.213 47.6 / 0.15);
+  --http-delete-faint: oklch(0.577 0.245 27.3 / 0.15);
+  --http-patch-faint: oklch(0.606 0.25 292.7 / 0.15);
+  --http-ws-faint: oklch(0.558 0.288 302.3 / 0.15);
+
+  --snippet-bg: oklch(0.14 0 0);
+  --snippet-border: oklch(0.274 0.006 286.0);
+  --snippet-title-bg: oklch(0.18 0 0);
+  --snippet-header-bg: oklch(0.16 0.005 286);
+}
+
+[data-theme="light"] {
+  --snippet-bg: oklch(0.967 0.001 286.4);
+  --snippet-border: oklch(0.885 0.006 286.3);
+  --snippet-title-bg: oklch(0.935 0.005 286.2);
+  --snippet-header-bg: oklch(1 0 0);
+}
+
+/* Gradient Background Overlay */
+html::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 80lvh;
+  background-image: radial-gradient(
+    ellipse 80% 50% at 50% -20%,
+    oklch(0.5 0.15 285 / 0.15),
+    transparent
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+[data-theme="light"] html::before {
+  background-image: radial-gradient(
+    ellipse 80% 50% at 50% -20%,
+    oklch(0.7 0.1 285 / 0.1),
+    transparent
+  );
+}
+
+/* Double-Pane Method Page Layout */
+.method-page {
+  display: grid;
+  grid-template-columns: 1fr 550px;
+  gap: 2rem;
+  /* Minimum height ensures sticky has room to work even with short content */
+  min-height: 70vh;
+}
+
+.method-page-left {
+  /* Description and parameters - takes natural height */
+  min-width: 0; /* Allow shrinking in grid */
+  overflow-x: auto; /* Scroll if content too wide */
+}
+
+/* Constrain tables in method-page-left to not overflow */
+.method-page-left table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+}
+
+.method-page-right {
+  /* Stretches to fill grid row height (default behavior) */
+  /* The .code-snippets inside will be sticky */
+  min-width: 0; /* Allow shrinking below content width for proper overflow */
+  overflow: hidden; /* Contain content within column */
+}
+
+/* Sticky code snippets within the right column */
+.method-page-right .code-snippets {
+  position: sticky;
+  top: calc(var(--sl-nav-height, 3.5rem) + 1rem);
+  max-height: calc(100vh - var(--sl-nav-height, 3.5rem) - 2rem);
+  overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+  .method-page {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+  .method-page-right .code-snippets {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+  }
+}
+
+/* Code Snippet Container Styling */
+.snippet-container {
+  border-radius: 0.5rem;
+  overflow: clip; /* Clip for border-radius but allow child scroll */
+  border: 1px solid var(--snippet-border);
+  background: var(--snippet-bg);
+}
+
+.snippet-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: var(--snippet-title-bg);
+  border-bottom: 1px solid var(--snippet-border);
+}
+
+.snippet-container pre {
+  margin: 0;
+  padding: 1rem;
+  overflow-x: auto;
+  max-width: 100%;
+  font-size: 0.875rem;
+  background: transparent !important;
+  border: none !important;
+}
+
+.snippet-container code {
+  background: transparent !important;
+}
+
+/* Collapsible Snippet Gradient Fade */
+.snippet-fade {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4rem;
+  background: linear-gradient(to top, var(--snippet-bg), transparent);
+  pointer-events: none;
+}
+
+/* API Sidebar Method Icons - Stainless Style */
+nav[aria-label="Main"] a[data-method] {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  padding-left: calc(18px + 0.75rem) !important;
+}
+
+nav[aria-label="Main"] a[data-method]::before {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+nav[aria-label="Main"] a[data-method]::after {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  width: 18px;
+  height: 18px;
+  mask-size: 12px 12px;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  transition: background-color 0.15s ease;
+}
+
+/* GET - Green arrow down-right */
+nav[aria-label="Main"] a[data-method="get"]::before {
+  background-color: var(--http-get-faint);
+}
+nav[aria-label="Main"] a[data-method="get"]::after {
+  background-color: var(--http-get);
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 7 7 17"/><path d="M17 17H7V7"/></svg>');
+}
+nav[aria-label="Main"] a[data-method="get"]:hover::before,
+nav[aria-label="Main"] a[data-method="get"][aria-current="page"]::before {
+  background-color: var(--http-get);
+}
+nav[aria-label="Main"] a[data-method="get"]:hover::after,
+nav[aria-label="Main"] a[data-method="get"][aria-current="page"]::after {
+  background-color: white;
+}
+
+/* POST - Blue arrow up-right */
+nav[aria-label="Main"] a[data-method="post"]::before {
+  background-color: var(--http-post-faint);
+}
+nav[aria-label="Main"] a[data-method="post"]::after {
+  background-color: var(--http-post);
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>');
+}
+nav[aria-label="Main"] a[data-method="post"]:hover::before,
+nav[aria-label="Main"] a[data-method="post"][aria-current="page"]::before {
+  background-color: var(--http-post);
+}
+nav[aria-label="Main"] a[data-method="post"]:hover::after,
+nav[aria-label="Main"] a[data-method="post"][aria-current="page"]::after {
+  background-color: white;
+}
+
+/* PUT - Orange arrows up/down */
+nav[aria-label="Main"] a[data-method="put"]::before {
+  background-color: var(--http-put-faint);
+}
+nav[aria-label="Main"] a[data-method="put"]::after {
+  background-color: var(--http-put);
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="m8 8 4-4 4 4"/><path d="m8 16 4 4 4-4"/></svg>');
+}
+nav[aria-label="Main"] a[data-method="put"]:hover::before,
+nav[aria-label="Main"] a[data-method="put"][aria-current="page"]::before {
+  background-color: var(--http-put);
+}
+nav[aria-label="Main"] a[data-method="put"]:hover::after,
+nav[aria-label="Main"] a[data-method="put"][aria-current="page"]::after {
+  background-color: white;
+}
+
+/* DELETE - Red X */
+nav[aria-label="Main"] a[data-method="delete"]::before {
+  background-color: var(--http-delete-faint);
+}
+nav[aria-label="Main"] a[data-method="delete"]::after {
+  background-color: var(--http-delete);
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>');
+}
+nav[aria-label="Main"] a[data-method="delete"]:hover::before,
+nav[aria-label="Main"] a[data-method="delete"][aria-current="page"]::before {
+  background-color: var(--http-delete);
+}
+nav[aria-label="Main"] a[data-method="delete"]:hover::after,
+nav[aria-label="Main"] a[data-method="delete"][aria-current="page"]::after {
+  background-color: white;
+}
+
+/* PATCH - Purple pencil */
+nav[aria-label="Main"] a[data-method="patch"]::before {
+  background-color: var(--http-patch-faint);
+}
+nav[aria-label="Main"] a[data-method="patch"]::after {
+  background-color: var(--http-patch);
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>');
+}
+nav[aria-label="Main"] a[data-method="patch"]:hover::before,
+nav[aria-label="Main"] a[data-method="patch"][aria-current="page"]::before {
+  background-color: var(--http-patch);
+}
+nav[aria-label="Main"] a[data-method="patch"]:hover::after,
+nav[aria-label="Main"] a[data-method="patch"][aria-current="page"]::after {
+  background-color: white;
+}
+
+/* Property Tree Styling */
+.property-tree {
+  font-size: 0.875rem;
+}
+
+.property-node {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.property-node:last-child {
+  border-bottom: none;
+}
+
+.property-node-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  margin: -0.25rem -0.5rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.15s ease;
+}
+
+.property-node-header:hover {
+  background-color: var(--muted);
+}
+
+.property-name {
+  font-family: var(--sl-font-system-mono);
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+/* Stainless-style inline property type (no badge background) */
+.property-type {
+  font-family: var(--sl-font-system-mono);
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Optional indicator before type */
+.property-optional {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+/* Keep colored badges as an option with .property-type-badge class */
+.property-type-badge {
+  font-family: var(--sl-font-system-mono);
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  border: 1px solid;
+}
+
+.property-type-badge.property-type-string {
+  color: oklch(0.723 0.219 142.7);
+  background: oklch(0.723 0.219 142.7 / 0.1);
+  border-color: oklch(0.723 0.219 142.7 / 0.3);
+}
+
+.property-type-badge.property-type-number {
+  color: oklch(0.623 0.214 259);
+  background: oklch(0.623 0.214 259 / 0.1);
+  border-color: oklch(0.623 0.214 259 / 0.3);
+}
+
+.property-type-badge.property-type-boolean {
+  color: oklch(0.705 0.213 47.6);
+  background: oklch(0.705 0.213 47.6 / 0.1);
+  border-color: oklch(0.705 0.213 47.6 / 0.3);
+}
+
+.property-type-badge.property-type-object {
+  color: oklch(0.606 0.25 292.7);
+  background: oklch(0.606 0.25 292.7 / 0.1);
+  border-color: oklch(0.606 0.25 292.7 / 0.3);
+}
+
+.property-type-badge.property-type-array {
+  color: oklch(0.7 0.15 200);
+  background: oklch(0.7 0.15 200 / 0.1);
+  border-color: oklch(0.7 0.15 200 / 0.3);
+}
+
+.property-required {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  color: oklch(0.577 0.245 27.3);
+  background: oklch(0.577 0.245 27.3 / 0.1);
+  border: 1px solid oklch(0.577 0.245 27.3 / 0.3);
+}
+
+.property-description {
+  margin-top: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.property-children {
+  margin-left: 1rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--border);
+  margin-top: 0.5rem;
+}
+
+/* Method Header Styling - Stainless style: Title first, then badge+path */
+.method-header {
+  margin-bottom: 1.5rem;
+}
+
+.method-header-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.method-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.375rem;
+  font-family: var(--sl-font-system-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  border-radius: 0.375rem;
+  border: 1px solid;
+}
+
+/* Faint background badges */
+.method-badge-get {
+  color: var(--http-get);
+  background: var(--http-get-faint);
+  border-color: oklch(0.723 0.219 142.7 / 0.3);
+}
+
+.method-badge-post {
+  color: var(--http-post);
+  background: var(--http-post-faint);
+  border-color: oklch(0.623 0.214 259 / 0.3);
+}
+
+.method-badge-put {
+  color: var(--http-put);
+  background: var(--http-put-faint);
+  border-color: oklch(0.705 0.213 47.6 / 0.3);
+}
+
+.method-badge-delete {
+  color: var(--http-delete);
+  background: var(--http-delete-faint);
+  border-color: oklch(0.577 0.245 27.3 / 0.3);
+}
+
+.method-badge-patch {
+  color: var(--http-patch);
+  background: var(--http-patch-faint);
+  border-color: oklch(0.606 0.25 292.7 / 0.3);
+}
+
+.method-badge-ws,
+.method-badge-wss {
+  color: var(--http-ws);
+  background: var(--http-ws-faint);
+  border-color: oklch(0.558 0.288 302.3 / 0.3);
+}
+
+/* Method badge icons - inline SVG icons for each HTTP method */
+.method-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.375rem;
+}
+
+.method-badge-icon svg {
+  display: block;
+}
+
+.method-path {
+  font-family: var(--sl-font-system-mono);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+/* Method title - sized to match content h2 headings */
+/* Higher specificity to override .sl-markdown-content h2 */
+.sl-markdown-content h2.method-title,
+h2.method-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  font-family: var(--sl-font-headings);
+  letter-spacing: -0.025em;
+  line-height: 1.33;
+}
+
+/* Method header wrapper spacing */
+.method-header .sl-heading-wrapper {
+  margin-bottom: 0.75rem;
+}
+
+.method-description {
+  color: var(--muted-foreground);
+  line-height: 1.6;
+}
+
+/* ============================================================================
+   Full-Width Pages - API Documentation Layout
+   ============================================================================ */
+
+/* Hide right sidebar when ToC is disabled (no starlight-toc content) */
+.right-sidebar-container:not(:has(starlight-toc nav)) {
+  display: none;
+}
+
+/* Full-width content for API pages with .api-full-width wrapper */
+@media (min-width: 72rem) {
+  /* When the page has .api-full-width class, expand content to full width */
+  .page:has(.api-full-width) .sl-container {
+    max-width: none;
+    width: 100%;
+  }
+
+  .page:has(.api-full-width) .content-panel {
+    max-width: none;
+  }
+
+  .page:has(.api-full-width) .main-frame {
+    max-width: none;
+  }
+}
+
+/* ==========================================================================
+   Stainless-style Snippet Component
+   Copied from @stainless-api/docs-ui
+   ========================================================================== */
+
+.stldocs-snippet {
+  border-radius: 12px;
+  background-color: transparent;
+  padding: 0;
+  font-size: 0.8rem;
+  font-family: var(--sl-font-mono);
+}
+
+.stldocs-snippet-request {
+  border: 1px solid var(--snippet-border);
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stldocs-snippet-request-title {
+  display: flex;
+  justify-content: space-between;
+  background-color: var(--snippet-header-bg);
+  color: var(--sl-color-text-accent);
+  border-bottom: 1px solid var(--snippet-border);
+  border-top-right-radius: 12px;
+  border-top-left-radius: 12px;
+  padding: 0.5rem;
+  padding-left: 1rem;
+  gap: 0.5rem;
+}
+
+/* KEY: Both child divs get flex + align-items: center for vertical centering */
+.stldocs-snippet-request-title > div {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.stldocs-snippet-request-title-method {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.stldocs-snippet-request-title h5 {
+  font-weight: 500;
+  font-style: normal;
+  line-height: 100%;
+  font-size: 0.875rem;
+  font-family: var(--sl-font);
+  color: var(--sl-color-text);
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.stldocs-snippet-request-title-content {
+  font-family: var(--sl-font);
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stldocs-snippet-request-title-language {
+  position: relative;
+  color: var(--sl-color-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--snippet-title-bg);
+  border: 1px solid var(--snippet-border);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.stldocs-snippet-request-title-language select {
+  background: transparent;
+  border: none;
+  color: var(--sl-color-text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding-right: 1rem;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.stldocs-snippet-request-title-language::after {
+  content: '';
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 4px solid var(--sl-color-text);
+  pointer-events: none;
+}
+
+.stldocs-snippet-copy-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--sl-color-text);
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.stldocs-snippet-copy-button:hover {
+  opacity: 1;
+  background: var(--snippet-title-bg);
+}
+
+.stldocs-snippet-code {
+  width: 100%;
+  overflow: auto;
+  display: block;
+  white-space: pre;
+  padding: 1rem;
+  max-height: 560px;
+  line-height: 1.75;
+  background-color: var(--snippet-bg);
+  font-family: var(--sl-font-mono);
+  font-size: 0.875rem;
+}
+
+.stldocs-snippet-code-content {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.stldocs-snippet-code code {
+  font-family: var(--sl-font-mono);
+  background: transparent;
+}
+
+.stldocs-snippet-response {
+  margin-top: 1rem;
+  border: 1px solid var(--snippet-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.stldocs-snippet-response-title {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--sl-color-text);
+  padding: 0.5rem 1rem;
+  font-family: var(--sl-font);
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: var(--snippet-header-bg);
+  border-bottom: 1px solid var(--snippet-border);
+}
+
+.stldocs-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.stldocs-icon-go {
+  width: 32px;
+  height: 16px;
+}
