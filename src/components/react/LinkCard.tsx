@@ -17,7 +17,13 @@ import {
   Zap,
 } from 'lucide-react';
 import type React from 'react';
-import SpotlightCard from '../SpotlightCard';
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item';
 
 const iconMap: Record<string, LucideIcon> = {
   'arrow-up-right': ArrowUpRight,
@@ -56,39 +62,29 @@ const LinkCard: React.FC<LinkCardProps> = ({
   const IconComponent = icon ? iconMap[icon] : null;
 
   return (
-    <a
-      href={href}
-      target={isExternal ? '_blank' : undefined}
-      rel={isExternal ? 'noopener noreferrer' : undefined}
-      className="block no-underline group"
-    >
-      <SpotlightCard
-        className="h-full"
-        spotlightColor="color-mix(in oklch, var(--primary) 15%, transparent)"
+    <Item asChild variant="outline">
+      <a
+        href={href}
+        target={isExternal ? '_blank' : undefined}
+        rel={isExternal ? 'noopener noreferrer' : undefined}
+        className="no-underline"
       >
-        <div className="flex flex-col gap-3">
-          {IconComponent && (
-            <div className="text-primary">
-              <IconComponent size={28} strokeWidth={1.5} />
-            </div>
-          )}
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="text-lg font-semibold text-card-foreground m-0 group-hover:text-primary transition-colors">
-              {title}
-            </h3>
+        {IconComponent && (
+          <ItemMedia className="text-primary">
+            <IconComponent size={16} strokeWidth={1.5} />
+          </ItemMedia>
+        )}
+        <ItemContent>
+          <ItemTitle>
+            {title}
             {isExternal && (
-              <ArrowUpRight
-                size={16}
-                className="text-muted-foreground flex-shrink-0 mt-1"
-              />
+              <ArrowUpRight size={12} className="text-muted-foreground" />
             )}
-          </div>
-          <p className="text-muted-foreground text-sm m-0 leading-relaxed">
-            {description}
-          </p>
-        </div>
-      </SpotlightCard>
-    </a>
+          </ItemTitle>
+          <ItemDescription className="text-xs">{description}</ItemDescription>
+        </ItemContent>
+      </a>
+    </Item>
   );
 };
 

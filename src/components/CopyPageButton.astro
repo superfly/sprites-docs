@@ -6,6 +6,11 @@ const { entry, slug } = Astro.locals.starlightRoute || {}
 const pageTitle = entry?.data?.title || 'Documentation'
 const pageMarkdown = entry?.body || ''
 const pageUrl = Astro.url.href
+
+// Construct GitHub URL for this page
+const githubBaseUrl = 'https://github.com/superfly/sprites-docs/blob/main/src/content/docs/'
+const filePath = slug ? `${slug}.mdx` : 'index.mdx'
+const githubUrl = `${githubBaseUrl}${filePath}`
 ---
 
 <div class="copy-page-button-wrapper">
@@ -14,6 +19,7 @@ const pageUrl = Astro.url.href
     pageMarkdown={pageMarkdown}
     pageUrl={pageUrl}
     pageTitle={pageTitle}
+    githubUrl={githubUrl}
   />
 </div>
 
@@ -21,5 +27,33 @@ const pageUrl = Astro.url.href
   .copy-page-button-wrapper {
     display: flex;
     align-items: center;
+  }
+
+  /* Match search box styling */
+  .copy-page-button-wrapper :global(button) {
+    background: var(--sl-color-gray-6);
+    border: none;
+  }
+
+  .copy-page-button-wrapper :global(button:hover) {
+    background: var(--sl-color-gray-5);
+  }
+
+  /* Make separator visible */
+  .copy-page-button-wrapper :global([data-slot='button-group-separator']) {
+    background: var(--sl-color-gray-5);
+  }
+
+  /* Larger touch target on mobile */
+  @media (max-width: 640px) {
+    .copy-page-button-wrapper :global(button) {
+      height: 2.5rem;
+      padding-inline: 0.75rem;
+    }
+
+    .copy-page-button-wrapper :global(button svg) {
+      width: 1rem;
+      height: 1rem;
+    }
   }
 </style>

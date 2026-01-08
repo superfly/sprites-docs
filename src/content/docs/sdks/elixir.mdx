@@ -1,0 +1,572 @@
+---
+title: Elixir SDK
+description: Use Sprites programmatically with the Elixir SDK
+---
+
+import { LinkCard, CardGrid } from '@/components/react';
+
+The Sprites Elixir SDK provides an idiomatic Elixir interface for managing Sprites programmatically. The SDK mirrors native Elixir patterns: `System.cmd/3` for synchronous execution, Port-like message passing for async commands, and native `Stream` support for lazy output processing.
+
+## Installation
+
+Add `sprites` to your dependencies in `mix.exs`:
+
+```elixir
+defp deps do
+  [
+    {:sprites, github: "superfly/sprites-ex"}
+  ]
+end
+```
+
+Then run:
+
+```bash
+mix deps.get
+```
+
+**Requirements:**
+- Elixir 1.15 or later
+- OTP 27 or later
+
+## Quick Start
+
+```elixir
+# Create a client
+client = Sprites.new(System.get_env("SPRITE_TOKEN"))
+
+# Create a sprite
+{:ok, sprite} = Sprites.create(client, "my-sprite")
+
+# Execute a command (System.cmd-style)
+{output, 0} = Sprites.cmd(sprite, "echo", ["Hello, Sprites!"])
+IO.puts(output)
+
+# Clean up
+:ok = Sprites.destroy(sprite)
+```
+
+## Authentication
+
+Create a token at [sprites.dev/account](https://sprites.dev/account), or use the CLI (`sprite org auth`).
+
+### Using Environment Variables
+
+```elixir
+client = Sprites.new(System.get_env("SPRITE_TOKEN"))
+```
+
+### With Options
+
+```elixir
+client = Sprites.new(token,
+  base_url: "https://api.sprites.dev",
+  timeout: 30_000
+)
+```
+
+## Sprite Management
+
+### Creating Sprites
+
+```elixir
+{:ok, sprite} = Sprites.create(client, "my-sprite")
+
+# With configuration
+{:ok, sprite} = Sprites.create(client, "my-sprite", config: %{...})
+```
+
+### Getting Sprites
+
+```elixir
+# Get handle (doesn't verify existence)
+sprite = Sprites.sprite(client, "my-sprite")
+
+# Get sprite and verify it exists
+{:ok, info} = Sprites.get_sprite(client, "my-sprite")
+IO.puts(info["url"])
+```
+
+Note: The API currently returns `id`, `name`, `organization`, `url`, `url_settings`, `created_at`, and `updated_at`.
+
+### Listing Sprites
+
+```elixir
+# List all sprites
+{:ok, sprites} = Sprites.list(client)
+
+# List with prefix filter
+{:ok, dev_sprites} = Sprites.list(client, prefix: "dev-")
+```
+
+### Deleting Sprites
+
+```elixir
+:ok = Sprites.destroy(sprite)
+```
+
+### Upgrading Sprites
+
+```elixir
+:ok = Sprites.upgrade(sprite)
+```
+
+### URL Settings
+
+```elixir
+:ok = Sprites.update_url_settings(sprite, %{auth: "public"})
+```
+
+## Command Execution
+
+The SDK provides three methods for executing commands, each matching Elixir idioms:
+
+### `cmd/4` - Synchronous (System.cmd-style)
+
+Best for simple commands where you want to wait for completion. Returns `{output, exit_code}`.
+
+```elixir
+# Basic usage
+{output, exit_code} = Sprites.cmd(sprite, "echo", ["hello"])
+
+# With options
+{output, 0} = Sprites.cmd(sprite, "npm", ["test"],
+  dir: "/home/sprite/project",
+  env: [{"NODE_ENV", "test"}],
+  timeout: 60_000
+)
+
+# Merge stderr into stdout
+{output, code} = Sprites.cmd(sprite, "make", [],
+  stderr_to_stdout: true
+)
+```
+
+### `spawn/4` - Async (Port-like Messages)
+
+Returns `{:ok, command}` and sends messages to the owner process. Best for long-running commands or when you need fine-grained control.
+
+```elixir
+{:ok, cmd} = Sprites.spawn(sprite, "npm", ["run", "dev"])
+
+# Receive messages (match on cmd.ref)
+receive do
+  {:stdout, %{ref: ref}, data} when ref == cmd.ref -> IO.write(data)
+  {:stderr, %{ref: ref}, data} when ref == cmd.ref -> IO.write(:stderr, data)
+  {:exit, %{ref: ref}, code} when ref == cmd.ref -> IO.puts("Exited: #{code}")
+  {:error, %{ref: ref}, reason} when ref == cmd.ref -> IO.inspect(reason)
+end
+```
+
+**Message Types:**
+
+| Message | Description |
+|---------|-------------|
+| `{:stdout, %{ref: ref}, data}` | Stdout data received |
+| `{:stderr, %{ref: ref}, data}` | Stderr data received |
+| `{:exit, %{ref: ref}, exit_code}` | Command completed |
+| `{:error, %{ref: ref}, reason}` | Error occurred |
+| `{:port, %{ref: ref}, port}` | Port assignment (TTY mode) |
+
+Note: Match messages using `cmd.ref` to identify which command the message belongs to.
+
+### `stream/4` - Lazy Stream Interface
+
+Returns an `Enumerable` that lazily emits output chunks. Composes naturally with `Stream` and `Enum` functions.
+
+```elixir
+# Stream and filter output
+sprite
+|> Sprites.stream("tail", ["-f", "/var/log/app.log"])
+|> Stream.filter(&String.contains?(&1, "ERROR"))
+|> Stream.each(&Logger.error/1)
+|> Stream.run()
+
+# Process lines
+lines =
+  sprite
+  |> Sprites.stream("cat", ["data.csv"])
+  |> Stream.flat_map(&String.split(&1, "\n"))
+  |> Stream.map(&String.trim/1)
+  |> Enum.to_list()
+```
+
+## Options
+
+Available for `cmd/4`, `spawn/4`, and `stream/4`:
+
+```elixir
+[
+  env: [{"KEY", "value"}],    # Environment variables
+  dir: "/path/to/workdir",    # Working directory
+  tty: true,                  # Allocate TTY
+  tty_rows: 24,               # TTY height
+  tty_cols: 80,               # TTY width
+]
+```
+
+Additional options for `cmd/4`:
+
+```elixir
+[
+  timeout: 30_000,            # Timeout in milliseconds
+  stderr_to_stdout: false,    # Merge stderr into stdout
+]
+```
+
+Additional options for `spawn/4`:
+
+```elixir
+[
+  owner: self(),              # Message recipient process
+  detachable: false,          # Create detachable session
+  session_id: "id",           # Attach to existing session
+]
+```
+
+## Working with Commands
+
+### Writing to stdin
+
+```elixir
+{:ok, cmd} = Sprites.spawn(sprite, "cat", [])
+:ok = Sprites.write(cmd, "Hello\n")
+:ok = Sprites.write(cmd, "World\n")
+:ok = Sprites.close_stdin(cmd)
+
+{:ok, 0} = Sprites.await(cmd)
+```
+
+### Waiting for Completion
+
+```elixir
+{:ok, cmd} = Sprites.spawn(sprite, "sleep", ["5"])
+
+# Wait indefinitely
+{:ok, exit_code} = Sprites.await(cmd)
+
+# With timeout (returns {:error, :timeout} if exceeded)
+{:ok, exit_code} = Sprites.await(cmd, 10_000)
+```
+
+## TTY Mode
+
+For interactive applications:
+
+```elixir
+{:ok, cmd} = Sprites.spawn(sprite, "bash", ["-i"],
+  tty: true,
+  tty_rows: 24,
+  tty_cols: 80
+)
+
+# Send input
+Sprites.write(cmd, "ls -la\n")
+
+# Resize terminal
+Sprites.resize(cmd, 40, 120)
+
+# Receive output
+receive do
+  {:stdout, %{ref: ref}, data} when ref == cmd.ref -> IO.write(data)
+  {:exit, %{ref: ref}, _} when ref == cmd.ref -> :ok
+end
+```
+
+## Detachable Sessions
+
+Create sessions that persist after disconnecting:
+
+```elixir
+# Start a detachable session
+{:ok, cmd} = Sprites.spawn(sprite, "npm", ["run", "dev"],
+  detachable: true
+)
+
+# Session keeps running even after process ends
+
+# List active sessions
+{:ok, sessions} = Sprites.list_sessions(sprite)
+session = List.first(sessions)
+IO.puts("Session #{session.id}: #{session.command}")
+
+# Later, reattach to the session
+{:ok, cmd} = Sprites.attach_session(sprite, session.id)
+```
+
+### Session Fields
+
+```elixir
+%Sprites.Session{
+  id: "session-id",
+  command: "npm run dev",
+  workdir: "/home/sprite/project",
+  created: ~U[2024-01-01 12:00:00Z],
+  bytes_per_second: 1024.0,
+  is_active: true,
+  last_activity: ~U[2024-01-01 12:05:00Z],
+  tty: false
+}
+```
+
+## Port Forwarding
+
+Forward local ports to your sprite:
+
+```elixir
+# Single port
+{:ok, session} = Sprites.proxy_port(sprite, 3000, 3000)
+# localhost:3000 now forwards to sprite:3000
+
+# Stop proxy
+Sprites.Proxy.Session.stop(session)
+
+# Multiple ports
+mappings = [
+  %Sprites.Proxy.PortMapping{local_port: 3000, remote_port: 3000},
+  %Sprites.Proxy.PortMapping{local_port: 8080, remote_port: 80}
+]
+{:ok, sessions} = Sprites.proxy_ports(sprite, mappings)
+
+# With specific remote host
+%Sprites.Proxy.PortMapping{
+  local_port: 5432,
+  remote_port: 5432,
+  remote_host: "10.0.0.1"
+}
+```
+
+## Network Policy
+
+Control outbound network access:
+
+```elixir
+# Get current policy
+{:ok, policy} = Sprites.get_network_policy(sprite)
+
+# Update policy
+policy = %Sprites.Policy{
+  rules: [
+    %Sprites.Policy.Rule{domain: "api.github.com", action: "allow"},
+    %Sprites.Policy.Rule{domain: "*.example.com", action: "allow", include: "*.example.com"},
+    %Sprites.Policy.Rule{domain: "blocked.com", action: "deny"}
+  ]
+}
+:ok = Sprites.update_network_policy(sprite, policy)
+```
+
+## Checkpoints
+
+Save and restore sprite state:
+
+```elixir
+# List checkpoints
+{:ok, checkpoints} = Sprites.list_checkpoints(sprite)
+
+# Get a specific checkpoint
+{:ok, checkpoint} = Sprites.get_checkpoint(sprite, "v1")
+
+# Create a checkpoint (returns list of stream messages)
+{:ok, messages} = Sprites.create_checkpoint(sprite, comment: "Before deploy")
+Enum.each(messages, fn
+  %Sprites.StreamMessage{type: "info", data: data} -> IO.puts(data)
+  %Sprites.StreamMessage{type: "error", error: err} -> IO.puts(:stderr, err)
+  %Sprites.StreamMessage{type: "complete", data: data} -> IO.puts("Done: #{data}")
+  _ -> :ok
+end)
+
+# Restore from checkpoint
+{:ok, messages} = Sprites.restore_checkpoint(sprite, "v1")
+Enum.each(messages, &IO.inspect/1)
+```
+
+### Checkpoint Fields
+
+```elixir
+%Sprites.Checkpoint{
+  id: "v1",
+  create_time: ~U[2024-01-01 12:00:00Z],
+  history: ["v0"],
+  comment: "Before deploy"
+}
+```
+
+## Error Handling
+
+Most SDK functions return `{:ok, result}` or `{:error, reason}` tuples:
+
+```elixir
+# Pattern match on error tuples
+case Sprites.create(client, "my-sprite") do
+  {:ok, sprite} ->
+    # Success
+  {:error, {:api_error, status, body}} ->
+    IO.puts("API error #{status}: #{inspect(body)}")
+  {:error, {:not_found, _}} ->
+    IO.puts("Sprite not found")
+  {:error, reason} ->
+    IO.puts("Error: #{inspect(reason)}")
+end
+```
+
+The `cmd/4` function raises exceptions on failure:
+
+```elixir
+try do
+  Sprites.cmd(sprite, "exit", ["1"], timeout: 5000)
+rescue
+  e in Sprites.Error.TimeoutError ->
+    IO.puts("Timed out after #{e.timeout}ms")
+end
+```
+
+### Error Tuples
+
+| Error | Description |
+|-------|-------------|
+| `{:error, {:api_error, status, body}}` | API returned an error response |
+| `{:error, {:not_found, body}}` | Resource not found (404) |
+| `{:error, {:invalid_policy, body}}` | Invalid network policy |
+| `{:error, :timeout}` | Operation timed out (from `await/2`) |
+
+### Exceptions (raised by `cmd/4`)
+
+| Exception | Description |
+|-----------|-------------|
+| `Sprites.Error.TimeoutError` | Command execution timed out |
+
+## Type Reference
+
+```elixir
+# Client handle
+@type Sprites.Client.t()
+
+# Sprite handle
+@type Sprites.Sprite.t()
+
+# Running command handle
+@type Sprites.Command.t()
+
+# Active session
+@type Sprites.Session.t()
+
+# Checkpoint metadata
+@type Sprites.Checkpoint.t()
+
+# Streaming message (from checkpoint create/restore)
+@type Sprites.StreamMessage.t()
+
+# Network policy
+@type Sprites.Policy.t()
+@type Sprites.Policy.Rule.t()
+
+# Port mapping configuration
+@type Sprites.Proxy.PortMapping.t()
+```
+
+## Complete Example
+
+```elixir
+defmodule CIRunner do
+  require Logger
+
+  def run do
+    client = Sprites.new(System.get_env("SPRITE_TOKEN"))
+
+    {:ok, sprite} = Sprites.create(client, "ci-runner")
+
+    try do
+      # Clone repository
+      {_, 0} = Sprites.cmd(sprite, "git", [
+        "clone",
+        "https://github.com/user/repo.git",
+        "/home/sprite/repo"
+      ])
+
+      # Install dependencies
+      {_, 0} = Sprites.cmd(sprite, "npm", ["install"],
+        dir: "/home/sprite/repo"
+      )
+
+      # Run tests with streaming output
+      {:ok, cmd} = Sprites.spawn(sprite, "npm", ["test"],
+        dir: "/home/sprite/repo"
+      )
+
+      exit_code = stream_output(cmd)
+      Logger.info("Tests completed with exit code #{exit_code}")
+
+      exit_code
+    after
+      # Always clean up
+      Sprites.destroy(sprite)
+    end
+  end
+
+  defp stream_output(cmd) do
+    ref = cmd.ref
+    receive do
+      {:stdout, %{ref: ^ref}, data} ->
+        IO.write(data)
+        stream_output(cmd)
+      {:stderr, %{ref: ^ref}, data} ->
+        IO.write(:stderr, data)
+        stream_output(cmd)
+      {:exit, %{ref: ^ref}, code} ->
+        code
+      {:error, %{ref: ^ref}, reason} ->
+        Logger.error("Command failed: #{inspect(reason)}")
+        1
+    end
+  end
+end
+
+CIRunner.run()
+```
+
+## Related Documentation
+
+<CardGrid client:load>
+  <LinkCard
+    href="/sprites"
+    title="Sprites Guide"
+    description="Comprehensive guide to working with Sprites"
+    icon="book-open"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/javascript"
+    title="JavaScript SDK"
+    description="JavaScript SDK reference documentation"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/sdks/go"
+    title="Go SDK"
+    description="Go SDK reference documentation"
+    icon="code"
+    client:load
+  />
+  <LinkCard
+    href="/api/rest"
+    title="REST API"
+    description="HTTP API reference"
+    icon="zap"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands"
+    title="CLI Reference"
+    description="Command-line interface documentation"
+    icon="terminal"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/checkpoints"
+    title="Checkpoints"
+    description="Save and restore Sprite state"
+    icon="folder"
+    client:load
+  />
+</CardGrid>

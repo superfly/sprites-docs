@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Deploy preview app
         id: deploy
@@ -152,6 +154,124 @@ jobs:
               issue_number: context.issue.number,
             });
             const existing = comments.find(c => c.body.includes('### E2E Test Results'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    needs: preview
+    if: github.event.action != 'closed'
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Wait for preview to be ready
+        run: |
+          echo "Waiting for preview deployment to be ready..."
+          for i in {1..30}; do
+            if curl -s -o /dev/null -w "%{http_code}" "${{ needs.preview.outputs.url }}" | grep -q "200"; then
+              echo "Preview is ready!"
+              exit 0
+            fi
+            echo "Attempt $i: Preview not ready yet, waiting 10s..."
+            sleep 10
+          done
+          echo "Preview did not become ready in time"
+          exit 1
+
+      - name: Get changed pages
+        id: changed-pages
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const baseUrl = '${{ needs.preview.outputs.url }}';
+            const urls = new Set([baseUrl]); // Always test homepage
+
+            for (const file of files) {
+              // Match .mdx files in src/content/docs/
+              const match = file.filename.match(/^src\/content\/docs\/(.+)\.mdx$/);
+              if (match && file.status !== 'removed') {
+                let path = match[1];
+                // index.mdx maps to root, others map to their path
+                if (path === 'index') {
+                  urls.add(baseUrl);
+                } else {
+                  urls.add(`${baseUrl}/${path}/`);
+                }
+              }
+            }
+
+            const urlList = Array.from(urls).join('\n');
+            console.log('URLs to test:\n' + urlList);
+            core.setOutput('urls', urlList);
+
+      - name: Run Lighthouse CI
+        id: lighthouse
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: ${{ steps.changed-pages.outputs.urls }}
+          configPath: ./lighthouserc.json
+          budgetPath: ./budget.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Comment Lighthouse results on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const manifest = ${{ steps.lighthouse.outputs.manifest }};
+            const links = ${{ steps.lighthouse.outputs.links }};
+
+            let body = '### Lighthouse Results\n\n';
+            body += '| URL | Performance | Accessibility | Best Practices | SEO |\n';
+            body += '|-----|-------------|---------------|----------------|-----|\n';
+
+            for (const result of manifest) {
+              const url = new URL(result.url).pathname || '/';
+              const perf = Math.round(result.summary.performance * 100);
+              const a11y = Math.round(result.summary.accessibility * 100);
+              const bp = Math.round(result.summary['best-practices'] * 100);
+              const seo = Math.round(result.summary.seo * 100);
+
+              const perfEmoji = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
+              const a11yEmoji = a11y >= 90 ? '🟢' : a11y >= 50 ? '🟠' : '🔴';
+              const bpEmoji = bp >= 90 ? '🟢' : bp >= 50 ? '🟠' : '🔴';
+              const seoEmoji = seo >= 90 ? '🟢' : seo >= 50 ? '🟠' : '🔴';
+
+              const reportLink = links[result.url] ? `[${url}](${links[result.url]})` : url;
+              body += `| ${reportLink} | ${perfEmoji} ${perf} | ${a11yEmoji} ${a11y} | ${bpEmoji} ${bp} | ${seoEmoji} ${seo} |\n`;
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('### Lighthouse Results'));
 
             if (existing) {
               await github.rest.issues.updateComment({

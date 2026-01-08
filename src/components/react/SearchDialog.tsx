@@ -66,6 +66,10 @@ interface Pagefind {
 declare global {
   interface Window {
     pagefind?: Pagefind;
+    plausible?: (
+      event: string,
+      options?: { props?: Record<string, string | number> },
+    ) => void;
   }
 }
 
@@ -305,7 +309,10 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
       const scrollY = window.scrollY;
       document.body.style.top = `-${scrollY}px`;
       document.body.classList.add('search-dialog-open');
-      setTimeout(() => inputRef.current?.focus(), 50);
+      // Use requestAnimationFrame to focus after render but within user gesture chain for mobile keyboards
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
       setQuery('');
       setResults([]);
       setSelectedIndex(0);
@@ -461,7 +468,13 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
         case 'Enter':
           e.preventDefault();
           if (selectableItems[selectedIndex]) {
-            window.location.href = selectableItems[selectedIndex].url;
+            const item = selectableItems[selectedIndex];
+            if (query) {
+              window.plausible?.('Search', {
+                props: { query, path: item.url },
+              });
+            }
+            window.location.href = item.url;
             onClose();
           }
           break;
@@ -474,7 +487,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, selectableItems, selectedIndex, onClose]);
+  }, [isOpen, selectableItems, selectedIndex, onClose, query]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -674,6 +687,11 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({
                       delay={0.03}
                       onMouseEnter={() => setSelectedIndex(index)}
                       onClick={() => {
+                        if (query) {
+                          window.plausible?.('Search', {
+                            props: { query, path: item.url },
+                          });
+                        }
                         window.location.href = item.url;
                         onClose();
                       }}

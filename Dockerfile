@@ -10,7 +10,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Install packages needed for sharp native module
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3 && \
+    apt-get install --no-install-recommends -y build-essential git pkg-config python-is-python3 && \
     rm -rf /var/lib/apt/lists/*
 
 # Install dependencies

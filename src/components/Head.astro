@@ -1,5 +1,6 @@
 ---
 import Default from '@astrojs/starlight/components/Head.astro';
+import Background from './Background.astro';
 
 const siteUrl = 'https://docs.sprites.dev';
 const pageTitle = Astro.locals.starlightRoute?.entry?.data?.title ?? 'Sprites Documentation';
@@ -50,6 +51,14 @@ const breadcrumbSchema = {
 ---
 
 <Default {...Astro.props}><slot /></Default>
+<Background />
+
+<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-X9Qgz6h0EcKGLrtNH5b5V.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
 
 <!-- Dynamic OG Image -->
 <meta property="og:image" content={ogImageUrl} />
@@ -63,8 +72,21 @@ const breadcrumbSchema = {
 
 <!-- Custom code block copy button with animated green check -->
 <script>
-  const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
   const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="check-icon"><path d="M5 12l5 5L20 7"/></svg>`;
+  const copyIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+  const link2Icon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>`;
+
+  async function copyWithFeedback(element, text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      element.classList.add('copied');
+      setTimeout(() => element.classList.remove('copied'), 2000);
+      return true;
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      return false;
+    }
+  }
 
   function initCodeBlocks() {
     // Output section styling - merge ```output blocks with preceding code block
@@ -102,18 +124,37 @@ const breadcrumbSchema = {
         <span class="check-icon-wrapper">${checkIcon}</span>
       `;
 
-      button.addEventListener('click', async (e) => {
+      button.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-
-        try {
-          await navigator.clipboard.writeText(code);
-          button.classList.add('copied');
-          setTimeout(() => button.classList.remove('copied'), 2000);
-        } catch (err) {
-          console.error('Failed to copy:', err);
-        }
+        copyWithFeedback(button, code);
       }, { capture: true });
+    });
+
+    // Anchor link copy
+    document.querySelectorAll('.sl-anchor-link').forEach((link) => {
+      if (link.dataset.copyInit) return;
+      link.dataset.copyInit = 'true';
+
+      const iconSpan = link.querySelector('.sl-anchor-icon');
+      if (iconSpan) {
+        iconSpan.innerHTML = `
+          <span class="link-icon-wrapper">${link2Icon}</span>
+          <span class="check-icon-wrapper">${checkIcon}</span>
+        `;
+      }
+
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        copyWithFeedback(link, link.href);
+        // Update URL and scroll to the target section
+        const hash = link.getAttribute('href');
+        if (hash) {
+          history.pushState(null, '', hash);
+          const target = document.getElementById(hash.slice(1));
+          target?.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
     });
 
     // Mobile fade overlay - inject into frame (sibling to pre, outside scroll)

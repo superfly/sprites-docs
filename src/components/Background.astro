@@ -1,0 +1,54 @@
+---
+// Background component matching sprites-api landing page structure
+// Injects fixed background elements for dark mode
+---
+
+<script is:inline>
+function initBackground() {
+  // Only run once
+  if (document.getElementById('sprites-bg')) return;
+
+  const bg = document.createElement('div');
+  bg.id = 'sprites-bg';
+  bg.style.cssText = 'position: fixed; inset: 0; z-index: -10; pointer-events: none; background-color: #000;';
+  bg.setAttribute('aria-hidden', 'true');
+
+  bg.innerHTML = `
+    <div
+      id="bg-top"
+      style="position: absolute; inset: 0; top: -10vh; height: 100vh; background-color: #16a34a; mask-image: linear-gradient(15deg, rgb(0 0 0 / 0) 75%, rgb(0 0 0 / 1));"
+    >
+      <div style="position: absolute; inset: 0; background-image: url('/images/bmxy.png'); background-size: cover; background-position: center;"></div>
+    </div>
+    <div
+      id="bg-bottom"
+      style="position: absolute; inset: 0; bottom: -10vh; top: auto; height: 100vh; background-color: #16a34a; opacity: 0.15; mask-image: linear-gradient(40deg, rgb(0 0 0 / 1), rgb(0 0 0 / 0) 30%);"
+    >
+      <div style="position: absolute; inset: 0; background-image: url('/images/bmxy.png'); background-size: cover; background-position: center bottom;"></div>
+    </div>
+    <div style="position: absolute; inset: 0; mix-blend-mode: overlay; background-image: url('/images/noise.svg'); background-repeat: repeat; background-size: 150px 150px;"></div>
+  `;
+
+  document.body.insertBefore(bg, document.body.firstChild);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initBackground);
+} else {
+  initBackground();
+}
+document.addEventListener('astro:page-load', initBackground);
+</script>
+
+<style is:global>
+  /* Hide background on mobile and in light mode */
+  #sprites-bg {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    [data-theme='dark'] #sprites-bg {
+      display: block;
+    }
+  }
+</style>
