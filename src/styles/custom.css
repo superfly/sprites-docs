@@ -1089,15 +1089,12 @@ html::before {
   /* Stretches to fill grid row height (default behavior) */
   /* The .code-snippets inside will be sticky */
   min-width: 0; /* Allow shrinking below content width for proper overflow */
-  overflow: hidden; /* Contain content within column */
 }
 
 /* Sticky code snippets within the right column */
 .method-page-right .code-snippets {
   position: sticky;
   top: calc(var(--sl-nav-height, 3.5rem) + 1rem);
-  max-height: calc(100vh - var(--sl-nav-height, 3.5rem) - 2rem);
-  overflow-y: auto;
 }
 
 @media (max-width: 1024px) {
@@ -1107,8 +1104,6 @@ html::before {
   }
   .method-page-right .code-snippets {
     position: static;
-    max-height: none;
-    overflow-y: visible;
   }
 }
 

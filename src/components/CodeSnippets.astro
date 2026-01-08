@@ -38,9 +38,9 @@ const defaultLanguage = availableLanguages.includes('cli') ? 'cli' : availableLa
 
 <div class="code-snippets flex flex-col gap-4" data-default-language={defaultLanguage}>
   <!-- Request Section -->
-  <div class="rounded-xl border border-[var(--snippet-border)] overflow-hidden bg-[var(--snippet-bg)]">
+  <div class="rounded-xl border border-[var(--snippet-border)] bg-[var(--snippet-bg)]">
     <!-- Header -->
-    <div class="snippet-header flex items-center justify-between gap-4 pl-4 pr-2 py-1.5 min-h-10 bg-[var(--snippet-header-bg)] border-b border-[var(--snippet-border)]">
+    <div class="snippet-header flex items-center justify-between gap-4 pl-4 pr-2 py-1.5 min-h-10 bg-[var(--snippet-header-bg)] border-b border-[var(--snippet-border)] rounded-t-xl">
       <span class="text-[0.8125rem] font-medium text-[var(--sl-color-text)] leading-none">{title || 'Request'}</span>
       <SnippetSelector
         client:load
@@ -49,7 +49,7 @@ const defaultLanguage = availableLanguages.includes('cli') ? 'cli' : availableLa
       />
     </div>
     <!-- Code blocks -->
-    <div class="relative">
+    <div class="relative overflow-hidden rounded-b-xl">
       {examples.map((example) => (
         <div
           class="code-snippet-block hidden"
