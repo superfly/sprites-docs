@@ -135,7 +135,15 @@ export const sidebarConfig: SidebarGroup[] = [
   },
   {
     label: 'API',
-    items: [{ label: 'Sprites API v1', link: 'https://sprites.dev/api' }],
+    items: [
+      { label: 'Overview', slug: 'api' },
+      { label: 'Exec', slug: 'api/exec' },
+      { label: 'Checkpoints', slug: 'api/checkpoints' },
+      { label: 'Services', slug: 'api/services' },
+      { label: 'Proxy', slug: 'api/proxy' },
+      { label: 'Policy', slug: 'api/policy' },
+      { label: 'Type Definitions', slug: 'api/types' },
+    ],
   },
   {
     label: 'Reference',
