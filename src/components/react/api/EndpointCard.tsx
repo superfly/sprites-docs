@@ -1,11 +1,11 @@
 'use client';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { EndpointHeader } from './EndpointHeader';
-import { ParameterList, type Parameter } from './ParameterList';
-import { SnippetTabs, type CodeExample } from './SnippetTabs';
-import { ResponseExample } from './ResponseExample';
 import { cn } from '@/lib/utils';
+import { EndpointHeader } from './EndpointHeader';
+import { type Parameter, ParameterList } from './ParameterList';
+import { ResponseExample } from './ResponseExample';
+import { type CodeExample, SnippetTabs } from './SnippetTabs';
 
 interface EndpointCardProps {
   method: string;

@@ -209,8 +209,16 @@ export async function fetchAndMergeAPIData(): Promise<{
   const endpointsByCategory: EndpointsByCategory = {};
 
   for (const endpoint of schema.endpoints) {
-    const goExample = findExample(allExamples.go, endpoint.method, endpoint.path);
-    const jsExample = findExample(allExamples.js, endpoint.method, endpoint.path);
+    const goExample = findExample(
+      allExamples.go,
+      endpoint.method,
+      endpoint.path,
+    );
+    const jsExample = findExample(
+      allExamples.js,
+      endpoint.method,
+      endpoint.path,
+    );
     const pyExample = findExample(
       allExamples.python,
       endpoint.method,

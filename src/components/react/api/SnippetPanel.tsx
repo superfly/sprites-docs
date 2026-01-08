@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { SDKSelector, type SDKLanguage } from './SDKSelector';
 import { CollapsibleSnippet } from './CollapsibleSnippet';
+import { type SDKLanguage, SDKSelector } from './SDKSelector';
 
 export interface CodeExample {
   language: SDKLanguage;
@@ -66,7 +66,11 @@ export function SnippetPanel({ examples, response }: SnippetPanelProps) {
           >
             Response
           </h4>
-          <CollapsibleSnippet code={response} language="json" collapsedLines={12} />
+          <CollapsibleSnippet
+            code={response}
+            language="json"
+            collapsedLines={12}
+          />
         </>
       )}
     </div>

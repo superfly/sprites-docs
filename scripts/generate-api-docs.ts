@@ -6,7 +6,7 @@
  * Uses double-pane layout (Stainless-style) with SDK selector and collapsible snippets.
  */
 
-import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const BASE_URL = 'https://sprites-binaries.t3.storage.dev/api/dev-latest';
@@ -178,17 +178,17 @@ function findExample(
 // ============================================================================
 
 function escapeForMDX(str: string): string {
-  return str
-    .replace(/\\/g, '\\\\')
-    .replace(/`/g, '\\`')
-    .replace(/\$/g, '\\$');
+  return str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
 }
 
 function escapeForJSON(str: string): string {
   return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
-function generateCurlExample(endpoint: APIEndpoint, types: Record<string, APIType>): string {
+function generateCurlExample(
+  endpoint: APIEndpoint,
+  types: Record<string, APIType>,
+): string {
   const method = endpoint.method === 'WSS' ? 'GET' : endpoint.method;
   // Replace path params with shell variables
   // Path pattern: /v1/sprites/{name}/... where first {name} is sprite, second might be service
@@ -201,8 +201,8 @@ function generateCurlExample(endpoint: APIEndpoint, types: Record<string, APITyp
     path = path.replace('{name}', '$SPRITE_NAME');
   } else if (nameMatches.length >= 2) {
     // Two or more {name} - first is sprite, second is service/resource
-    path = path.replace('{name}', '$SPRITE_NAME');  // First replacement
-    path = path.replace('{name}', '$SERVICE_NAME');  // Second replacement
+    path = path.replace('{name}', '$SPRITE_NAME'); // First replacement
+    path = path.replace('{name}', '$SERVICE_NAME'); // Second replacement
   }
 
   // Replace other path params
@@ -237,9 +237,15 @@ function generateCurlExample(endpoint: APIEndpoint, types: Record<string, APITyp
           const jsonKey = field.json || field.name.toLowerCase();
           const nameLower = field.name.toLowerCase();
           if (field.type === 'string') {
-            bodyExample[jsonKey] = nameLower === 'cmd' ? 'python' : nameLower === 'comment' ? 'my checkpoint' : `my-${nameLower}`;
+            bodyExample[jsonKey] =
+              nameLower === 'cmd'
+                ? 'python'
+                : nameLower === 'comment'
+                  ? 'my checkpoint'
+                  : `my-${nameLower}`;
           } else if (field.type === '[]string') {
-            bodyExample[jsonKey] = nameLower === 'args' ? ['-m', 'http.server', '8000'] : [];
+            bodyExample[jsonKey] =
+              nameLower === 'args' ? ['-m', 'http.server', '8000'] : [];
           } else if (field.type === '*int' || field.type === 'int') {
             bodyExample[jsonKey] = nameLower.includes('port') ? 8000 : 0;
           }
@@ -269,8 +275,10 @@ function generateExamplesArray(
 
   // CLI example (from any SDK that has it)
   const cliCommand = goEx?.cli_command || jsEx?.cli_command;
-  if (cliCommand && cliCommand.trim()) {
-    examples.push(`{ language: 'cli', code: \`${escapeForMDX(cliCommand.trim())}\` }`);
+  if (cliCommand?.trim()) {
+    examples.push(
+      `{ language: 'cli', code: \`${escapeForMDX(cliCommand.trim())}\` }`,
+    );
   }
 
   if (goEx?.sdk_code) {
@@ -335,7 +343,7 @@ function convertTypeFieldsToProperties(
     if (typeMatch) {
       const typeName = typeMatch[1];
       const referencedType = types[typeName];
-      if (referencedType && referencedType.fields) {
+      if (referencedType?.fields) {
         prop.children = convertTypeFieldsToProperties(
           referencedType.fields,
           types,
@@ -420,7 +428,7 @@ function generateResponseCode(
 // WebSocket & Streaming documentation helpers
 // ============================================================================
 
-function generateBinaryProtocolDocs(binary: BinaryMessage[]): string {
+function _generateBinaryProtocolDocs(binary: BinaryMessage[]): string {
   if (!binary || binary.length === 0) return '';
 
   const rows = binary.map((msg) => {
@@ -452,7 +460,7 @@ ${binary
 function generateWebSocketMessagesDocs(
   messages: WebSocketMessages,
   websocketMessages: Record<string, WebSocketMessage>,
-  types: Record<string, APIType>,
+  _types: Record<string, APIType>,
 ): string {
   if (!messages) return '';
 
@@ -476,7 +484,9 @@ function generateWebSocketMessagesDocs(
 |-------|------|-------------|
 `;
           for (const field of msg.fields) {
-            const constVal = field.const ? ` (const: \`"${field.const}"\`)` : '';
+            const constVal = field.const
+              ? ` (const: \`"${field.const}"\`)`
+              : '';
             content += `| \`${field.json}\` | \`${field.type}\` | ${field.description || ''}${constVal} |
 `;
           }
@@ -511,7 +521,9 @@ ${JSON.stringify(msg.example, null, 2)}
 |-------|------|-------------|
 `;
           for (const field of msg.fields) {
-            const constVal = field.const ? ` (const: \`"${field.const}"\`)` : '';
+            const constVal = field.const
+              ? ` (const: \`"${field.const}"\`)`
+              : '';
             content += `| \`${field.json}\` | \`${field.type}\` | ${field.description || ''}${constVal} |
 `;
           }
@@ -552,7 +564,8 @@ This endpoint returns streaming NDJSON. Each line is one of these event types:
     if (type) {
       // Find the type field to determine event type
       const typeField = type.fields.find((f) => f.json === 'type');
-      const eventType = typeField?.const || typeName.replace(/Event$/, '').toLowerCase();
+      const eventType =
+        typeField?.const || typeName.replace(/Event$/, '').toLowerCase();
 
       content += `#### \`${eventType}\`
 
@@ -587,10 +600,13 @@ function generateResponseStatusCodes(responses: APIResponse[]): string {
   const rows = responses.map((r) => {
     // Color based on status code range
     const color =
-      r.status < 300 ? 'var(--sl-color-green)'
-      : r.status < 400 ? 'var(--sl-color-blue)'
-      : r.status < 500 ? 'var(--sl-color-orange)'
-      : 'var(--sl-color-red)';
+      r.status < 300
+        ? 'var(--sl-color-green)'
+        : r.status < 400
+          ? 'var(--sl-color-blue)'
+          : r.status < 500
+            ? 'var(--sl-color-orange)'
+            : 'var(--sl-color-red)';
 
     return `| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '${color}' }} />\`${r.status}\`</span> | ${r.description} |`;
   });
@@ -620,7 +636,14 @@ function generateEndpointSection(
   // Keep WSS method for WebSocket endpoints to display correct protocol
   const method = endpoint.method;
 
-  const examplesArray = generateExamplesArray(endpoint, types, goEx, jsEx, pyEx, elixirEx);
+  const examplesArray = generateExamplesArray(
+    endpoint,
+    types,
+    goEx,
+    jsEx,
+    pyEx,
+    elixirEx,
+  );
   const responseCode = generateResponseCode(endpoint, types);
 
   // Build query params properties
@@ -638,15 +661,19 @@ function generateEndpointSection(
         requestProps = convertTypeFieldsToProperties(type.fields, types);
       }
     } else if ('fields' in endpoint.request) {
-      requestProps = convertTypeFieldsToProperties(endpoint.request.fields, types);
+      requestProps = convertTypeFieldsToProperties(
+        endpoint.request.fields,
+        types,
+      );
     }
   }
 
   // Generate additional documentation sections
   const responseStatusCodes = generateResponseStatusCodes(endpoint.responses);
-  const streamingEventsDocs = endpoint.stream_response && endpoint.stream_message_types
-    ? generateStreamingEventsDocs(endpoint.stream_message_types, types)
-    : '';
+  const streamingEventsDocs =
+    endpoint.stream_response && endpoint.stream_message_types
+      ? generateStreamingEventsDocs(endpoint.stream_message_types, types)
+      : '';
   const websocketDocs = endpoint.messages
     ? generateWebSocketMessagesDocs(endpoint.messages, websocketMessages, types)
     : '';
@@ -742,7 +769,9 @@ function getCategoryTitle(category: string): string {
     filesystem: 'Filesystem',
     attach: 'Attach',
   };
-  return titles[category] || category.charAt(0).toUpperCase() + category.slice(1);
+  return (
+    titles[category] || category.charAt(0).toUpperCase() + category.slice(1)
+  );
 }
 
 function getCategoryDescription(category: string): string {
@@ -812,7 +841,11 @@ import CodeSnippets from '@/components/CodeSnippets.astro';
   for (const endpoint of endpoints) {
     const goEx = findExample(allExamples.go, endpoint.method, endpoint.path);
     const jsEx = findExample(allExamples.js, endpoint.method, endpoint.path);
-    const pyEx = findExample(allExamples.python, endpoint.method, endpoint.path);
+    const pyEx = findExample(
+      allExamples.python,
+      endpoint.method,
+      endpoint.path,
+    );
     const elixirEx = findExample(
       allExamples.elixir,
       endpoint.method,
@@ -948,7 +981,8 @@ This page documents the data types used throughout the Sprites API.
       name: f.json || f.name,
       type: f.type,
       required: !f.optional,
-      description: f.description || '' + (f.const ? ` (const: \`"${f.const}"\`)` : ''),
+      description:
+        f.description || `${f.const ? ` (const: \`"${f.const}"\`)` : ''}`,
     }));
 
     content += `### ${name}
@@ -995,7 +1029,8 @@ These message types are used for WebSocket communication in exec and proxy endpo
       name: f.json || f.name,
       type: f.type,
       required: !f.optional,
-      description: (f.description || '') + (f.const ? ` (const: \`"${f.const}"\`)` : ''),
+      description:
+        (f.description || '') + (f.const ? ` (const: \`"${f.const}"\`)` : ''),
     }));
 
     content += `### ${name}
@@ -1034,7 +1069,7 @@ interface SidebarItem {
 
 function generateSidebarItems(
   categories: string[],
-  endpointsByCategory: Record<string, APIEndpoint[]>,
+  _endpointsByCategory: Record<string, APIEndpoint[]>,
 ): SidebarItem[] {
   const items: SidebarItem[] = [{ label: 'Overview', slug: 'api' }];
 
@@ -1099,7 +1134,9 @@ async function main() {
   console.log(`\n📊 Found ${schema.endpoints.length} endpoints`);
   console.log(`📦 Found ${Object.keys(schema.types).length} types`);
   console.log(`🏷️  Found ${Object.keys(schema.enums).length} enums`);
-  console.log(`📨 Found ${Object.keys(schema.websocket_messages).length} WebSocket message types\n`);
+  console.log(
+    `📨 Found ${Object.keys(schema.websocket_messages).length} WebSocket message types\n`,
+  );
 
   // Group endpoints by category
   const endpointsByCategory: Record<string, APIEndpoint[]> = {};
@@ -1143,7 +1180,11 @@ async function main() {
 
   // Generate types page
   console.log('📝 Generating types.mdx...');
-  const typesContent = await generateTypesPage(schema.types, schema.enums, schema.websocket_messages);
+  const typesContent = await generateTypesPage(
+    schema.types,
+    schema.enums,
+    schema.websocket_messages,
+  );
   await writeFile(join(OUTPUT_DIR, 'types.mdx'), typesContent);
 
   // Generate sidebar config snippet
@@ -1151,7 +1192,9 @@ async function main() {
   const sidebarConfig = generateSidebarConfig(categories, endpointsByCategory);
   await writeFile(join(OUTPUT_DIR, '_sidebar-config.ts'), sidebarConfig);
 
-  console.log(`\n✅ Generated ${categories.length + 2} MDX files in ${OUTPUT_DIR}`);
+  console.log(
+    `\n✅ Generated ${categories.length + 2} MDX files in ${OUTPUT_DIR}`,
+  );
   console.log('📋 Sidebar config saved to _sidebar-config.ts');
 }
 

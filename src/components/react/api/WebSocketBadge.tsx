@@ -1,5 +1,5 @@
-import { Badge } from '@/components/ui/badge';
 import { Zap } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface WebSocketBadgeProps {

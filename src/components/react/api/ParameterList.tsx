@@ -1,5 +1,5 @@
-import { PropertyRow, type PropertyRowProps } from './PropertyRow';
 import { cn } from '@/lib/utils';
+import { PropertyRow } from './PropertyRow';
 
 export interface Parameter {
   name: string;

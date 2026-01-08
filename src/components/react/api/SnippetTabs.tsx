@@ -1,8 +1,8 @@
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CodeSnippet } from './CodeSnippet';
 import { cn } from '@/lib/utils';
+import { CodeSnippet } from './CodeSnippet';
 
 export interface CodeExample {
   language: string;

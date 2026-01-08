@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface Property {
@@ -19,12 +19,7 @@ interface PropertyTreeProps {
 
 export function PropertyTree({ properties, depth = 0 }: PropertyTreeProps) {
   return (
-    <div
-      className={cn(
-        'property-tree',
-        depth > 0 && 'property-children'
-      )}
-    >
+    <div className={cn('property-tree', depth > 0 && 'property-children')}>
       {properties.map((prop) => (
         <PropertyNode key={prop.name} property={prop} depth={depth} />
       ))}
@@ -47,10 +42,7 @@ function PropertyNode({ property, depth }: PropertyNodeProps) {
   return (
     <div className="property-node">
       <div
-        className={cn(
-          'property-node-header',
-          hasChildren && 'cursor-pointer'
-        )}
+        className={cn('property-node-header', hasChildren && 'cursor-pointer')}
         onClick={() => hasChildren && setExpanded(!expanded)}
         onKeyDown={(e) => {
           if (hasChildren && (e.key === 'Enter' || e.key === ' ')) {
@@ -65,7 +57,7 @@ function PropertyNode({ property, depth }: PropertyNodeProps) {
           <ChevronRight
             className={cn(
               'h-4 w-4 text-muted-foreground transition-transform shrink-0',
-              expanded && 'rotate-90'
+              expanded && 'rotate-90',
             )}
           />
         )}
@@ -73,9 +65,7 @@ function PropertyNode({ property, depth }: PropertyNodeProps) {
           <div className="flex items-baseline gap-1 flex-wrap">
             <span className="property-name">{property.name}</span>
             <span className="text-muted-foreground">:</span>
-            {isOptional && (
-              <span className="property-optional">optional</span>
-            )}
+            {isOptional && <span className="property-optional">optional</span>}
             <span className="property-type">{property.type}</span>
           </div>
           {property.description && (
@@ -83,8 +73,8 @@ function PropertyNode({ property, depth }: PropertyNodeProps) {
           )}
         </div>
       </div>
-      {hasChildren && expanded && (
-        <PropertyTree properties={property.children!} depth={depth + 1} />
+      {hasChildren && expanded && property.children && (
+        <PropertyTree properties={property.children} depth={depth + 1} />
       )}
     </div>
   );

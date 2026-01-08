@@ -1,5 +1,5 @@
-import { CodeSnippet } from './CodeSnippet';
 import { cn } from '@/lib/utils';
+import { CodeSnippet } from './CodeSnippet';
 
 interface ResponseExampleProps {
   code: string;

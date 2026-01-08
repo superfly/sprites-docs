@@ -1,6 +1,13 @@
 import { cn } from '@/lib/utils';
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'WS' | 'WSS';
+export type HttpMethod =
+  | 'GET'
+  | 'POST'
+  | 'PUT'
+  | 'DELETE'
+  | 'PATCH'
+  | 'WS'
+  | 'WSS';
 
 interface MethodHeaderProps {
   method: HttpMethod;
@@ -67,7 +74,12 @@ function MethodIcon({ method }: { method: HttpMethod }) {
     case 'WSS':
       // Lightning bolt
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" {...iconProps} fill="currentColor" stroke="none">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          {...iconProps}
+          fill="currentColor"
+          stroke="none"
+        >
           <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
         </svg>
       );
@@ -92,7 +104,11 @@ export function MethodHeader({
         <h2 id={id} className="method-title">
           {title}
         </h2>
-        <a className="sl-anchor-link" href={`#${id}`} aria-label={`Link to ${title}`}>
+        <a
+          className="sl-anchor-link"
+          href={`#${id}`}
+          aria-label={`Link to ${title}`}
+        >
           <span className="sl-anchor-icon">
             <span className="link-icon-wrapper">
               <svg

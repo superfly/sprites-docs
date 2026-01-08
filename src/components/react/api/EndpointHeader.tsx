@@ -1,6 +1,6 @@
-import { MethodBadge, type HttpMethod } from './MethodBadge';
-import { WebSocketBadge } from './WebSocketBadge';
 import { cn } from '@/lib/utils';
+import { type HttpMethod, MethodBadge } from './MethodBadge';
+import { WebSocketBadge } from './WebSocketBadge';
 
 interface EndpointHeaderProps {
   method: string;

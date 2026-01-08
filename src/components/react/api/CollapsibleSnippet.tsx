@@ -1,9 +1,8 @@
 'use client';
 
+import { Check, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface CollapsibleSnippetProps {
   code: string;
@@ -23,7 +22,9 @@ export function CollapsibleSnippet({
 
   const lines = code.split('\n');
   const shouldCollapse = lines.length > collapsedLines;
-  const displayCode = expanded ? code : lines.slice(0, collapsedLines).join('\n');
+  const displayCode = expanded
+    ? code
+    : lines.slice(0, collapsedLines).join('\n');
   const hiddenCount = lines.length - collapsedLines;
 
   const handleCopy = async () => {
@@ -73,7 +74,8 @@ export function CollapsibleSnippet({
               </>
             ) : (
               <>
-                Show {hiddenCount} more lines <ChevronDown className="ml-1 h-3 w-3" />
+                Show {hiddenCount} more lines{' '}
+                <ChevronDown className="ml-1 h-3 w-3" />
               </>
             )}
           </Button>

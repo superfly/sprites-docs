@@ -1,7 +1,7 @@
 'use client';
 
+import { Check, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import { useState } from 'react';
-import { Check, Copy, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CodeSnippetProps {
@@ -27,9 +27,7 @@ export function CodeSnippet({
   const lines = code.split('\n');
   const shouldCollapse = collapsible && lines.length > maxLines;
   const displayCode =
-    shouldCollapse && !expanded
-      ? lines.slice(0, maxLines).join('\n')
-      : code;
+    shouldCollapse && !expanded ? lines.slice(0, maxLines).join('\n') : code;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(code);
@@ -65,7 +63,7 @@ export function CodeSnippet({
             'text-muted-foreground hover:text-foreground',
             'opacity-0 group-hover:opacity-100 transition-opacity',
             'focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring',
-            copied && 'opacity-100'
+            copied && 'opacity-100',
           )}
         >
           {copied ? (
@@ -96,7 +94,7 @@ export function CodeSnippet({
             'h-9 text-xs font-medium',
             'border-t border-[var(--snippet-border)]',
             'text-muted-foreground hover:text-foreground hover:bg-accent/50',
-            'transition-colors'
+            'transition-colors',
           )}
         >
           {expanded ? (
@@ -105,7 +103,8 @@ export function CodeSnippet({
             </>
           ) : (
             <>
-              Show {lines.length - maxLines} more lines <ChevronDown className="size-3" />
+              Show {lines.length - maxLines} more lines{' '}
+              <ChevronDown className="size-3" />
             </>
           )}
         </button>

@@ -8,6 +8,35 @@ export {
   type AnimatedListItem,
 } from './AnimatedList';
 export { APIBody, APIEndpoint } from './APIEndpoint';
+// API Documentation Components - Legacy
+// API Documentation Components - Double-Pane Layout (Stainless Style)
+export {
+  type CodeExample,
+  CodeSnippet,
+  CollapsibleSnippet,
+  EndpointCard,
+  EndpointHeader,
+  type HttpMethod,
+  MethodBadge,
+  MethodHeader,
+  MethodPage,
+  MethodPageLeft,
+  MethodPageRight,
+  type Parameter,
+  ParameterList,
+  type Property,
+  PropertyRow,
+  type PropertyRowProps,
+  PropertyTree,
+  ResponseExample,
+  type SDKLanguage,
+  SDKSelector,
+  SnippetPanel,
+  SnippetTabs,
+  type TypeField,
+  TypeReference,
+  WebSocketBadge,
+} from './api';
 export { BillingCalculator } from './BillingCalculator';
 export { ContentBreadcrumbs } from './Breadcrumbs';
 export { Callout } from './Callout';
@@ -24,36 +53,3 @@ export { SearchDialog } from './SearchDialog';
 export { SearchDialogWrapper } from './SearchDialogWrapper';
 export { StatusBadge, StatusCodes } from './StatusCodes';
 export { ThemeSwitcher } from './ThemeSwitcher';
-
-// API Documentation Components - Legacy
-export {
-  CodeSnippet,
-  EndpointCard,
-  EndpointHeader,
-  MethodBadge,
-  ParameterList,
-  PropertyRow,
-  ResponseExample,
-  SnippetTabs,
-  TypeReference,
-  WebSocketBadge,
-  type Parameter,
-  type PropertyRowProps,
-  type TypeField,
-} from './api';
-
-// API Documentation Components - Double-Pane Layout (Stainless Style)
-export {
-  CollapsibleSnippet,
-  MethodHeader,
-  MethodPage,
-  MethodPageLeft,
-  MethodPageRight,
-  PropertyTree,
-  SDKSelector,
-  SnippetPanel,
-  type CodeExample,
-  type HttpMethod,
-  type Property,
-  type SDKLanguage,
-} from './api';
