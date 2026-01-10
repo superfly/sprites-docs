@@ -52,3 +52,6 @@ cypress/downloads
 styles/Google/
 styles/proselint/
 styles/write-good/
+
+# Generated API documentation (rebuilt on deploy)
+src/content/docs/api/

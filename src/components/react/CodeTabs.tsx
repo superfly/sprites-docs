@@ -62,6 +62,7 @@ function formatTabName(name: string): string {
     bash: 'Bash',
     typescript: 'TypeScript',
     python: 'Python',
+    elixir: 'Elixir',
   };
   return (
     names[name.toLowerCase()] || name.charAt(0).toUpperCase() + name.slice(1)
