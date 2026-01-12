@@ -7,6 +7,10 @@ on:
     paths-ignore:
       - '*.md'
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   build:
     name: Build
@@ -32,8 +36,77 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Install Sprites CLI
+        run: |
+          curl -fsSL https://sprites.dev/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Build
         run: pnpm build
+        env:
+          SPRITES_TEST_TOKEN: ${{ secrets.SPRITES_TEST_TOKEN }}
+
+      - name: Comment CLI Test Results on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = './cli-test-report.json';
+
+            let body = '### CLI Documentation Generator\n\n';
+
+            if (!fs.existsSync(path)) {
+              body += '⚠️ No test report found (tests may have been skipped)\n';
+            } else {
+              const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+
+              const allPassed = report.testsFailed === 0;
+              const emoji = allPassed ? '✅' : '❌';
+
+              body += `| Metric | Value |\n`;
+              body += `|--------|-------|\n`;
+              body += `| CLI Version | \`${report.cliVersion}\` |\n`;
+              body += `| Commands Generated | ${report.commandsGenerated.length} |\n`;
+              body += `| Tests | ${emoji} ${report.testsPassed}/${report.testsRun} passed |\n`;
+
+              if (report.errors.length > 0) {
+                body += `\n<details><summary>❌ ${report.errors.length} Error(s)</summary>\n\n`;
+                for (const error of report.errors) {
+                  body += `- **${error.command}** (${error.phase}): ${error.message}\n`;
+                }
+                body += `\n</details>\n`;
+              }
+
+              if (report.commandsGenerated.length > 0) {
+                body += `\n<details><summary>📚 Commands documented</summary>\n\n`;
+                body += report.commandsGenerated.map(c => `- \`${c}\``).join('\n');
+                body += `\n</details>\n`;
+              }
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('### CLI Documentation Generator'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
 
       - name: Setup flyctl
         uses: superfly/flyctl-actions/setup-flyctl@master

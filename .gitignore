@@ -52,3 +52,5 @@ cypress/downloads
 styles/Google/
 styles/proselint/
 styles/write-good/
+cli-test-report.json
+src/content/docs/cli/commands.mdx
