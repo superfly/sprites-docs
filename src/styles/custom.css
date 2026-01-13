@@ -1266,6 +1266,23 @@ nav[aria-label="Main"] a[data-method="patch"][aria-current="page"]::after {
   background-color: white;
 }
 
+/* WSS - Purple lightning bolt */
+nav[aria-label="Main"] a[data-method="wss"]::before {
+  background-color: var(--http-ws-faint);
+}
+nav[aria-label="Main"] a[data-method="wss"]::after {
+  background-color: var(--http-ws);
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>');
+}
+nav[aria-label="Main"] a[data-method="wss"]:hover::before,
+nav[aria-label="Main"] a[data-method="wss"][aria-current="page"]::before {
+  background-color: var(--http-ws);
+}
+nav[aria-label="Main"] a[data-method="wss"]:hover::after,
+nav[aria-label="Main"] a[data-method="wss"][aria-current="page"]::after {
+  background-color: white;
+}
+
 /* Property Tree Styling */
 .property-tree {
   font-size: 0.875rem;
@@ -1691,56 +1708,15 @@ h2.method-title {
 }
 
 /* ============================================================================
-   Sidebar Method Badges - Icon-only badges matching main content
+   Sidebar API Group Labels - Unbold nested group headings
    ============================================================================ */
 
-/* Unbold sidebar group labels (nested groups like Sprites, Checkpoints, etc.) */
-.sidebar-content details > summary > div > span {
+/* Unbold sidebar group labels for API Reference nested groups */
+.sidebar-content .top-level > li > details > ul details > summary span {
   font-weight: 400 !important;
 }
 
-/* Base badge styling for sidebar method icons */
-.sidebar-content .sl-badge.default {
-  font-family: var(--sl-font-system-mono);
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 0.125rem 0.25rem;
-  margin-left: 0.375rem;
-  border-radius: 0.25rem;
-  line-height: 1;
-}
-
-/* GET - Green (↙ arrow down-left) */
-.sidebar-content .sl-badge.sidebar-method-get {
-  color: var(--http-get);
-  background: var(--http-get-faint);
-  border: 1px solid oklch(0.723 0.219 142.7 / 0.3);
-}
-
-/* POST - Blue (↗ arrow up-right) */
-.sidebar-content .sl-badge.sidebar-method-post {
-  color: var(--http-post);
-  background: var(--http-post-faint);
-  border: 1px solid oklch(0.623 0.214 259 / 0.3);
-}
-
-/* PUT - Orange (↗ arrow up-right, same as POST) */
-.sidebar-content .sl-badge.sidebar-method-put {
-  color: var(--http-put);
-  background: var(--http-put-faint);
-  border: 1px solid oklch(0.705 0.213 47.6 / 0.3);
-}
-
-/* DELETE - Red (✕) */
-.sidebar-content .sl-badge.sidebar-method-delete {
-  color: var(--http-delete);
-  background: var(--http-delete-faint);
-  border: 1px solid oklch(0.577 0.245 27.3 / 0.3);
-}
-
-/* WSS - Purple (⚡) */
-.sidebar-content .sl-badge.sidebar-method-wss {
-  color: var(--http-ws);
-  background: var(--http-ws-faint);
-  border: 1px solid oklch(0.558 0.288 302.3 / 0.3);
+/* Alternative broader selector for nested details summaries */
+nav[aria-label="Main"] details details summary span {
+  font-weight: 400 !important;
 }

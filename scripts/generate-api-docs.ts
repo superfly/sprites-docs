@@ -1196,21 +1196,8 @@ interface SidebarGroup {
 
 type SidebarItem = SidebarLink | SidebarGroup;
 
-function getMethodBadge(method: string): SidebarBadge {
-  // Icon characters matching MethodHeader component
-  const icons: Record<string, string> = {
-    GET: '↙',
-    POST: '↗',
-    PUT: '↗',
-    PATCH: '↗',
-    DELETE: '✕',
-    WSS: '⚡',
-  };
-  return {
-    text: icons[method.toUpperCase()] || method,
-    variant: 'default',
-    class: `sidebar-method-${method.toLowerCase()}`,
-  };
+function getMethodAttrs(method: string): Record<string, string> {
+  return { 'data-method': method.toLowerCase() };
 }
 
 function slugifyEndpoint(title: string): string {
@@ -1236,11 +1223,11 @@ function generateSidebarItems(
       const endpointItems: SidebarLink[] = page.endpoints.map((ep) => ({
         label: ep.title,
         link: `/api/${versionId}/${page.category}#${slugifyEndpoint(ep.title)}`,
-        badge: getMethodBadge(ep.method),
+        attrs: getMethodAttrs(ep.method),
       }));
       items.push({
         label: page.title,
-        collapsed: false,
+        collapsed: true,
         items: endpointItems,
       });
     } else {
@@ -1258,11 +1245,11 @@ function generateSidebarItems(
       const endpointItems: SidebarLink[] = endpoints.map((ep) => ({
         label: ep.name,
         link: `/api/${versionId}/${category}#${slugifyEndpoint(ep.name)}`,
-        badge: getMethodBadge(ep.method),
+        attrs: getMethodAttrs(ep.method),
       }));
       items.push({
         label: getCategoryTitle(category),
-        collapsed: false,
+        collapsed: true,
         items: endpointItems,
       });
     } else {
@@ -1289,7 +1276,7 @@ function serializeSidebarItem(item: SidebarItem, indent: number): string {
       .join(',\n');
     return `${pad}{
 ${pad}  label: '${group.label}',
-${pad}  collapsed: ${group.collapsed ?? false},
+${pad}  collapsed: ${group.collapsed ?? true},
 ${pad}  items: [
 ${nestedItems}
 ${pad}  ]

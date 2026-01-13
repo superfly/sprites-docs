@@ -118,235 +118,147 @@ export const sidebarConfig: SidebarGroup[] = [
       { label: 'Overview', slug: `api/${apiVersion}` },
       {
         label: 'Sprites',
-        collapsed: false,
+        collapsed: true,
         items: [
           {
             label: 'Create Sprite',
             link: `/api/${apiVersion}/sprites#create-sprite`,
-            badge: {
-              text: '↗',
-              variant: 'default' as const,
-              class: 'sidebar-method-post',
-            },
+            attrs: { 'data-method': 'post' },
           },
           {
             label: 'List Sprites',
             link: `/api/${apiVersion}/sprites#list-sprites`,
-            badge: {
-              text: '↙',
-              variant: 'default' as const,
-              class: 'sidebar-method-get',
-            },
+            attrs: { 'data-method': 'get' },
           },
           {
             label: 'Get Sprite',
             link: `/api/${apiVersion}/sprites#get-sprite`,
-            badge: {
-              text: '↙',
-              variant: 'default' as const,
-              class: 'sidebar-method-get',
-            },
+            attrs: { 'data-method': 'get' },
           },
           {
             label: 'Update Sprite',
             link: `/api/${apiVersion}/sprites#update-sprite`,
-            badge: {
-              text: '↗',
-              variant: 'default' as const,
-              class: 'sidebar-method-put',
-            },
+            attrs: { 'data-method': 'put' },
           },
           {
             label: 'Delete Sprite',
             link: `/api/${apiVersion}/sprites#delete-sprite`,
-            badge: {
-              text: '✕',
-              variant: 'default' as const,
-              class: 'sidebar-method-delete',
-            },
+            attrs: { 'data-method': 'delete' },
           },
         ],
       },
       {
         label: 'Checkpoints',
-        collapsed: false,
+        collapsed: true,
         items: [
           {
             label: 'Create Checkpoint',
             link: `/api/${apiVersion}/checkpoints#create-checkpoint`,
-            badge: {
-              text: '↗',
-              variant: 'default' as const,
-              class: 'sidebar-method-post',
-            },
+            attrs: { 'data-method': 'post' },
           },
           {
             label: 'List Checkpoints',
             link: `/api/${apiVersion}/checkpoints#list-checkpoints`,
-            badge: {
-              text: '↙',
-              variant: 'default' as const,
-              class: 'sidebar-method-get',
-            },
+            attrs: { 'data-method': 'get' },
           },
           {
             label: 'Get Checkpoint',
             link: `/api/${apiVersion}/checkpoints#get-checkpoint`,
-            badge: {
-              text: '↙',
-              variant: 'default' as const,
-              class: 'sidebar-method-get',
-            },
+            attrs: { 'data-method': 'get' },
           },
           {
             label: 'Restore Checkpoint',
             link: `/api/${apiVersion}/checkpoints#restore-checkpoint`,
-            badge: {
-              text: '↗',
-              variant: 'default' as const,
-              class: 'sidebar-method-post',
-            },
+            attrs: { 'data-method': 'post' },
           },
         ],
       },
       {
         label: 'Exec',
-        collapsed: false,
+        collapsed: true,
         items: [
           {
             label: 'Execute Command',
             link: `/api/${apiVersion}/exec#execute-command`,
-            badge: {
-              text: '⚡',
-              variant: 'default' as const,
-              class: 'sidebar-method-wss',
-            },
+            attrs: { 'data-method': 'wss' },
           },
           {
             label: 'List Exec Sessions',
             link: `/api/${apiVersion}/exec#list-exec-sessions`,
-            badge: {
-              text: '↙',
-              variant: 'default' as const,
-              class: 'sidebar-method-get',
-            },
+            attrs: { 'data-method': 'get' },
           },
           {
             label: 'Attach to Exec Session',
             link: `/api/${apiVersion}/exec#attach-to-exec-session`,
-            badge: {
-              text: '⚡',
-              variant: 'default' as const,
-              class: 'sidebar-method-wss',
-            },
+            attrs: { 'data-method': 'wss' },
           },
           {
             label: 'Kill Exec Session',
             link: `/api/${apiVersion}/exec#kill-exec-session`,
-            badge: {
-              text: '↗',
-              variant: 'default' as const,
-              class: 'sidebar-method-post',
-            },
+            attrs: { 'data-method': 'post' },
           },
         ],
       },
       {
         label: 'Policy',
-        collapsed: false,
+        collapsed: true,
         items: [
           {
             label: 'Get Network Policy',
             link: `/api/${apiVersion}/policy#get-network-policy`,
-            badge: {
-              text: '↙',
-              variant: 'default' as const,
-              class: 'sidebar-method-get',
-            },
+            attrs: { 'data-method': 'get' },
           },
           {
             label: 'Set Network Policy',
             link: `/api/${apiVersion}/policy#set-network-policy`,
-            badge: {
-              text: '↗',
-              variant: 'default' as const,
-              class: 'sidebar-method-post',
-            },
+            attrs: { 'data-method': 'post' },
           },
         ],
       },
       {
         label: 'HTTP Proxy',
-        collapsed: false,
+        collapsed: true,
         items: [
           {
             label: 'TCP Proxy',
             link: `/api/${apiVersion}/proxy#tcp-proxy`,
-            badge: {
-              text: '⚡',
-              variant: 'default' as const,
-              class: 'sidebar-method-wss',
-            },
+            attrs: { 'data-method': 'wss' },
           },
         ],
       },
       {
         label: 'Services',
-        collapsed: false,
+        collapsed: true,
         items: [
           {
             label: 'List Services',
             link: `/api/${apiVersion}/services#list-services`,
-            badge: {
-              text: '↙',
-              variant: 'default' as const,
-              class: 'sidebar-method-get',
-            },
+            attrs: { 'data-method': 'get' },
           },
           {
             label: 'Get Service',
             link: `/api/${apiVersion}/services#get-service`,
-            badge: {
-              text: '↙',
-              variant: 'default' as const,
-              class: 'sidebar-method-get',
-            },
+            attrs: { 'data-method': 'get' },
           },
           {
             label: 'Create Service',
             link: `/api/${apiVersion}/services#create-service`,
-            badge: {
-              text: '↗',
-              variant: 'default' as const,
-              class: 'sidebar-method-put',
-            },
+            attrs: { 'data-method': 'put' },
           },
           {
             label: 'Start Service',
             link: `/api/${apiVersion}/services#start-service`,
-            badge: {
-              text: '↗',
-              variant: 'default' as const,
-              class: 'sidebar-method-post',
-            },
+            attrs: { 'data-method': 'post' },
           },
           {
             label: 'Stop Service',
             link: `/api/${apiVersion}/services#stop-service`,
-            badge: {
-              text: '↗',
-              variant: 'default' as const,
-              class: 'sidebar-method-post',
-            },
+            attrs: { 'data-method': 'post' },
           },
           {
             label: 'Get Service Logs',
             link: `/api/${apiVersion}/services#get-service-logs`,
-            badge: {
-              text: '↙',
-              variant: 'default' as const,
-              class: 'sidebar-method-get',
-            },
+            attrs: { 'data-method': 'get' },
           },
         ],
       },
