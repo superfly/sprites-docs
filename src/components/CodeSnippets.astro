@@ -1,6 +1,7 @@
 ---
 import { Code } from '@astrojs/starlight/components';
 import { SnippetSelector } from './react/api/SnippetSelector';
+import { getSyntaxLanguage } from '@/lib/language-config';
 
 export interface CodeExample {
   language: string;
@@ -15,22 +16,6 @@ interface Props {
 }
 
 const { examples, response, title } = Astro.props;
-
-// Map language identifiers to Code component lang prop
-function getLang(language: string): string {
-  const langMap: Record<string, string> = {
-    cli: 'bash',
-    bash: 'bash',
-    curl: 'bash',
-    go: 'go',
-    javascript: 'typescript',
-    typescript: 'typescript',
-    python: 'python',
-    elixir: 'elixir',
-    json: 'json',
-  };
-  return langMap[language] || 'text';
-}
 
 const availableLanguages = examples.map(e => e.language);
 const defaultLanguage = availableLanguages.includes('cli') ? 'cli' : availableLanguages[0] || 'cli';
@@ -55,7 +40,7 @@ const defaultLanguage = availableLanguages.includes('cli') ? 'cli' : availableLa
           class="code-snippet-block hidden"
           data-language={example.language}
         >
-          <Code code={example.code} lang={getLang(example.language)} />
+          <Code code={example.code} lang={getSyntaxLanguage(example.language)} />
         </div>
       ))}
     </div>

@@ -495,35 +495,6 @@ function generateResponseCode(
 // WebSocket & Streaming documentation helpers
 // ============================================================================
 
-function _generateBinaryProtocolDocs(binary: BinaryMessage[]): string {
-  if (!binary || binary.length === 0) return '';
-
-  const rows = binary.map((msg) => {
-    const direction =
-      msg.direction === 'client_to_server'
-        ? '→ Server'
-        : msg.direction === 'server_to_client'
-          ? '← Client'
-          : '↔ Both';
-    return `| \`${msg.prefix}\` | ${direction} | ${msg.description} |`;
-  });
-
-  return `
-### Binary Protocol
-
-Non-TTY mode uses binary framing with single-byte prefixes:
-
-| Prefix | Direction | Description |
-|--------|-----------|-------------|
-${rows.join('\n')}
-
-${binary
-  .filter((m) => m.example)
-  .map((m) => `**${m.description}**: \`${m.example}\``)
-  .join('\n\n')}
-`;
-}
-
 function generateWebSocketMessagesDocs(
   messages: WebSocketMessages,
   websocketMessages: Record<string, WebSocketMessage>,

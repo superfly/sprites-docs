@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { getLanguageLabel } from '@/lib/language-config';
 import { cn } from '@/lib/utils';
 
 const STORAGE_KEY = 'sprites-docs-language-preference';
@@ -82,15 +83,16 @@ const CurlIcon = () => (
   </svg>
 );
 
-const languageConfig: Record<string, { label: string; icon: ReactNode }> = {
-  cli: { label: 'CLI', icon: <TerminalIcon /> },
-  bash: { label: 'CLI', icon: <TerminalIcon /> },
-  curl: { label: 'cURL', icon: <CurlIcon /> },
-  go: { label: 'Go', icon: <GoIcon /> },
-  javascript: { label: 'JavaScript', icon: <JavaScriptIcon /> },
-  typescript: { label: 'TypeScript', icon: <TypeScriptIcon /> },
-  python: { label: 'Python', icon: <PythonIcon /> },
-  elixir: { label: 'Elixir', icon: <ElixirIcon /> },
+// Map language identifiers to their icons (labels come from shared config)
+const languageIcons: Record<string, ReactNode> = {
+  cli: <TerminalIcon />,
+  bash: <TerminalIcon />,
+  curl: <CurlIcon />,
+  go: <GoIcon />,
+  javascript: <JavaScriptIcon />,
+  typescript: <TypeScriptIcon />,
+  python: <PythonIcon />,
+  elixir: <ElixirIcon />,
 };
 
 function getStoredLanguage(): string | null {
@@ -212,7 +214,7 @@ export function SnippetSelector({
     };
   }, [languages, value, updateActiveBlock]);
 
-  const currentConfig = languageConfig[value] || { label: value, icon: null };
+  const currentIcon = languageIcons[value] || null;
 
   return (
     <div ref={containerRef} className="relative">
@@ -229,9 +231,9 @@ export function SnippetSelector({
         )}
       >
         <span className="flex items-center justify-center opacity-70">
-          {currentConfig.icon}
+          {currentIcon}
         </span>
-        <span>{currentConfig.label}</span>
+        <span>{getLanguageLabel(value)}</span>
         <ChevronDown
           className={cn(
             'size-4 opacity-50 transition-transform',
@@ -251,7 +253,7 @@ export function SnippetSelector({
           )}
         >
           {languages.map((lang) => {
-            const config = languageConfig[lang] || { label: lang, icon: null };
+            const icon = languageIcons[lang] || null;
             const isSelected = lang === value;
             return (
               <button
@@ -265,9 +267,9 @@ export function SnippetSelector({
                 )}
               >
                 <span className="flex items-center justify-center opacity-70 shrink-0">
-                  {config.icon}
+                  {icon}
                 </span>
-                <span>{config.label}</span>
+                <span>{getLanguageLabel(lang)}</span>
               </button>
             );
           })}

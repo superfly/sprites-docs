@@ -8,35 +8,16 @@ export {
   type AnimatedListItem,
 } from './AnimatedList';
 export { APIBody, APIEndpoint } from './APIEndpoint';
-// API Documentation Components - Legacy
-// API Documentation Components - Double-Pane Layout (Stainless Style)
+// API Documentation Components
 export {
-  type CodeExample,
-  CodeSnippet,
-  CollapsibleSnippet,
-  EndpointCard,
-  EndpointHeader,
   type HttpMethod,
-  MethodBadge,
   MethodHeader,
   MethodPage,
   MethodPageLeft,
   MethodPageRight,
-  type Parameter,
-  ParameterList,
   type Property,
-  PropertyRow,
-  type PropertyRowProps,
   PropertyTree,
-  ResponseExample,
-  type SDKLanguage,
-  SDKSelector,
-  SnippetPanel,
-  SnippetTabs,
-  type TypeField,
-  TypeReference,
   VersionSelector,
-  WebSocketBadge,
 } from './api';
 export { BillingCalculator } from './BillingCalculator';
 export { ContentBreadcrumbs } from './Breadcrumbs';
