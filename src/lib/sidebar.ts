@@ -108,49 +108,4 @@ export const sidebarConfig: SidebarGroup[] = [
       { label: 'Working with Sprites', slug: 'working-with-sprites' },
     ],
   },
-  {
-    label: 'Concepts',
-    items: [
-      { label: 'Lifecycle', slug: 'concepts/lifecycle' },
-      { label: 'Services', slug: 'concepts/services' },
-      { label: 'Networking', slug: 'concepts/networking' },
-      { label: 'Checkpoints', slug: 'concepts/checkpoints' },
-    ],
-  },
-  {
-    label: 'CLI',
-    items: [
-      { label: 'Installation', slug: 'cli/installation' },
-      { label: 'Authentication', slug: 'cli/authentication' },
-      { label: 'Commands', slug: 'cli/commands' },
-    ],
-  },
-  {
-    label: 'SDKs',
-    items: [
-      { label: 'JavaScript', slug: 'sdks/javascript' },
-      { label: 'Go', slug: 'sdks/go' },
-      { label: 'Elixir', slug: 'sdks/elixir' },
-    ],
-  },
-  {
-    label: 'API',
-    items: [
-      { label: 'Overview', slug: 'api' },
-      { label: 'Exec', slug: 'api/exec' },
-      { label: 'Checkpoints', slug: 'api/checkpoints' },
-      { label: 'Services', slug: 'api/services' },
-      { label: 'Proxy', slug: 'api/proxy' },
-      { label: 'Policy', slug: 'api/policy' },
-      { label: 'Type Definitions', slug: 'api/types' },
-    ],
-  },
-  {
-    label: 'Reference',
-    items: [
-      { label: 'Base Images', slug: 'reference/base-images' },
-      { label: 'Configuration', slug: 'reference/configuration' },
-      { label: 'Billing', slug: 'reference/billing' },
-    ],
-  },
 ];
