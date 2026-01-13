@@ -257,8 +257,8 @@ function generateCurlExample(
     }
   }
 
-  // Add URL - use the sprite's app URL for proxy endpoints
-  curl += ` \\\n  "https://$SPRITE_NAME.sprites.app${path}"`;
+  // Add URL
+  curl += ` \\\n  "https://api.sprites.dev${path}"`;
 
   return curl;
 }
