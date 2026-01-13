@@ -46,7 +46,7 @@ sprite-env curl -X PUT '/v1/services/myapp?duration=10s' -d '{
 }'
 ```
 
-Set `duration=0` to return immediately without streaming.
+Omit the `duration` parameter or set a short value like `duration=1s` if you don't need extended log streaming.
 
 ### Managing Services
 
@@ -68,9 +68,14 @@ Each service has a state that includes status, PID, and start time:
 ```json
 {
   "name": "webapp",
-  "status": "running",
-  "pid": 1234,
-  "started_at": "2024-01-15T10:30:00Z"
+  "cmd": "npm",
+  "args": ["start"],
+  "needs": ["postgres"],
+  "state": {
+    "status": "running",
+    "pid": 1234,
+    "started_at": "2024-01-15T10:30:00Z"
+  }
 }
 ```
 
@@ -172,9 +177,8 @@ Start by pointing the agent at /.sprite/llm.txt for a description of the environ
 ```bash
 # LLM creates a service for the project it's working on
 sprite-env curl -X PUT /v1/services/devserver -d '{
-  "cmd": "npm",
-  "args": ["run", "dev"],
-  "dir": "/home/sprite/project"
+  "cmd": "/bin/sh",
+  "args": ["-c", "npm run dev"]
 }'
 
 # Check if it's running
