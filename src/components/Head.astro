@@ -184,3 +184,51 @@ const breadcrumbSchema = {
     resizeTimer = setTimeout(initCodeBlocks, 100);
   });
 </script>
+
+<!-- Sidebar group navigation: click heading to expand and navigate to first item -->
+<script>
+  function initSidebarNavigation() {
+    // Find all nested sidebar groups within API Reference
+    const sidebarGroups = document.querySelectorAll('nav[aria-label="Main"] details details');
+
+    sidebarGroups.forEach((details) => {
+      const summary = details.querySelector(':scope > summary');
+      if (!summary) return;
+
+      // Skip if already initialized
+      if (summary.dataset.navInit) return;
+      summary.dataset.navInit = 'true';
+
+      // Find the first link within this group
+      const firstLink = details.querySelector(':scope > ul a[href]');
+      if (!firstLink) return;
+
+      // Add click handler to summary
+      summary.addEventListener('click', (e) => {
+        // Only navigate if the group is currently collapsed (will be opened)
+        // or if shift/ctrl/cmd is held (allow normal toggle behavior)
+        if (e.shiftKey || e.ctrlKey || e.metaKey) return;
+
+        // If currently closed, navigate to first item
+        if (!details.open) {
+          e.preventDefault();
+          details.open = true;
+          // Navigate to the first item's URL
+          window.location.href = firstLink.getAttribute('href');
+        }
+        // If already open, just toggle closed (default behavior)
+      });
+
+      // Make summary look clickable
+      summary.style.cursor = 'pointer';
+    });
+  }
+
+  // Run on initial load and page transitions
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSidebarNavigation);
+  } else {
+    initSidebarNavigation();
+  }
+  document.addEventListener('astro:page-load', initSidebarNavigation);
+</script>

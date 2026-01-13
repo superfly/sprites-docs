@@ -1215,13 +1215,13 @@ nav[aria-label="Main"] a[data-method="post"][aria-current="page"]::after {
   background-color: white;
 }
 
-/* PUT - Orange arrows up/down */
+/* PUT - Orange arrow up-right (same as POST) */
 nav[aria-label="Main"] a[data-method="put"]::before {
   background-color: var(--http-put-faint);
 }
 nav[aria-label="Main"] a[data-method="put"]::after {
   background-color: var(--http-put);
-  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="m8 8 4-4 4 4"/><path d="m8 16 4 4 4-4"/></svg>');
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>');
 }
 nav[aria-label="Main"] a[data-method="put"]:hover::before,
 nav[aria-label="Main"] a[data-method="put"][aria-current="page"]::before {
