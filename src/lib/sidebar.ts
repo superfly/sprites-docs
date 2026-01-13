@@ -116,12 +116,152 @@ export const sidebarConfig: SidebarGroup[] = [
     label: 'API Reference',
     items: [
       { label: 'Overview', slug: `api/${apiVersion}` },
-      { label: 'Sprites', slug: `api/${apiVersion}/sprites` },
-      { label: 'Checkpoints', slug: `api/${apiVersion}/checkpoints` },
-      { label: 'Exec', slug: `api/${apiVersion}/exec` },
-      { label: 'Policy', slug: `api/${apiVersion}/policy` },
-      { label: 'Proxy', slug: `api/${apiVersion}/proxy` },
-      { label: 'Services', slug: `api/${apiVersion}/services` },
+      {
+        label: 'Sprites',
+        collapsed: true,
+        items: [
+          {
+            label: 'Create Sprite',
+            link: `/api/${apiVersion}/sprites#create-sprite`,
+            badge: { text: 'POST', variant: 'success' as const },
+          },
+          {
+            label: 'List Sprites',
+            link: `/api/${apiVersion}/sprites#list-sprites`,
+            badge: { text: 'GET', variant: 'note' as const },
+          },
+          {
+            label: 'Get Sprite',
+            link: `/api/${apiVersion}/sprites#get-sprite`,
+            badge: { text: 'GET', variant: 'note' as const },
+          },
+          {
+            label: 'Update Sprite',
+            link: `/api/${apiVersion}/sprites#update-sprite`,
+            badge: { text: 'PUT', variant: 'caution' as const },
+          },
+          {
+            label: 'Delete Sprite',
+            link: `/api/${apiVersion}/sprites#delete-sprite`,
+            badge: { text: 'DELETE', variant: 'danger' as const },
+          },
+        ],
+      },
+      {
+        label: 'Checkpoints',
+        collapsed: true,
+        items: [
+          {
+            label: 'Create Checkpoint',
+            link: `/api/${apiVersion}/checkpoints#create-checkpoint`,
+            badge: { text: 'POST', variant: 'success' as const },
+          },
+          {
+            label: 'List Checkpoints',
+            link: `/api/${apiVersion}/checkpoints#list-checkpoints`,
+            badge: { text: 'GET', variant: 'note' as const },
+          },
+          {
+            label: 'Get Checkpoint',
+            link: `/api/${apiVersion}/checkpoints#get-checkpoint`,
+            badge: { text: 'GET', variant: 'note' as const },
+          },
+          {
+            label: 'Restore Checkpoint',
+            link: `/api/${apiVersion}/checkpoints#restore-checkpoint`,
+            badge: { text: 'POST', variant: 'success' as const },
+          },
+        ],
+      },
+      {
+        label: 'Exec',
+        collapsed: true,
+        items: [
+          {
+            label: 'Execute Command',
+            link: `/api/${apiVersion}/exec#execute-command`,
+            badge: { text: 'WSS', variant: 'tip' as const },
+          },
+          {
+            label: 'List Exec Sessions',
+            link: `/api/${apiVersion}/exec#list-exec-sessions`,
+            badge: { text: 'GET', variant: 'note' as const },
+          },
+          {
+            label: 'Attach to Exec Session',
+            link: `/api/${apiVersion}/exec#attach-to-exec-session`,
+            badge: { text: 'WSS', variant: 'tip' as const },
+          },
+          {
+            label: 'Kill Exec Session',
+            link: `/api/${apiVersion}/exec#kill-exec-session`,
+            badge: { text: 'POST', variant: 'success' as const },
+          },
+        ],
+      },
+      {
+        label: 'Policy',
+        collapsed: true,
+        items: [
+          {
+            label: 'Get Network Policy',
+            link: `/api/${apiVersion}/policy#get-network-policy`,
+            badge: { text: 'GET', variant: 'note' as const },
+          },
+          {
+            label: 'Set Network Policy',
+            link: `/api/${apiVersion}/policy#set-network-policy`,
+            badge: { text: 'POST', variant: 'success' as const },
+          },
+        ],
+      },
+      {
+        label: 'HTTP Proxy',
+        collapsed: true,
+        items: [
+          {
+            label: 'TCP Proxy',
+            link: `/api/${apiVersion}/proxy#tcp-proxy`,
+            badge: { text: 'WSS', variant: 'tip' as const },
+          },
+        ],
+      },
+      {
+        label: 'Services',
+        collapsed: true,
+        items: [
+          {
+            label: 'List Services',
+            link: `/api/${apiVersion}/services#list-services`,
+            badge: { text: 'GET', variant: 'note' as const },
+          },
+          {
+            label: 'Get Service',
+            link: `/api/${apiVersion}/services#get-service`,
+            badge: { text: 'GET', variant: 'note' as const },
+          },
+          {
+            label: 'Create Service',
+            link: `/api/${apiVersion}/services#create-service`,
+            badge: { text: 'PUT', variant: 'caution' as const },
+          },
+          {
+            label: 'Start Service',
+            link: `/api/${apiVersion}/services#start-service`,
+            badge: { text: 'POST', variant: 'success' as const },
+          },
+          {
+            label: 'Stop Service',
+            link: `/api/${apiVersion}/services#stop-service`,
+            badge: { text: 'POST', variant: 'success' as const },
+          },
+          {
+            label: 'Get Service Logs',
+            link: `/api/${apiVersion}/services#get-service-logs`,
+            badge: { text: 'GET', variant: 'note' as const },
+          },
+        ],
+      },
       { label: 'Type Definitions', slug: `api/${apiVersion}/types` },
     ],
   },

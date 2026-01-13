@@ -745,7 +745,14 @@ function generateEndpointSection(
     ? generateWebSocketMessagesDocs(endpoint.messages, websocketMessages, types)
     : '';
 
+  // Generate anchor ID from endpoint name
+  const anchorId = endpoint.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
   let content = `
+<div id="${anchorId}">
 <MethodPage client:load>
   <MethodPageLeft client:load>
     <MethodHeader
@@ -817,6 +824,7 @@ ${streamingEventsDocs}
     />
   </MethodPageRight>
 </MethodPage>
+</div>
 `;
 
   return content;
@@ -842,11 +850,30 @@ function getCategoryTitle(category: string): string {
 }
 
 // Manual pages that are not generated from schema but should be included
-const MANUAL_PAGES = [
+interface ManualEndpoint {
+  method: string;
+  title: string;
+}
+
+interface ManualPage {
+  category: string;
+  title: string;
+  description: string;
+  endpoints?: ManualEndpoint[];
+}
+
+const MANUAL_PAGES: ManualPage[] = [
   {
     category: 'sprites',
     title: 'Sprites',
     description: 'Create, list, update, and delete Sprites',
+    endpoints: [
+      { method: 'POST', title: 'Create Sprite' },
+      { method: 'GET', title: 'List Sprites' },
+      { method: 'GET', title: 'Get Sprite' },
+      { method: 'PUT', title: 'Update Sprite' },
+      { method: 'DELETE', title: 'Delete Sprite' },
+    ],
   },
 ];
 
@@ -1147,40 +1174,147 @@ ${JSON.stringify(msg.example, null, 2)}
 // Sidebar config generation
 // ============================================================================
 
-interface SidebarItem {
+interface SidebarBadge {
+  text: string;
+  variant: 'note' | 'tip' | 'caution' | 'danger' | 'success' | 'default';
+  class?: string;
+}
+
+interface SidebarLink {
   label: string;
-  slug: string;
+  slug?: string;
+  link?: string;
+  badge?: SidebarBadge;
   attrs?: Record<string, string>;
+}
+
+interface SidebarGroup {
+  label: string;
+  collapsed?: boolean;
+  items: (SidebarLink | SidebarGroup)[];
+}
+
+type SidebarItem = SidebarLink | SidebarGroup;
+
+function getMethodBadge(method: string): SidebarBadge {
+  const variants: Record<string, SidebarBadge['variant']> = {
+    GET: 'note',
+    POST: 'success',
+    PUT: 'caution',
+    PATCH: 'caution',
+    DELETE: 'danger',
+    WSS: 'tip',
+  };
+  return {
+    text: method,
+    variant: variants[method.toUpperCase()] || 'default',
+    class: `sidebar-method-${method.toLowerCase()}`,
+  };
+}
+
+function slugifyEndpoint(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 function generateSidebarItems(
   categories: string[],
-  _endpointsByCategory: Record<string, APIEndpoint[]>,
+  endpointsByCategory: Record<string, APIEndpoint[]>,
   versionId: string,
 ): SidebarItem[] {
   const items: SidebarItem[] = [
     { label: 'Overview', slug: `api/${versionId}` },
   ];
 
-  // Add manual pages first
+  // Add manual pages (Sprites) with nested endpoint items
   for (const page of MANUAL_PAGES) {
-    items.push({
-      label: page.title,
-      slug: `api/${versionId}/${page.category}`,
-    });
+    if (page.endpoints && page.endpoints.length > 0) {
+      // Create a group with nested endpoint items
+      const endpointItems: SidebarLink[] = page.endpoints.map((ep) => ({
+        label: ep.title,
+        link: `/api/${versionId}/${page.category}#${slugifyEndpoint(ep.title)}`,
+        badge: getMethodBadge(ep.method),
+      }));
+      items.push({
+        label: page.title,
+        collapsed: true,
+        items: endpointItems,
+      });
+    } else {
+      items.push({
+        label: page.title,
+        slug: `api/${versionId}/${page.category}`,
+      });
+    }
   }
 
-  // Add generated categories
+  // Add generated categories with nested endpoint items
   for (const category of categories) {
-    items.push({
-      label: getCategoryTitle(category),
-      slug: `api/${versionId}/${category}`,
-    });
+    const endpoints = endpointsByCategory[category] || [];
+    if (endpoints.length > 0) {
+      const endpointItems: SidebarLink[] = endpoints.map((ep) => ({
+        label: ep.name,
+        link: `/api/${versionId}/${category}#${slugifyEndpoint(ep.name)}`,
+        badge: getMethodBadge(ep.method),
+      }));
+      items.push({
+        label: getCategoryTitle(category),
+        collapsed: true,
+        items: endpointItems,
+      });
+    } else {
+      items.push({
+        label: getCategoryTitle(category),
+        slug: `api/${versionId}/${category}`,
+      });
+    }
   }
 
   items.push({ label: 'Type Definitions', slug: `api/${versionId}/types` });
 
   return items;
+}
+
+function serializeSidebarItem(item: SidebarItem, indent: number): string {
+  const pad = '  '.repeat(indent);
+
+  // Check if it's a group (has items array)
+  if ('items' in item) {
+    const group = item as SidebarGroup;
+    const nestedItems = group.items
+      .map((i) => serializeSidebarItem(i, indent + 1))
+      .join(',\n');
+    return `${pad}{
+${pad}  label: '${group.label}',
+${pad}  collapsed: ${group.collapsed ?? false},
+${pad}  items: [
+${nestedItems}
+${pad}  ]
+${pad}}`;
+  }
+
+  // It's a link
+  const sidebarLink = item as SidebarLink;
+  const parts = [`label: '${sidebarLink.label}'`];
+  if (sidebarLink.link) {
+    parts.push(`link: '${sidebarLink.link}'`);
+  } else if (sidebarLink.slug) {
+    parts.push(`slug: '${sidebarLink.slug}'`);
+  }
+  if (sidebarLink.badge) {
+    parts.push(
+      `badge: { text: '${sidebarLink.badge.text}', variant: '${sidebarLink.badge.variant}'${sidebarLink.badge.class ? `, class: '${sidebarLink.badge.class}'` : ''} }`,
+    );
+  }
+  if (sidebarLink.attrs) {
+    const attrsStr = Object.entries(sidebarLink.attrs)
+      .map(([k, v]) => `'${k}': '${v}'`)
+      .join(', ');
+    parts.push(`attrs: { ${attrsStr} }`);
+  }
+  return `${pad}{ ${parts.join(', ')} }`;
 }
 
 function generateSidebarConfig(
@@ -1195,16 +1329,7 @@ function generateSidebarConfig(
   );
 
   const itemsStr = items
-    .map((item) => {
-      const parts = [`label: '${item.label}'`, `slug: '${item.slug}'`];
-      if (item.attrs) {
-        const attrsStr = Object.entries(item.attrs)
-          .map(([k, v]) => `'${k}': '${v}'`)
-          .join(', ');
-        parts.push(`attrs: { ${attrsStr} }`);
-      }
-      return `      { ${parts.join(', ')} }`;
-    })
+    .map((item) => serializeSidebarItem(item, 3))
     .join(',\n');
 
   return `

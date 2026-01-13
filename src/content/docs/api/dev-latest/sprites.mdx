@@ -16,6 +16,7 @@ import CodeSnippets from '@/components/CodeSnippets.astro';
 
 <div className="api-full-width">
 
+<div id="create-sprite">
 <MethodPage client:load>
   <MethodPageLeft client:load>
     <MethodHeader
@@ -105,9 +106,11 @@ IO.puts("Sprite '\#{sprite_name}' created")` }
     />
   </MethodPageRight>
 </MethodPage>
+</div>
 
 ---
 
+<div id="list-sprites">
 <MethodPage client:load>
   <MethodPageLeft client:load>
     <MethodHeader
@@ -193,9 +196,11 @@ sprites |> Jason.encode!(pretty: true) |> IO.puts()` }
     />
   </MethodPageRight>
 </MethodPage>
+</div>
 
 ---
 
+<div id="get-sprite">
 <MethodPage client:load>
   <MethodPageLeft client:load>
     <MethodHeader
@@ -273,9 +278,11 @@ sprite |> Jason.encode!(pretty: true) |> IO.puts()` }
     />
   </MethodPageRight>
 </MethodPage>
+</div>
 
 ---
 
+<div id="update-sprite">
 <MethodPage client:load>
   <MethodPageLeft client:load>
     <MethodHeader
@@ -367,9 +374,11 @@ IO.puts("URL settings updated")` }
     />
   </MethodPageRight>
 </MethodPage>
+</div>
 
 ---
 
+<div id="delete-sprite">
 <MethodPage client:load>
   <MethodPageLeft client:load>
     <MethodHeader
@@ -435,5 +444,6 @@ IO.puts("Sprite '\#{sprite_name}' destroyed")` }
     />
   </MethodPageRight>
 </MethodPage>
+</div>
 
 </div>
