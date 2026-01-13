@@ -4,13 +4,18 @@
  * API Documentation Generator
  * Fetches API schema and SDK examples, generates MDX documentation pages.
  * Uses double-pane layout (Stainless-style) with SDK selector and collapsible snippets.
+ * Supports multiple API versions with versioned output directories.
  */
 
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import {
+  API_VERSIONS,
+  DEFAULT_VERSION,
+  type APIVersion,
+} from '../src/lib/api-versions';
 
-const BASE_URL = 'https://sprites-binaries.t3.storage.dev/api/dev-latest';
-const OUTPUT_DIR = './src/content/docs/api';
+const OUTPUT_BASE_DIR = './src/content/docs/api';
 
 // ============================================================================
 // Types
@@ -199,16 +204,16 @@ async function fetchJSON<T>(url: string): Promise<T> {
   return response.json();
 }
 
-async function fetchAllData() {
-  console.log('Fetching API schema and SDK examples...');
+async function fetchAllData(baseUrl: string) {
+  console.log(`Fetching API schema and SDK examples from ${baseUrl}...`);
 
   const [schema, goExamples, jsExamples, pythonExamples, elixirExamples] =
     await Promise.all([
-      fetchJSON<APISchema>(`${BASE_URL}/api_schema.json`),
-      fetchJSON<SDKExamples>(`${BASE_URL}/go-examples.json`),
-      fetchJSON<SDKExamples>(`${BASE_URL}/js-examples.json`),
-      fetchJSON<SDKExamples>(`${BASE_URL}/python-examples.json`),
-      fetchJSON<SDKExamples>(`${BASE_URL}/elixir-examples.json`),
+      fetchJSON<APISchema>(`${baseUrl}/api_schema.json`),
+      fetchJSON<SDKExamples>(`${baseUrl}/go-examples.json`),
+      fetchJSON<SDKExamples>(`${baseUrl}/js-examples.json`),
+      fetchJSON<SDKExamples>(`${baseUrl}/python-examples.json`),
+      fetchJSON<SDKExamples>(`${baseUrl}/elixir-examples.json`),
     ]);
 
   return { schema, goExamples, jsExamples, pythonExamples, elixirExamples };
@@ -931,13 +936,14 @@ import CodeSnippets from '@/components/CodeSnippets.astro';
 async function generateIndexPage(
   categories: string[],
   schema: APISchema,
+  versionId: string,
 ): Promise<string> {
   return `---
 title: API Reference
 description: REST and WebSocket API for managing Sprites programmatically
 ---
 
-import { LinkCard, CardGrid, Callout } from '@/components/react';
+import { LinkCard, CardGrid, Callout, VersionSelector } from '@/components/react';
 
 The Sprites API allows you to manage Sprites programmatically via HTTP and WebSocket requests.
 
@@ -966,7 +972,7 @@ Create a token at [sprites.dev/account](https://sprites.dev/account), or generat
 ${categories
   .map(
     (cat) => `  <LinkCard
-    href="/api/${cat}"
+    href="/api/${versionId}/${cat}"
     title="${getCategoryTitle(cat)}"
     description="${getCategoryDescription(cat)}"
     icon="code"
@@ -1132,17 +1138,20 @@ interface SidebarItem {
 function generateSidebarItems(
   categories: string[],
   _endpointsByCategory: Record<string, APIEndpoint[]>,
+  versionId: string,
 ): SidebarItem[] {
-  const items: SidebarItem[] = [{ label: 'Overview', slug: 'api' }];
+  const items: SidebarItem[] = [
+    { label: 'Overview', slug: `api/${versionId}` },
+  ];
 
   for (const category of categories) {
     items.push({
       label: getCategoryTitle(category),
-      slug: `api/${category}`,
+      slug: `api/${versionId}/${category}`,
     });
   }
 
-  items.push({ label: 'Type Definitions', slug: 'api/types' });
+  items.push({ label: 'Type Definitions', slug: `api/${versionId}/types` });
 
   return items;
 }
@@ -1150,8 +1159,9 @@ function generateSidebarItems(
 function generateSidebarConfig(
   categories: string[],
   endpointsByCategory: Record<string, APIEndpoint[]>,
+  versionId: string,
 ): string {
-  const items = generateSidebarItems(categories, endpointsByCategory);
+  const items = generateSidebarItems(categories, endpointsByCategory, versionId);
 
   const itemsStr = items
     .map((item) => {
@@ -1176,15 +1186,40 @@ ${itemsStr}
 }
 
 // ============================================================================
-// Main
+// Root redirect page generation
 // ============================================================================
 
-async function main() {
-  console.log('🚀 Generating API documentation (double-pane layout)...\n');
+async function generateRootRedirectPage(defaultVersion: APIVersion): Promise<string> {
+  return `---
+title: API Reference
+description: REST and WebSocket API for managing Sprites programmatically
+---
 
-  // Fetch all data
+import { Callout } from '@/components/react';
+
+<meta httpEquiv="refresh" content="0; url=/api/${defaultVersion.id}/" />
+
+<Callout type="info" client:load>
+  Redirecting to the latest API documentation...
+</Callout>
+
+If you are not redirected automatically, [click here](/api/${defaultVersion.id}/).
+`;
+}
+
+// ============================================================================
+// Version-specific documentation generation
+// ============================================================================
+
+async function generateVersionDocs(version: APIVersion): Promise<{
+  categories: string[];
+  endpointsByCategory: Record<string, APIEndpoint[]>;
+}> {
+  console.log(`\n📦 Generating docs for ${version.label} (${version.id})...`);
+
+  // Fetch all data for this version
   const { schema, goExamples, jsExamples, pythonExamples, elixirExamples } =
-    await fetchAllData();
+    await fetchAllData(version.schemaUrl);
 
   const allExamples = {
     go: goExamples,
@@ -1193,11 +1228,11 @@ async function main() {
     elixir: elixirExamples,
   };
 
-  console.log(`\n📊 Found ${schema.endpoints.length} endpoints`);
-  console.log(`📦 Found ${Object.keys(schema.types).length} types`);
-  console.log(`🏷️  Found ${Object.keys(schema.enums).length} enums`);
+  console.log(`  📊 Found ${schema.endpoints.length} endpoints`);
+  console.log(`  📦 Found ${Object.keys(schema.types).length} types`);
+  console.log(`  🏷️  Found ${Object.keys(schema.enums).length} enums`);
   console.log(
-    `📨 Found ${Object.keys(schema.websocket_messages).length} WebSocket message types\n`,
+    `  📨 Found ${Object.keys(schema.websocket_messages).length} WebSocket message types`,
   );
 
   // Group endpoints by category
@@ -1211,25 +1246,20 @@ async function main() {
   }
 
   const categories = Object.keys(endpointsByCategory).sort();
-  console.log(`📁 Categories: ${categories.join(', ')}\n`);
+  console.log(`  📁 Categories: ${categories.join(', ')}`);
 
-  // Clean and recreate output directory
-  console.log('🧹 Cleaning output directory...');
-  try {
-    await rm(OUTPUT_DIR, { recursive: true, force: true });
-  } catch {
-    // Directory may not exist
-  }
-  await mkdir(OUTPUT_DIR, { recursive: true });
+  // Create version-specific output directory
+  const outputDir = join(OUTPUT_BASE_DIR, version.id);
+  await mkdir(outputDir, { recursive: true });
 
   // Generate index page
-  console.log('📝 Generating index.mdx...');
-  const indexContent = await generateIndexPage(categories, schema);
-  await writeFile(join(OUTPUT_DIR, 'index.mdx'), indexContent);
+  console.log(`  📝 Generating ${version.id}/index.mdx...`);
+  const indexContent = await generateIndexPage(categories, schema, version.id);
+  await writeFile(join(outputDir, 'index.mdx'), indexContent);
 
   // Generate category pages
   for (const category of categories) {
-    console.log(`📝 Generating ${category}.mdx...`);
+    console.log(`  📝 Generating ${version.id}/${category}.mdx...`);
     const content = await generateCategoryPage(
       category,
       endpointsByCategory[category],
@@ -1237,27 +1267,63 @@ async function main() {
       schema.websocket_messages,
       allExamples,
     );
-    await writeFile(join(OUTPUT_DIR, `${category}.mdx`), content);
+    await writeFile(join(outputDir, `${category}.mdx`), content);
   }
 
   // Generate types page
-  console.log('📝 Generating types.mdx...');
+  console.log(`  📝 Generating ${version.id}/types.mdx...`);
   const typesContent = await generateTypesPage(
     schema.types,
     schema.enums,
     schema.websocket_messages,
   );
-  await writeFile(join(OUTPUT_DIR, 'types.mdx'), typesContent);
+  await writeFile(join(outputDir, 'types.mdx'), typesContent);
 
   // Generate sidebar config snippet
-  console.log('📝 Generating sidebar config...');
-  const sidebarConfig = generateSidebarConfig(categories, endpointsByCategory);
-  await writeFile(join(OUTPUT_DIR, '_sidebar-config.ts'), sidebarConfig);
+  console.log(`  📝 Generating ${version.id}/_sidebar-config.ts...`);
+  const sidebarConfig = generateSidebarConfig(
+    categories,
+    endpointsByCategory,
+    version.id,
+  );
+  await writeFile(join(outputDir, '_sidebar-config.ts'), sidebarConfig);
 
   console.log(
-    `\n✅ Generated ${categories.length + 2} MDX files in ${OUTPUT_DIR}`,
+    `  ✅ Generated ${categories.length + 2} MDX files in ${outputDir}`,
   );
-  console.log('📋 Sidebar config saved to _sidebar-config.ts');
+
+  return { categories, endpointsByCategory };
+}
+
+// ============================================================================
+// Main
+// ============================================================================
+
+async function main() {
+  console.log('🚀 Generating API documentation (versioned, double-pane layout)...');
+  console.log(`📋 Versions to generate: ${API_VERSIONS.map((v) => v.id).join(', ')}`);
+
+  // Clean output directory
+  console.log('\n🧹 Cleaning output directory...');
+  try {
+    await rm(OUTPUT_BASE_DIR, { recursive: true, force: true });
+  } catch {
+    // Directory may not exist
+  }
+  await mkdir(OUTPUT_BASE_DIR, { recursive: true });
+
+  // Generate docs for each version
+  for (const version of API_VERSIONS) {
+    await generateVersionDocs(version);
+  }
+
+  // Generate root redirect page
+  console.log('\n📝 Generating root redirect page...');
+  const redirectContent = await generateRootRedirectPage(DEFAULT_VERSION);
+  await writeFile(join(OUTPUT_BASE_DIR, 'index.mdx'), redirectContent);
+
+  console.log('\n🎉 All versions generated successfully!');
+  console.log(`   Default version: ${DEFAULT_VERSION.id}`);
 }
 
 main().catch((error) => {

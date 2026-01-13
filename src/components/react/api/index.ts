@@ -21,4 +21,5 @@ export { type CodeExample, SnippetPanel } from './SnippetPanel';
 export { SnippetSelector } from './SnippetSelector';
 export { SnippetTabs } from './SnippetTabs';
 export { type TypeField, TypeReference } from './TypeReference';
+export { VersionSelector } from './VersionSelector';
 export { WebSocketBadge } from './WebSocketBadge';

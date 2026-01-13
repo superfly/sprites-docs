@@ -1,9 +1,13 @@
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import type { StarlightUserConfig } from '@astrojs/starlight/types';
+import { DEFAULT_VERSION } from './api-versions';
 
 type SidebarConfig = NonNullable<StarlightUserConfig['sidebar']>;
 type SidebarGroup = Extract<SidebarConfig[number], { items: unknown }>;
+
+// API version to use in sidebar (uses default version)
+const apiVersion = DEFAULT_VERSION.id;
 
 interface SidebarBadge {
   text: string;
@@ -106,6 +110,18 @@ export const sidebarConfig: SidebarGroup[] = [
       { label: 'Overview', slug: 'index' },
       { label: 'Quickstart', slug: 'quickstart' },
       { label: 'Working with Sprites', slug: 'working-with-sprites' },
+    ],
+  },
+  {
+    label: 'API Reference',
+    items: [
+      { label: 'Overview', slug: `api/${apiVersion}` },
+      { label: 'Checkpoints', slug: `api/${apiVersion}/checkpoints` },
+      { label: 'Exec', slug: `api/${apiVersion}/exec` },
+      { label: 'Policy', slug: `api/${apiVersion}/policy` },
+      { label: 'Proxy', slug: `api/${apiVersion}/proxy` },
+      { label: 'Services', slug: `api/${apiVersion}/services` },
+      { label: 'Type Definitions', slug: `api/${apiVersion}/types` },
     ],
   },
 ];

@@ -35,6 +35,7 @@ export {
   SnippetTabs,
   type TypeField,
   TypeReference,
+  VersionSelector,
   WebSocketBadge,
 } from './api';
 export { BillingCalculator } from './BillingCalculator';
