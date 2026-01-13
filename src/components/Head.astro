@@ -188,16 +188,14 @@ const breadcrumbSchema = {
 <!-- Sidebar group navigation: click heading to expand and navigate to page -->
 <script>
   function initSidebarNavigation() {
+    const currentPath = window.location.pathname;
+
     // Find all nested sidebar groups within API Reference
     const sidebarGroups = document.querySelectorAll('nav[aria-label="Main"] details details');
 
     sidebarGroups.forEach((details) => {
       const summary = details.querySelector(':scope > summary');
       if (!summary) return;
-
-      // Skip if already initialized
-      if (summary.dataset.navInit) return;
-      summary.dataset.navInit = 'true';
 
       // Find the first link within this group to determine the page URL
       const firstLink = details.querySelector(':scope > ul a[href]');
@@ -208,6 +206,15 @@ const breadcrumbSchema = {
       const pageUrl = href.split('#')[0];
       if (!pageUrl) return;
 
+      // Auto-expand if current page matches this group's page
+      if (currentPath === pageUrl || currentPath === pageUrl.replace(/\/$/, '')) {
+        details.setAttribute('open', '');
+      }
+
+      // Skip click handler setup if already initialized
+      if (summary.dataset.navInit) return;
+      summary.dataset.navInit = 'true';
+
       // Add click handler to summary
       summary.addEventListener('click', (e) => {
         // Allow normal toggle behavior with modifier keys
@@ -217,8 +224,6 @@ const breadcrumbSchema = {
         if (!details.open) {
           e.preventDefault();
           e.stopPropagation();
-          // Manually open the details element
-          details.setAttribute('open', '');
           // Navigate to the page (without anchor hash)
           window.location.href = pageUrl;
         }

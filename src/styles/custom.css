@@ -1711,12 +1711,16 @@ h2.method-title {
    Sidebar API Group Labels - Unbold nested group headings
    ============================================================================ */
 
-/* Unbold sidebar group labels for API Reference nested groups */
-.sidebar-content .top-level > li > details > ul details > summary span {
+/* Target nested details (e.g., Sprites, Checkpoints inside API Reference) */
+/* The .large class inside these should match regular link styling */
+.sidebar details details summary .large {
   font-weight: 400 !important;
+  font-size: var(--sl-text-sm) !important;
+  color: var(--sl-color-gray-2) !important;
 }
 
-/* Alternative broader selector for nested details summaries */
-nav[aria-label="Main"] details details summary span {
-  font-weight: 400 !important;
+@media (min-width: 50rem) {
+  .sidebar details details summary .large {
+    font-size: var(--sl-text-sm) !important;
+  }
 }
