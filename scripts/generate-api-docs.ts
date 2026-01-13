@@ -249,11 +249,38 @@ function escapeForJSON(str: string): string {
   return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
+function generateHttpExample(
+  endpoint: APIEndpoint,
+  types: Record<string, APIType>,
+): string {
+  // For WebSocket endpoints, generate websocat example
+  if (endpoint.method === 'WSS') {
+    return generateWebsocatExample(endpoint);
+  }
+
+  // For REST endpoints, generate curl example
+  return generateCurlExample(endpoint, types);
+}
+
+function generateWebsocatExample(endpoint: APIEndpoint): string {
+  let path = endpoint.path;
+
+  // Replace {name} with placeholder
+  path = path.replace(/\{name\}/g, '{name}');
+
+  // Replace other path params
+  path = path.replace(/\{(\w+)\}/g, '{$1}');
+
+  return `websocat \\
+  "wss://api.sprites.dev${path}" \\
+  -H "Authorization: Bearer $SPRITES_TOKEN"`;
+}
+
 function generateCurlExample(
   endpoint: APIEndpoint,
   types: Record<string, APIType>,
 ): string {
-  const method = endpoint.method === 'WSS' ? 'GET' : endpoint.method;
+  const method = endpoint.method;
   // Replace path params with shell variables
   // Path pattern: /v1/sprites/{name}/... where first {name} is sprite, second might be service
   let path = endpoint.path;
@@ -369,9 +396,9 @@ function generateExamplesArray(
     );
   }
 
-  // Always add curl example as fallback (or primary if no SDK examples)
-  const curlExample = generateCurlExample(endpoint, types);
-  examples.push(`{ language: 'curl', code: \`${escapeForMDX(curlExample)}\` }`);
+  // Always add HTTP example as fallback (or primary if no SDK examples)
+  const httpExample = generateHttpExample(endpoint, types);
+  examples.push(`{ language: 'curl', code: \`${escapeForMDX(httpExample)}\` }`);
 
   return `[
         ${examples.join(',\n        ')}

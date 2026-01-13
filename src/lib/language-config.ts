@@ -7,7 +7,7 @@
 export const languageLabels: Record<string, string> = {
   cli: 'CLI',
   bash: 'Bash',
-  curl: 'cURL',
+  curl: 'HTTP',
   go: 'Go',
   javascript: 'JavaScript',
   typescript: 'TypeScript',
