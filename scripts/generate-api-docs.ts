@@ -129,6 +129,64 @@ interface PropertyDef {
 }
 
 // ============================================================================
+// Type formatting utilities
+// ============================================================================
+
+/**
+ * Converts Go type strings to more readable documentation types.
+ * Maps Go's type system to familiar TypeScript/JSON-like notation.
+ */
+function formatType(goType: string): string {
+  // Handle pointer types (optional)
+  if (goType.startsWith('*')) {
+    const inner = goType.slice(1);
+    // Special case for *int which is commonly "integer or null"
+    if (inner === 'int' || inner === 'int64') {
+      return 'number?';
+    }
+    if (inner === 'Duration') {
+      return 'duration?';
+    }
+    return `${formatType(inner)}?`;
+  }
+
+  // Handle array types
+  if (goType.startsWith('[]')) {
+    const inner = goType.slice(2);
+    return `${formatType(inner)}[]`;
+  }
+
+  // Handle map types
+  if (goType.startsWith('map[')) {
+    if (goType === 'map[string]interface{}' || goType === 'map[string]any') {
+      return 'object';
+    }
+    if (goType === 'map[string]string') {
+      return 'Record<string, string>';
+    }
+    return 'object';
+  }
+
+  // Basic type mappings
+  const typeMap: Record<string, string> = {
+    string: 'string',
+    bool: 'boolean',
+    int: 'number',
+    int64: 'number',
+    uint16: 'number',
+    float64: 'number',
+    'time.Time': 'string (ISO 8601)',
+    'time.Duration': 'string (duration)',
+    Duration: 'string (duration)',
+    error: 'string',
+    any: 'any',
+    'interface{}': 'any',
+  };
+
+  return typeMap[goType] || goType;
+}
+
+// ============================================================================
 // Fetch utilities
 // ============================================================================
 
@@ -317,7 +375,7 @@ function generateExamplesArray(
 function convertQueryParamsToProperties(params: QueryParam[]): PropertyDef[] {
   return params.map((p) => ({
     name: p.name,
-    type: p.type,
+    type: formatType(p.type),
     required: p.required,
     description: p.description,
   }));
@@ -331,26 +389,30 @@ function convertTypeFieldsToProperties(
   if (depth > 3) return []; // Prevent infinite recursion
 
   return fields.map((f) => {
-    const prop: PropertyDef = {
-      name: f.json || f.name,
-      type: f.type,
-      required: !f.optional,
-      description: f.description,
-    };
-
-    // Check if the type is a reference to another type
+    // Check if the type is a reference to another type (before formatting)
     const typeMatch = f.type.match(/^(\w+)(\[\])?$/);
+    const isArrayRef = typeMatch?.[2] === '[]';
+    let children: PropertyDef[] | undefined;
+
     if (typeMatch) {
       const typeName = typeMatch[1];
       const referencedType = types[typeName];
       if (referencedType?.fields) {
-        prop.children = convertTypeFieldsToProperties(
+        children = convertTypeFieldsToProperties(
           referencedType.fields,
           types,
           depth + 1,
         );
       }
     }
+
+    const prop: PropertyDef = {
+      name: f.json || f.name,
+      type: formatType(f.type),
+      required: !f.optional,
+      description: f.description,
+      children,
+    };
 
     return prop;
   });
@@ -416,7 +478,7 @@ function generateResponseCode(
   if (endpoint.response && 'fields' in endpoint.response) {
     const example: Record<string, unknown> = {};
     for (const field of endpoint.response.fields) {
-      example[field.json] = `<${field.type}>`;
+      example[field.json] = `<${formatType(field.type)}>`;
     }
     return JSON.stringify(example, null, 2);
   }
@@ -487,7 +549,7 @@ function generateWebSocketMessagesDocs(
             const constVal = field.const
               ? ` (const: \`"${field.const}"\`)`
               : '';
-            content += `| \`${field.json}\` | \`${field.type}\` | ${field.description || ''}${constVal} |
+            content += `| \`${field.json}\` | \`${formatType(field.type)}\` | ${field.description || ''}${constVal} |
 `;
           }
         }
@@ -524,7 +586,7 @@ ${JSON.stringify(msg.example, null, 2)}
             const constVal = field.const
               ? ` (const: \`"${field.const}"\`)`
               : '';
-            content += `| \`${field.json}\` | \`${field.type}\` | ${field.description || ''}${constVal} |
+            content += `| \`${field.json}\` | \`${formatType(field.type)}\` | ${field.description || ''}${constVal} |
 `;
           }
         }
@@ -576,7 +638,7 @@ This endpoint returns streaming NDJSON. Each line is one of these event types:
 `;
         for (const field of type.fields) {
           const constVal = field.const ? ` (const: \`"${field.const}"\`)` : '';
-          content += `| \`${field.json}\` | \`${field.type}\` | ${field.description || ''}${constVal} |
+          content += `| \`${field.json}\` | \`${formatType(field.type)}\` | ${field.description || ''}${constVal} |
 `;
         }
       }
@@ -979,7 +1041,7 @@ This page documents the data types used throughout the Sprites API.
   for (const [name, type] of Object.entries(types)) {
     const properties = type.fields.map((f) => ({
       name: f.json || f.name,
-      type: f.type,
+      type: formatType(f.type),
       required: !f.optional,
       description:
         f.description || `${f.const ? ` (const: \`"${f.const}"\`)` : ''}`,
@@ -1027,7 +1089,7 @@ These message types are used for WebSocket communication in exec and proxy endpo
   for (const [name, msg] of Object.entries(websocketMessages)) {
     const properties = msg.fields.map((f) => ({
       name: f.json || f.name,
-      type: f.type,
+      type: formatType(f.type),
       required: !f.optional,
       description:
         (f.description || '') + (f.const ? ` (const: \`"${f.const}"\`)` : ''),
