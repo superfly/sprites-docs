@@ -108,4 +108,8 @@ export const sidebarConfig: SidebarGroup[] = [
       { label: 'Working with Sprites', slug: 'working-with-sprites' },
     ],
   },
+  {
+    label: 'Concepts',
+    items: [{ label: 'Services', slug: 'concepts/services' }],
+  },
 ];
