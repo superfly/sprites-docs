@@ -374,8 +374,8 @@ function generateExamplesArray(
   examples.push(`{ language: 'curl', code: \`${escapeForMDX(curlExample)}\` }`);
 
   return `[
-    ${examples.join(',\n    ')}
-  ]`;
+        ${examples.join(',\n        ')}
+      ]`;
 }
 
 function convertQueryParamsToProperties(params: QueryParam[]): PropertyDef[] {
