@@ -1074,12 +1074,15 @@ html::before {
   gap: 2rem;
   /* Minimum height ensures sticky has room to work even with short content */
   min-height: 70vh;
+  /* Space for anchor links that appear to the left of headings */
+  padding-left: 2rem;
+  margin-left: -2rem;
 }
 
 .method-page-left {
   /* Description and parameters - takes natural height */
   min-width: 0; /* Allow shrinking in grid */
-  overflow-x: auto; /* Scroll if content too wide */
+  /* overflow visible allows anchor links positioned outside to be visible */
 }
 
 /* Constrain tables in method-page-left to not overflow */
@@ -1501,6 +1504,7 @@ h2.method-title {
 .method-header .sl-heading-wrapper {
   margin-bottom: 0.75rem;
 }
+
 
 .method-description {
   color: var(--muted-foreground);
