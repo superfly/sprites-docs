@@ -7,13 +7,13 @@
  * Supports multiple API versions with versioned output directories.
  */
 
-import { mkdir, readFile, rm, writeFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
+import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   API_VERSIONS,
-  DEFAULT_VERSION,
   type APIVersion,
+  DEFAULT_VERSION,
 } from '../src/lib/api-versions';
 
 const OUTPUT_BASE_DIR = './src/content/docs/api';
@@ -397,7 +397,6 @@ function convertTypeFieldsToProperties(
   return fields.map((f) => {
     // Check if the type is a reference to another type (before formatting)
     const typeMatch = f.type.match(/^(\w+)(\[\])?$/);
-    const isArrayRef = typeMatch?.[2] === '[]';
     let children: PropertyDef[] | undefined;
 
     if (typeMatch) {
@@ -1189,7 +1188,11 @@ function generateSidebarConfig(
   endpointsByCategory: Record<string, APIEndpoint[]>,
   versionId: string,
 ): string {
-  const items = generateSidebarItems(categories, endpointsByCategory, versionId);
+  const items = generateSidebarItems(
+    categories,
+    endpointsByCategory,
+    versionId,
+  );
 
   const itemsStr = items
     .map((item) => {
@@ -1258,7 +1261,9 @@ async function restoreManualPages(
 // Root redirect page generation
 // ============================================================================
 
-async function generateRootRedirectPage(defaultVersion: APIVersion): Promise<string> {
+async function generateRootRedirectPage(
+  defaultVersion: APIVersion,
+): Promise<string> {
   return `---
 title: API Reference
 description: REST and WebSocket API for managing Sprites programmatically
@@ -1369,8 +1374,12 @@ async function generateVersionDocs(version: APIVersion): Promise<{
 // ============================================================================
 
 async function main() {
-  console.log('🚀 Generating API documentation (versioned, double-pane layout)...');
-  console.log(`📋 Versions to generate: ${API_VERSIONS.map((v) => v.id).join(', ')}`);
+  console.log(
+    '🚀 Generating API documentation (versioned, double-pane layout)...',
+  );
+  console.log(
+    `📋 Versions to generate: ${API_VERSIONS.map((v) => v.id).join(', ')}`,
+  );
 
   // Preserve manual pages before cleaning
   console.log('\n📌 Preserving manual pages...');
