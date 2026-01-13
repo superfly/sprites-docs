@@ -188,7 +188,9 @@ const breadcrumbSchema = {
 <!-- Sidebar group navigation: click heading to expand and navigate to page -->
 <script>
   function initSidebarNavigation() {
-    const currentPath = window.location.pathname;
+    // Normalize path by removing trailing slash for comparison
+    const normalizePath = (path) => path.replace(/\/$/, '') || '/';
+    const currentPath = normalizePath(window.location.pathname);
     const currentHash = window.location.hash;
     const currentUrl = currentPath + currentHash;
 
@@ -203,13 +205,13 @@ const breadcrumbSchema = {
       const firstLink = details.querySelector(':scope > ul a[href]');
       if (!firstLink) return;
 
-      // Extract the page URL without the anchor
+      // Extract the page URL without the anchor and normalize
       const href = firstLink.getAttribute('href') || '';
-      const pageUrl = href.split('#')[0];
+      const pageUrl = normalizePath(href.split('#')[0]);
       if (!pageUrl) return;
 
       // Auto-expand if current page matches this group's page
-      if (currentPath === pageUrl || currentPath === pageUrl.replace(/\/$/, '')) {
+      if (currentPath === pageUrl) {
         details.setAttribute('open', '');
       }
 
@@ -217,10 +219,12 @@ const breadcrumbSchema = {
       const allLinks = details.querySelectorAll(':scope > ul a[href]');
       allLinks.forEach((link) => {
         const linkHref = link.getAttribute('href') || '';
-        // Check if link matches current path+hash or just current path (for base page)
-        if (linkHref === currentUrl ||
-            (linkHref === currentPath) ||
-            (linkHref === currentPath + '/')) {
+        const linkPath = normalizePath(linkHref.split('#')[0]);
+        const linkHash = linkHref.includes('#') ? '#' + linkHref.split('#')[1] : '';
+        const fullLinkUrl = linkPath + linkHash;
+
+        // Check if link matches current path+hash
+        if (fullLinkUrl === currentUrl || linkPath === currentPath) {
           link.setAttribute('data-current', 'true');
         } else {
           link.removeAttribute('data-current');
