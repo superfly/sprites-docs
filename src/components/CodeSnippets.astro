@@ -118,72 +118,78 @@ const defaultLanguage = availableLanguages.includes('cli') ? 'cli' : availableLa
   }
 </style>
 
-<script>
-  const STORAGE_KEY = 'sprites-docs-language-preference';
+<script is:inline>
+  (function() {
+    var STORAGE_KEY = 'sprites-docs-language-preference';
 
-  // Get stored language preference or use default
-  function getStoredLanguage(): string | null {
-    try {
-      return localStorage.getItem(STORAGE_KEY);
-    } catch {
-      return null;
-    }
-  }
-
-  // Initialize: apply stored language preference to all snippets
-  function initializeLanguagePreference() {
-    const storedLang = getStoredLanguage();
-
-    document.querySelectorAll('.code-snippets').forEach(container => {
-      const defaultLang = container.getAttribute('data-default-language') || 'cli';
-
-      // Determine which language to show
-      let targetLang = storedLang || defaultLang;
-
-      // Check if the stored language is available in this snippet
-      const availableBlocks = container.querySelectorAll('.code-snippet-block');
-      const availableLangs = Array.from(availableBlocks).map(b => b.getAttribute('data-language'));
-
-      if (!availableLangs.includes(targetLang)) {
-        // Fall back to default if stored lang not available
-        targetLang = defaultLang;
+    // Get stored language preference or use default
+    function getStoredLanguage() {
+      try {
+        return localStorage.getItem(STORAGE_KEY);
+      } catch (e) {
+        return null;
       }
+    }
 
-      // Hide all and show target
-      availableBlocks.forEach(block => {
-        block.classList.remove('active');
-        if (block.getAttribute('data-language') === targetLang) {
-          block.classList.add('active');
+    // Initialize: apply stored language preference to all snippets
+    function initializeLanguagePreference() {
+      var storedLang = getStoredLanguage();
+
+      document.querySelectorAll('.code-snippets').forEach(function(container) {
+        var defaultLang = container.getAttribute('data-default-language') || 'cli';
+
+        // Determine which language to show
+        var targetLang = storedLang || defaultLang;
+
+        // Check if the stored language is available in this snippet
+        var availableBlocks = container.querySelectorAll('.code-snippet-block');
+        var availableLangs = Array.from(availableBlocks).map(function(b) {
+          return b.getAttribute('data-language');
+        });
+
+        if (!availableLangs.includes(targetLang)) {
+          // Fall back to default if stored lang not available
+          targetLang = defaultLang;
         }
-      });
 
-      // Update the selector if it exists
-      container.setAttribute('data-current-language', targetLang);
-    });
-  }
-
-  // Listen for language changes from SnippetSelector
-  document.addEventListener('language-preference-changed', ((event: CustomEvent) => {
-    const newLang = event.detail.language;
-
-    // Update all code snippets on the page
-    document.querySelectorAll('.code-snippets').forEach(container => {
-      const availableBlocks = container.querySelectorAll('.code-snippet-block');
-      const availableLangs = Array.from(availableBlocks).map(b => b.getAttribute('data-language'));
-
-      // Only switch if this snippet has the selected language
-      if (availableLangs.includes(newLang)) {
-        availableBlocks.forEach(block => {
+        // Hide all and show target
+        availableBlocks.forEach(function(block) {
           block.classList.remove('active');
-          if (block.getAttribute('data-language') === newLang) {
+          if (block.getAttribute('data-language') === targetLang) {
             block.classList.add('active');
           }
         });
-        container.setAttribute('data-current-language', newLang);
-      }
-    });
-  }) as EventListener);
 
-  // Run on page load
-  initializeLanguagePreference();
+        // Update the selector if it exists
+        container.setAttribute('data-current-language', targetLang);
+      });
+    }
+
+    // Listen for language changes from SnippetSelector
+    document.addEventListener('language-preference-changed', function(event) {
+      var newLang = event.detail.language;
+
+      // Update all code snippets on the page
+      document.querySelectorAll('.code-snippets').forEach(function(container) {
+        var availableBlocks = container.querySelectorAll('.code-snippet-block');
+        var availableLangs = Array.from(availableBlocks).map(function(b) {
+          return b.getAttribute('data-language');
+        });
+
+        // Only switch if this snippet has the selected language
+        if (availableLangs.includes(newLang)) {
+          availableBlocks.forEach(function(block) {
+            block.classList.remove('active');
+            if (block.getAttribute('data-language') === newLang) {
+              block.classList.add('active');
+            }
+          });
+          container.setAttribute('data-current-language', newLang);
+        }
+      });
+    });
+
+    // Run on page load
+    initializeLanguagePreference();
+  })();
 </script>
