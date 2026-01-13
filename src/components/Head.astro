@@ -189,6 +189,8 @@ const breadcrumbSchema = {
 <script>
   function initSidebarNavigation() {
     const currentPath = window.location.pathname;
+    const currentHash = window.location.hash;
+    const currentUrl = currentPath + currentHash;
 
     // Find all nested sidebar groups within API Reference
     const sidebarGroups = document.querySelectorAll('nav[aria-label="Main"] details details');
@@ -210,6 +212,20 @@ const breadcrumbSchema = {
       if (currentPath === pageUrl || currentPath === pageUrl.replace(/\/$/, '')) {
         details.setAttribute('open', '');
       }
+
+      // Mark anchor links as current if they match the current URL hash
+      const allLinks = details.querySelectorAll(':scope > ul a[href]');
+      allLinks.forEach((link) => {
+        const linkHref = link.getAttribute('href') || '';
+        // Check if link matches current path+hash or just current path (for base page)
+        if (linkHref === currentUrl ||
+            (linkHref === currentPath) ||
+            (linkHref === currentPath + '/')) {
+          link.setAttribute('data-current', 'true');
+        } else {
+          link.removeAttribute('data-current');
+        }
+      });
 
       // Skip click handler setup if already initialized
       if (summary.dataset.navInit) return;
@@ -242,4 +258,7 @@ const breadcrumbSchema = {
     initSidebarNavigation();
   }
   document.addEventListener('astro:page-load', initSidebarNavigation);
+
+  // Also update on hash change (when clicking anchor links)
+  window.addEventListener('hashchange', initSidebarNavigation);
 </script>

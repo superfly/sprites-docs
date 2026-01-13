@@ -780,11 +780,13 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 0 0.5rem 0.5rem 0;
 }
 
-[data-theme='light'] nav[aria-label="Main"] ul ul li:has(> a[aria-current="page"]) {
+[data-theme='light'] nav[aria-label="Main"] ul ul li:has(> a[aria-current="page"]),
+[data-theme='light'] nav[aria-label="Main"] ul ul li:has(> a[data-current="true"]) {
   border-inline-start: 2px solid oklch(0.5 0.2 285);
 }
 
-[data-theme='light'] nav[aria-label="Main"] ul ul li:has(> a[aria-current="page"]) > a {
+[data-theme='light'] nav[aria-label="Main"] ul ul li:has(> a[aria-current="page"]) > a,
+[data-theme='light'] nav[aria-label="Main"] ul ul li:has(> a[data-current="true"]) > a {
   margin-left: -1px;
 }
 
@@ -808,11 +810,13 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 0 0.5rem 0.5rem 0;
 }
 
-[data-theme='dark'] nav[aria-label="Main"] ul ul li:has(> a[aria-current="page"]) {
+[data-theme='dark'] nav[aria-label="Main"] ul ul li:has(> a[aria-current="page"]),
+[data-theme='dark'] nav[aria-label="Main"] ul ul li:has(> a[data-current="true"]) {
   border-inline-start: 2px solid var(--sl-color-accent);
 }
 
-[data-theme='dark'] nav[aria-label="Main"] ul ul li:has(> a[aria-current="page"]) > a {
+[data-theme='dark'] nav[aria-label="Main"] ul ul li:has(> a[aria-current="page"]) > a,
+[data-theme='dark'] nav[aria-label="Main"] ul ul li:has(> a[data-current="true"]) > a {
   margin-left: -1px;
 }
 

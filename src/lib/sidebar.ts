@@ -200,7 +200,7 @@ export const sidebarConfig: SidebarGroup[] = [
         ],
       },
       {
-        label: 'Policy',
+        label: 'Network Policy',
         collapsed: true,
         items: [
           {
@@ -216,7 +216,7 @@ export const sidebarConfig: SidebarGroup[] = [
         ],
       },
       {
-        label: 'HTTP Proxy',
+        label: 'Proxy',
         collapsed: true,
         items: [
           {
