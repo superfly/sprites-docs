@@ -185,7 +185,7 @@ const breadcrumbSchema = {
   });
 </script>
 
-<!-- Sidebar group navigation: click heading to expand and navigate to first item -->
+<!-- Sidebar group navigation: click heading to expand and navigate to page -->
 <script>
   function initSidebarNavigation() {
     // Find all nested sidebar groups within API Reference
@@ -199,22 +199,28 @@ const breadcrumbSchema = {
       if (summary.dataset.navInit) return;
       summary.dataset.navInit = 'true';
 
-      // Find the first link within this group
+      // Find the first link within this group to determine the page URL
       const firstLink = details.querySelector(':scope > ul a[href]');
       if (!firstLink) return;
 
+      // Extract the page URL without the anchor
+      const href = firstLink.getAttribute('href') || '';
+      const pageUrl = href.split('#')[0];
+      if (!pageUrl) return;
+
       // Add click handler to summary
       summary.addEventListener('click', (e) => {
-        // Only navigate if the group is currently collapsed (will be opened)
-        // or if shift/ctrl/cmd is held (allow normal toggle behavior)
+        // Allow normal toggle behavior with modifier keys
         if (e.shiftKey || e.ctrlKey || e.metaKey) return;
 
-        // If currently closed, navigate to first item
+        // If currently closed, expand and navigate to page
         if (!details.open) {
           e.preventDefault();
-          details.open = true;
-          // Navigate to the first item's URL
-          window.location.href = firstLink.getAttribute('href');
+          e.stopPropagation();
+          // Manually open the details element
+          details.setAttribute('open', '');
+          // Navigate to the page (without anchor hash)
+          window.location.href = pageUrl;
         }
         // If already open, just toggle closed (default behavior)
       });
