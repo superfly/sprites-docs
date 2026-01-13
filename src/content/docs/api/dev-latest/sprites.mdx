@@ -57,7 +57,38 @@ import CodeSnippets from '@/components/CodeSnippets.astro';
   -H "Authorization: Bearer $SPRITE_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{"name": "my-sprite"}' \\
-  "https://api.sprites.dev/v1/sprites"` }
+  "https://api.sprites.dev/v1/sprites"` },
+        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+const spriteName = process.env.SPRITE_NAME;
+
+await client.createSprite(spriteName);
+console.log(\`Sprite '\${spriteName}' created\`);` },
+        { language: 'python', code: `from sprites import SpritesClient
+import os
+
+token = os.environ["SPRITE_TOKEN"]
+sprite_name = os.environ["SPRITE_NAME"]
+
+client = SpritesClient(token)
+client.create_sprite(sprite_name)
+print(f"Sprite '{sprite_name}' created")` },
+        { language: 'go', code: `token := os.Getenv("SPRITE_TOKEN")
+spriteName := os.Getenv("SPRITE_NAME")
+
+client := sprites.New(token)
+_, err := client.CreateSprite(context.Background(), spriteName, nil)
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Printf("Sprite '%s' created\\n", spriteName)` },
+        { language: 'elixir', code: `token = System.get_env("SPRITE_TOKEN")
+sprite_name = System.get_env("SPRITE_NAME")
+
+client = Sprites.new(token)
+{:ok, _sprite} = Sprites.create(client, sprite_name)
+IO.puts("Sprite '\#{sprite_name}' created")` }
       ]}
       response={`{
   "id": "01234567-89ab-cdef-0123-456789abcdef",
@@ -112,7 +143,36 @@ import CodeSnippets from '@/components/CodeSnippets.astro';
     <CodeSnippets
       examples={[
         { language: 'curl', code: `curl -H "Authorization: Bearer $SPRITE_TOKEN" \\
-  "https://api.sprites.dev/v1/sprites"` }
+  "https://api.sprites.dev/v1/sprites"` },
+        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+
+const sprites = await client.listSprites();
+console.log(JSON.stringify(sprites, null, 2));` },
+        { language: 'python', code: `from sprites import SpritesClient
+import os
+import json
+
+token = os.environ["SPRITE_TOKEN"]
+
+client = SpritesClient(token)
+sprites = client.list_sprites()
+print(json.dumps([{"name": s.name} for s in sprites.sprites], indent=2))` },
+        { language: 'go', code: `token := os.Getenv("SPRITE_TOKEN")
+
+client := sprites.New(token)
+list, err := client.ListSprites(context.Background(), nil)
+if err != nil {
+	log.Fatal(err)
+}
+out, _ := json.MarshalIndent(list.Sprites, "", "  ")
+fmt.Println(string(out))` },
+        { language: 'elixir', code: `token = System.get_env("SPRITE_TOKEN")
+
+client = Sprites.new(token)
+{:ok, sprites} = Sprites.list(client)
+sprites |> Jason.encode!(pretty: true) |> IO.puts()` }
       ]}
       response={`{
   "sprites": [
@@ -163,7 +223,40 @@ import CodeSnippets from '@/components/CodeSnippets.astro';
     <CodeSnippets
       examples={[
         { language: 'curl', code: `curl -H "Authorization: Bearer $SPRITE_TOKEN" \\
-  "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` }
+  "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` },
+        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+const spriteName = process.env.SPRITE_NAME;
+
+const sprite = await client.getSprite(spriteName);
+console.log(JSON.stringify(sprite, null, 2));` },
+        { language: 'python', code: `from sprites import SpritesClient
+import os
+import json
+
+token = os.environ["SPRITE_TOKEN"]
+sprite_name = os.environ["SPRITE_NAME"]
+
+client = SpritesClient(token)
+sprite = client.get_sprite(sprite_name)
+print(json.dumps({"name": sprite.name}, indent=2))` },
+        { language: 'go', code: `token := os.Getenv("SPRITE_TOKEN")
+spriteName := os.Getenv("SPRITE_NAME")
+
+client := sprites.New(token)
+sprite, err := client.GetSprite(context.Background(), spriteName)
+if err != nil {
+	log.Fatal(err)
+}
+out, _ := json.MarshalIndent(sprite, "", "  ")
+fmt.Println(string(out))` },
+        { language: 'elixir', code: `token = System.get_env("SPRITE_TOKEN")
+sprite_name = System.get_env("SPRITE_NAME")
+
+client = Sprites.new(token)
+{:ok, sprite} = Sprites.get_sprite(client, sprite_name)
+sprite |> Jason.encode!(pretty: true) |> IO.puts()` }
       ]}
       response={`{
   "id": "01234567-89ab-cdef-0123-456789abcdef",
@@ -223,7 +316,41 @@ import CodeSnippets from '@/components/CodeSnippets.astro';
   -H "Authorization: Bearer $SPRITE_TOKEN" \\
   -H "Content-Type: application/json" \\
   -d '{"url_settings": {"auth": "public"}}' \\
-  "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` }
+  "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` },
+        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+const spriteName = process.env.SPRITE_NAME;
+
+await client.updateURLSettings(spriteName, { auth: "public" });
+console.log("URL settings updated");` },
+        { language: 'python', code: `from sprites import SpritesClient, URLSettings
+import os
+
+token = os.environ["SPRITE_TOKEN"]
+sprite_name = os.environ["SPRITE_NAME"]
+
+client = SpritesClient(token)
+client.update_url_settings(sprite_name, URLSettings(auth="public"))
+print("URL settings updated")` },
+        { language: 'go', code: `token := os.Getenv("SPRITE_TOKEN")
+spriteName := os.Getenv("SPRITE_NAME")
+
+client := sprites.New(token)
+err := client.UpdateURLSettings(context.Background(), spriteName, &sprites.URLSettings{
+	Auth: "public",
+})
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Println("URL settings updated")` },
+        { language: 'elixir', code: `token = System.get_env("SPRITE_TOKEN")
+sprite_name = System.get_env("SPRITE_NAME")
+
+client = Sprites.new(token)
+sprite = Sprites.sprite(client, sprite_name)
+:ok = Sprites.update_url_settings(sprite, %{auth: "public"})
+IO.puts("URL settings updated")` }
       ]}
       response={`{
   "id": "01234567-89ab-cdef-0123-456789abcdef",
@@ -271,7 +398,39 @@ import CodeSnippets from '@/components/CodeSnippets.astro';
       examples={[
         { language: 'curl', code: `curl -X DELETE \\
   -H "Authorization: Bearer $SPRITE_TOKEN" \\
-  "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` }
+  "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` },
+        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+const spriteName = process.env.SPRITE_NAME;
+
+await client.deleteSprite(spriteName);
+console.log(\`Sprite '\${spriteName}' destroyed\`);` },
+        { language: 'python', code: `from sprites import SpritesClient
+import os
+
+token = os.environ["SPRITE_TOKEN"]
+sprite_name = os.environ["SPRITE_NAME"]
+
+client = SpritesClient(token)
+client.delete_sprite(sprite_name)
+print(f"Sprite '{sprite_name}' destroyed")` },
+        { language: 'go', code: `token := os.Getenv("SPRITE_TOKEN")
+spriteName := os.Getenv("SPRITE_NAME")
+
+client := sprites.New(token)
+err := client.DestroySprite(context.Background(), spriteName)
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Printf("Sprite '%s' destroyed\\n", spriteName)` },
+        { language: 'elixir', code: `token = System.get_env("SPRITE_TOKEN")
+sprite_name = System.get_env("SPRITE_NAME")
+
+client = Sprites.new(token)
+sprite = Sprites.sprite(client, sprite_name)
+:ok = Sprites.destroy(sprite)
+IO.puts("Sprite '\#{sprite_name}' destroyed")` }
       ]}
     />
   </MethodPageRight>
