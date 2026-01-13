@@ -223,8 +223,14 @@ const breadcrumbSchema = {
         const linkHash = linkHref.includes('#') ? '#' + linkHref.split('#')[1] : '';
         const fullLinkUrl = linkPath + linkHash;
 
-        // Check if link matches current path+hash
-        if (fullLinkUrl === currentUrl || linkPath === currentPath) {
+        // Only mark as current if:
+        // 1. Link has a hash and it matches the current URL exactly (path + hash)
+        // 2. Link has no hash and we're on that exact page with no hash
+        const isCurrentLink = linkHash
+          ? fullLinkUrl === currentUrl
+          : (linkPath === currentPath && !currentHash);
+
+        if (isCurrentLink) {
           link.setAttribute('data-current', 'true');
         } else {
           link.removeAttribute('data-current');
