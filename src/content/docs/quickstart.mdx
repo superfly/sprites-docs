@@ -6,7 +6,9 @@ description: Get up and running with Sprites in 5 minutes
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import { Callout, LinkCard, CardGrid } from '@/components/react';
 
-Think of a Sprite as your personal computer in the cloud—but better. Unlike containers that start from scratch each time, **Sprites are persistent VMs that wake up on demand**. Install dependencies once, clone repos, create files—everything stays exactly where you left it. When you're not using it, your Sprite goes to sleep. When you send a command or HTTP request, it wakes up instantly.
+Sprites are cloud VMs that feel like persistent dev environments. You can run commands, install packages, create files—and everything stays exactly how you left it. Unlike containers that reset each time, Sprites remember your entire filesystem between sessions.
+
+The magic: when you're not using your Sprite, it goes to sleep. Send a command or HTTP request, and it wakes up instantly. No setup, no rebuilding—just pick up where you left off.
 
 This guide will walk you through creating your first Sprite. In just a few minutes, you'll have a persistent development environment that responds to HTTP traffic and remembers everything between runs.
 
@@ -18,7 +20,7 @@ Install with our install script (macOS/Linux):
 curl -fsSL https://sprites.dev/install.sh | sh
 ```
 
-This auto-detects your platform, downloads the binary with checksum verification, and installs to `~/.local/bin`.
+This script is safe to run—it auto-detects your platform, verifies checksums, and installs the latest CLI to `~/.local/bin`.
 
 For Windows or manual installation, see [CLI Installation](/cli/installation) or download from [GitHub Releases](https://github.com/superfly/sprite-env/releases).
 
@@ -71,17 +73,35 @@ sprite exec "cd /tmp && ls -la"
 sprite console
 ```
 
+<Callout type="note">
+**Auto-wakeup magic**: When you're not using your Sprite, it shuts down to save resources. When you run a command or hit its URL, it wakes up instantly—like magic. No manual starting or stopping required.
+</Callout>
+
 ## See Persistence in Action
 
 Your Sprite comes pre-configured with common development tools (Node.js, Python, Go, Git, and more). Here's the magic: **everything you install or create persists between commands**.
 
+### Check available runtimes
+
+See what's already installed and ready to use:
+
 ```bash
-# Check available runtimes
 sprite exec "node --version && python3 --version && go version"
+```
 
-# Install a Python package
+### Install a package
+
+Install dependencies just like you would locally—they'll stick around:
+
+```bash
 sprite exec "pip install requests"
+```
 
+### Create and read files
+
+Files you create persist across sessions. Write once, read anytime:
+
+```bash
 # Create a file
 sprite exec "echo 'Hello from my persistent Sprite!' > /home/sprite/greeting.txt"
 
@@ -95,7 +115,11 @@ Unlike containers that reset on each run, your Sprite keeps your installed packa
 
 ## Start a Web Server
 
-Every Sprite has a unique HTTP URL and can serve traffic. Let's see it in action by starting a simple Python server:
+Every Sprite has a unique HTTP URL and can serve traffic. This makes it perfect for testing APIs, hosting prototypes, or running background services.
+
+### Serve HTTP
+
+Start a simple Python server and get your public URL:
 
 ```bash
 # Start a simple HTTP server on port 8080
@@ -105,16 +129,18 @@ sprite exec "python -m http.server 8080 &"
 sprite url
 ```
 
-Now visit the URL in your browser—you'll see Python's directory listing page. Your Sprite automatically routes HTTP traffic to port 8080 and wakes up to handle requests.
+Visit the URL in your browser—you'll see Python's directory listing page. Your Sprite automatically routes HTTP traffic to port 8080 and wakes up to handle requests.
 
-Try this: close your terminal, wait a minute, then visit the URL again. Your Sprite wakes up automatically to serve the request. That's the magic of on-demand wakeup.
+### Test on-demand wakeup
+
+Here's where it gets cool. Close your terminal, wait a minute, then visit the URL again. Your Sprite wakes up automatically to serve the request. That's the magic of on-demand wakeup—no manual starting or stopping required.
 
 <Callout type="tip">
 **Managing Sprites**: Use `sprite list` to see all your Sprites, or `sprite destroy my-first-sprite` when you're done with one. You can have multiple Sprites running simultaneously—each with its own isolated environment.
 </Callout>
 
 <Callout type="success">
-**You've got a working Sprite!** You've created a persistent environment, installed packages, created files, and served HTTP traffic—all of which will be there next time you connect. Everything from here is optional, but worth exploring when you're ready.
+**You've got a working Sprite!** You've created a persistent environment, installed packages, created files, and served HTTP traffic—all of which will be there next time you connect. Try cloning a repo, running a build, or deploying a tiny HTTP service to see what else you can do.
 </Callout>
 
 ---
