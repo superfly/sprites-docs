@@ -1197,17 +1197,18 @@ interface SidebarGroup {
 type SidebarItem = SidebarLink | SidebarGroup;
 
 function getMethodBadge(method: string): SidebarBadge {
-  const variants: Record<string, SidebarBadge['variant']> = {
-    GET: 'note',
-    POST: 'success',
-    PUT: 'caution',
-    PATCH: 'caution',
-    DELETE: 'danger',
-    WSS: 'tip',
+  // Icon characters matching MethodHeader component
+  const icons: Record<string, string> = {
+    GET: '↙',
+    POST: '↗',
+    PUT: '↗',
+    PATCH: '↗',
+    DELETE: '✕',
+    WSS: '⚡',
   };
   return {
-    text: method,
-    variant: variants[method.toUpperCase()] || 'default',
+    text: icons[method.toUpperCase()] || method,
+    variant: 'default',
     class: `sidebar-method-${method.toLowerCase()}`,
   };
 }
@@ -1239,7 +1240,7 @@ function generateSidebarItems(
       }));
       items.push({
         label: page.title,
-        collapsed: true,
+        collapsed: false,
         items: endpointItems,
       });
     } else {
@@ -1261,7 +1262,7 @@ function generateSidebarItems(
       }));
       items.push({
         label: getCategoryTitle(category),
-        collapsed: true,
+        collapsed: false,
         items: endpointItems,
       });
     } else {
