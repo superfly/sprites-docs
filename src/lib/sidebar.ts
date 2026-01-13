@@ -116,6 +116,7 @@ export const sidebarConfig: SidebarGroup[] = [
     label: 'API Reference',
     items: [
       { label: 'Overview', slug: `api/${apiVersion}` },
+      { label: 'Sprites', slug: `api/${apiVersion}/sprites` },
       { label: 'Checkpoints', slug: `api/${apiVersion}/checkpoints` },
       { label: 'Exec', slug: `api/${apiVersion}/exec` },
       { label: 'Policy', slug: `api/${apiVersion}/policy` },

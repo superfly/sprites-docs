@@ -7,7 +7,8 @@
  * Supports multiple API versions with versioned output directories.
  */
 
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile, access } from 'node:fs/promises';
+import { constants } from 'node:fs';
 import { join } from 'node:path';
 import {
   API_VERSIONS,
@@ -841,6 +842,15 @@ function getCategoryTitle(category: string): string {
   );
 }
 
+// Manual pages that are not generated from schema but should be included
+const MANUAL_PAGES = [
+  {
+    category: 'sprites',
+    title: 'Sprites',
+    description: 'Create, list, update, and delete Sprites',
+  },
+];
+
 function getCategoryDescription(category: string): string {
   const descriptions: Record<string, string> = {
     sprites: 'Create, list, update, and delete Sprites',
@@ -969,6 +979,15 @@ Create a token at [sprites.dev/account](https://sprites.dev/account), or generat
 ## API Categories
 
 <CardGrid client:load>
+${MANUAL_PAGES.map(
+  (page) => `  <LinkCard
+    href="/api/${versionId}/${page.category}"
+    title="${page.title}"
+    description="${page.description}"
+    icon="code"
+    client:load
+  />`,
+).join('\n')}
 ${categories
   .map(
     (cat) => `  <LinkCard
@@ -1144,6 +1163,15 @@ function generateSidebarItems(
     { label: 'Overview', slug: `api/${versionId}` },
   ];
 
+  // Add manual pages first
+  for (const page of MANUAL_PAGES) {
+    items.push({
+      label: page.title,
+      slug: `api/${versionId}/${page.category}`,
+    });
+  }
+
+  // Add generated categories
   for (const category of categories) {
     items.push({
       label: getCategoryTitle(category),
@@ -1183,6 +1211,47 @@ export const apiSidebarItems = [
 ${itemsStr}
 ];
 `;
+}
+
+// ============================================================================
+// Manual page preservation
+// ============================================================================
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await access(path, constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function preserveManualPages(
+  versionId: string,
+): Promise<Map<string, string>> {
+  const preserved = new Map<string, string>();
+
+  for (const page of MANUAL_PAGES) {
+    const filePath = join(OUTPUT_BASE_DIR, versionId, `${page.category}.mdx`);
+    if (await fileExists(filePath)) {
+      const content = await readFile(filePath, 'utf-8');
+      preserved.set(page.category, content);
+      console.log(`  📌 Preserving manual page: ${page.category}.mdx`);
+    }
+  }
+
+  return preserved;
+}
+
+async function restoreManualPages(
+  versionId: string,
+  preserved: Map<string, string>,
+): Promise<void> {
+  for (const [category, content] of preserved) {
+    const filePath = join(OUTPUT_BASE_DIR, versionId, `${category}.mdx`);
+    await writeFile(filePath, content);
+    console.log(`  📌 Restored manual page: ${category}.mdx`);
+  }
 }
 
 // ============================================================================
@@ -1303,6 +1372,16 @@ async function main() {
   console.log('🚀 Generating API documentation (versioned, double-pane layout)...');
   console.log(`📋 Versions to generate: ${API_VERSIONS.map((v) => v.id).join(', ')}`);
 
+  // Preserve manual pages before cleaning
+  console.log('\n📌 Preserving manual pages...');
+  const preservedPages = new Map<string, Map<string, string>>();
+  for (const version of API_VERSIONS) {
+    const preserved = await preserveManualPages(version.id);
+    if (preserved.size > 0) {
+      preservedPages.set(version.id, preserved);
+    }
+  }
+
   // Clean output directory
   console.log('\n🧹 Cleaning output directory...');
   try {
@@ -1315,6 +1394,12 @@ async function main() {
   // Generate docs for each version
   for (const version of API_VERSIONS) {
     await generateVersionDocs(version);
+
+    // Restore manual pages for this version
+    const preserved = preservedPages.get(version.id);
+    if (preserved) {
+      await restoreManualPages(version.id, preserved);
+    }
   }
 
   // Generate root redirect page
