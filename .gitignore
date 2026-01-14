@@ -52,6 +52,9 @@ cypress/downloads
 styles/Google/
 styles/proselint/
 styles/write-good/
+# Sprites CLI local config
+.sprite
+
 # Generated CLI documentation (rebuilt on deploy)
 cli-test-report.json
 src/content/docs/cli/commands.mdx
