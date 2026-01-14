@@ -10,7 +10,7 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 # Install packages needed for sharp native module and CLI
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git pkg-config python-is-python3 curl && \
+    apt-get install --no-install-recommends -y build-essential git pkg-config python-is-python3 curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Sprites CLI
