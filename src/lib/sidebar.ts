@@ -113,6 +113,14 @@ export const sidebarConfig: SidebarGroup[] = [
     ],
   },
   {
+    label: 'CLI Reference',
+    items: [
+      { label: 'Installation', slug: 'cli/installation' },
+      { label: 'Authentication', slug: 'cli/authentication' },
+      { label: 'Commands', slug: 'cli/commands' },
+    ],
+  },
+  {
     label: 'API Reference',
     items: [
       { label: 'Overview', slug: `api/${apiVersion}` },
