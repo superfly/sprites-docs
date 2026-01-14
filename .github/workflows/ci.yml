@@ -41,15 +41,13 @@ jobs:
           curl -fsSL https://sprites.dev/install.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Verify Sprites auth
-        run: sprite org list
+      - name: Setup Sprites auth
+        run: sprite auth setup --token "$SPRITES_TEST_TOKEN"
         env:
-          SPRITE_TOKEN: ${{ secrets.SPRITES_TEST_TOKEN }}
+          SPRITES_TEST_TOKEN: ${{ secrets.SPRITES_TEST_TOKEN }}
 
       - name: Build
         run: pnpm build
-        env:
-          SPRITE_TOKEN: ${{ secrets.SPRITES_TEST_TOKEN }}
 
       - name: Comment CLI Test Results on PR
         if: always() && github.event_name == 'pull_request'
