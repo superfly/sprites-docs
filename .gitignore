@@ -52,3 +52,11 @@ cypress/downloads
 styles/Google/
 styles/proselint/
 styles/write-good/
+# Sprites CLI local config
+.sprite
+
+# CLI test reports
+cli-test-report.json
+
+# Generated API documentation (rebuilt on deploy)
+src/content/docs/api/

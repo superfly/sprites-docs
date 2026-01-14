@@ -34,10 +34,16 @@ export function Callout({ type = 'info', title, children }: CalloutProps) {
   const Icon = icons[type];
 
   return (
-    <Alert className={cn('my-6', styles[type])}>
-      <Icon />
-      {title && <AlertTitle className={titleStyles[type]}>{title}</AlertTitle>}
-      <AlertDescription className="[&>p]:m-0">{children}</AlertDescription>
-    </Alert>
+    <div style={{ marginTop: '2.5rem', marginBottom: '1.5rem' }}>
+      <Alert className={cn(styles[type])}>
+        <Icon />
+        {title && (
+          <AlertTitle className={titleStyles[type]}>{title}</AlertTitle>
+        )}
+        <AlertDescription className="[&>p]:m-0 justify-items-stretch">
+          {children}
+        </AlertDescription>
+      </Alert>
+    </div>
   );
 }

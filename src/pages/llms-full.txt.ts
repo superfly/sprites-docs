@@ -25,8 +25,14 @@ const docOrder = [
   // SDKs
   'sdks/javascript.mdx',
   'sdks/go.mdx',
-  // API
-  'api/rest.mdx',
+  // API (generated)
+  'api/index.mdx',
+  'api/exec.mdx',
+  'api/checkpoints.mdx',
+  'api/services.mdx',
+  'api/proxy.mdx',
+  'api/policy.mdx',
+  'api/types.mdx',
   // Reference
   'reference/base-images.mdx',
   'reference/configuration.mdx',
@@ -39,7 +45,7 @@ const sections: Record<string, string> = {
   'concepts/lifecycle.mdx': '# Concepts',
   'cli/installation.mdx': '# CLI',
   'sdks/javascript.mdx': '# SDKs',
-  'api/rest.mdx': '# API',
+  'api/index.mdx': '# API',
   'reference/base-images.mdx': '# Reference',
 };
 

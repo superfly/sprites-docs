@@ -1,7 +1,6 @@
 ---
 title: CLI Authentication
 description: Authenticate the Sprites CLI with your Fly.io account
-draft: true
 ---
 
 import { LinkCard, CardGrid } from '@/components/react';
@@ -175,16 +174,42 @@ sprite logout
 
 This removes all stored tokens and configuration.
 
-## Environment Variables
+## CI/CD Authentication
 
-For CI/CD or automated environments, you can use environment variables:
+For CI/CD or automated environments, use `sprite auth setup --token` to configure authentication:
 
 ```bash
-export SPRITE_TOKEN="spr_xxxxxxxxxxxxx"
-export SPRITES_API_URL="https://api.sprites.dev"  # Optional, uses default
+# Set up authentication from a token (no browser needed)
+sprite auth setup --token "my-org/token-id/secret"
 ```
 
-`SPRITE_TOKEN` is used as a fallback when no stored token is available.
+You can generate tokens at [sprites.dev/account](https://sprites.dev/account).
+
+### GitHub Actions Example
+
+```yaml
+- name: Install Sprites CLI
+  run: |
+    curl -fsSL https://sprites.dev/install.sh | bash
+    echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+- name: Setup Sprites auth
+  run: sprite auth setup --token "$SPRITES_TOKEN"
+  env:
+    SPRITES_TOKEN: ${{ secrets.SPRITES_TOKEN }}
+
+- name: Use Sprites
+  run: sprite list
+```
+
+### Environment Variables
+
+After authentication is configured, you can use environment variables to override settings:
+
+```bash
+export SPRITE_ORG="my-org"           # Override the default organization
+export SPRITES_API_URL="https://api.sprites.dev"  # Override API endpoint
+```
 
 ## Troubleshooting
 
@@ -235,7 +260,7 @@ If you get permission errors after authentication:
 ## Security Best Practices
 
 1. **Use keyring storage** (default) for interactive use
-2. **Use environment variables** for CI/CD pipelines
+2. **Use `sprite auth setup --token`** for CI/CD pipelines with tokens stored as secrets
 3. **Never commit** `.sprites/` or `.sprite` files to version control
 4. **Rotate tokens** periodically by re-authenticating
 5. **Use organization-specific tokens** rather than personal tokens in shared environments

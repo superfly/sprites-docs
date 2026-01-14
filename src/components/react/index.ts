@@ -8,6 +8,17 @@ export {
   type AnimatedListItem,
 } from './AnimatedList';
 export { APIBody, APIEndpoint } from './APIEndpoint';
+// API Documentation Components
+export {
+  type HttpMethod,
+  MethodHeader,
+  MethodPage,
+  MethodPageLeft,
+  MethodPageRight,
+  type Property,
+  PropertyTree,
+  VersionSelector,
+} from './api';
 export { BillingCalculator } from './BillingCalculator';
 export { ContentBreadcrumbs } from './Breadcrumbs';
 export { Callout } from './Callout';

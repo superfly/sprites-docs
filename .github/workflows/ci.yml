@@ -7,6 +7,10 @@ on:
     paths-ignore:
       - '*.md'
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   build:
     name: Build
@@ -16,6 +20,9 @@ jobs:
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: pnpm/action-setup@v4
         with:
@@ -32,13 +39,362 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Install Sprites CLI
+        run: |
+          curl -fsSL https://sprites.dev/install.sh | bash
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Setup Sprites auth
+        run: sprite auth setup --token "$SPRITES_TEST_TOKEN"
+        env:
+          SPRITES_TEST_TOKEN: ${{ secrets.SPRITES_TEST_TOKEN }}
+
+      - name: Generate CLI Docs
+        run: pnpm generate:cli-docs
+
+      - name: Commit generated CLI docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/content/docs/cli/commands.mdx
+          if git diff --cached --quiet; then
+            echo "No changes to CLI docs"
+          else
+            git commit -m "Update auto-generated CLI documentation"
+            git push
+          fi
+
       - name: Build
         run: pnpm build
 
-      - name: Setup flyctl
-        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Comment CLI Test Results on PR
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = './cli-test-report.json';
 
-      - name: Build Fly app
-        run: flyctl deploy --build-only
+            let body = '### CLI Documentation Generator\n\n';
+
+            if (!fs.existsSync(path)) {
+              body += '⚠️ No test report found (tests may have been skipped)\n';
+            } else {
+              const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+
+              const allPassed = report.testsFailed === 0;
+              const emoji = allPassed ? '✅' : '❌';
+
+              body += `| Metric | Value |\n`;
+              body += `|--------|-------|\n`;
+              body += `| CLI Version | \`${report.cliVersion}\` |\n`;
+              body += `| Commands Generated | ${report.commandsGenerated.length} |\n`;
+              body += `| Tests | ${emoji} ${report.testsPassed}/${report.testsRun} passed |\n`;
+
+              if (report.errors.length > 0) {
+                body += `\n<details><summary>❌ ${report.errors.length} Error(s)</summary>\n\n`;
+                for (const error of report.errors) {
+                  body += `- **${error.command}** (${error.phase}): ${error.message}\n`;
+                }
+                body += `\n</details>\n`;
+              }
+
+              if (report.commandsGenerated.length > 0) {
+                body += `\n<details><summary>📚 Commands documented</summary>\n\n`;
+                body += report.commandsGenerated.map(c => `- \`${c}\``).join('\n');
+                body += `\n</details>\n`;
+              }
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('### CLI Documentation Generator'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  preview:
+    name: Preview Deployment
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_PREVIEW_API_TOKEN }}
+      FLY_REGION: iad
+      FLY_ORG: ${{ vars.FLY_PREVIEW_ORG }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Deploy preview app
+        id: deploy
+        uses: superfly/fly-pr-review-apps@1.2.1
+        with:
+          config: fly.preview.toml
+          vmsize: shared-cpu-1x
+          memory: 256
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.deploy.outputs.url }}';
+            const sha = context.sha.substring(0, 7);
+            const body = `### Preview Deployment\n\n| Name | URL |\n|------|-----|\n| Preview | ${url} |\n\nCommit: \`${sha}\``;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('### Preview Deployment'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  e2e-test:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: preview
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Cypress binary
+        run: pnpm cypress install
+
+      - name: Wait for preview to be ready
+        run: |
+          echo "Waiting for preview deployment to be ready..."
+          for i in {1..30}; do
+            if curl -s -o /dev/null -w "%{http_code}" "${{ needs.preview.outputs.url }}" | grep -q "200"; then
+              echo "Preview is ready!"
+              exit 0
+            fi
+            echo "Attempt $i: Preview not ready yet, waiting 10s..."
+            sleep 10
+          done
+          echo "Preview did not become ready in time"
+          exit 1
+
+      - name: Run Cypress tests
+        uses: cypress-io/github-action@v6
+        with:
+          browser: chrome
+          install: false
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          CYPRESS_BASE_URL: ${{ needs.preview.outputs.url }}
+
+      - name: Upload screenshots on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots
+          retention-days: 7
+
+      - name: Upload videos on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: cypress-videos
+          path: cypress/videos
+          retention-days: 7
+
+      - name: Comment test results on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}';
+            const emoji = status === 'success' ? '✅' : '❌';
+            const body = `### E2E Test Results\n\n${emoji} Tests ${status}\n\nRan against: ${{ needs.preview.outputs.url }}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('### E2E Test Results'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    needs: preview
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for preview to be ready
+        run: |
+          echo "Waiting for preview deployment to be ready..."
+          for i in {1..30}; do
+            if curl -s -o /dev/null -w "%{http_code}" "${{ needs.preview.outputs.url }}" | grep -q "200"; then
+              echo "Preview is ready!"
+              exit 0
+            fi
+            echo "Attempt $i: Preview not ready yet, waiting 10s..."
+            sleep 10
+          done
+          echo "Preview did not become ready in time"
+          exit 1
+
+      - name: Get changed pages
+        id: changed-pages
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const baseUrl = '${{ needs.preview.outputs.url }}';
+            const urls = new Set([baseUrl]); // Always test homepage
+
+            for (const file of files) {
+              // Match .mdx files in src/content/docs/
+              const match = file.filename.match(/^src\/content\/docs\/(.+)\.mdx$/);
+              if (match && file.status !== 'removed') {
+                let path = match[1];
+                // index.mdx maps to root, others map to their path
+                if (path === 'index') {
+                  urls.add(baseUrl);
+                } else {
+                  urls.add(`${baseUrl}/${path}/`);
+                }
+              }
+            }
+
+            const urlList = Array.from(urls).join('\n');
+            console.log('URLs to test:\n' + urlList);
+            core.setOutput('urls', urlList);
+
+      - name: Run Lighthouse CI
+        id: lighthouse
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: ${{ steps.changed-pages.outputs.urls }}
+          configPath: ./lighthouserc.json
+          budgetPath: ./budget.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+      - name: Comment Lighthouse results on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const manifest = ${{ steps.lighthouse.outputs.manifest }};
+            const links = ${{ steps.lighthouse.outputs.links }};
+
+            let body = '### Lighthouse Results\n\n';
+            body += '| URL | Performance | Accessibility | Best Practices | SEO |\n';
+            body += '|-----|-------------|---------------|----------------|-----|\n';
+
+            for (const result of manifest) {
+              const url = new URL(result.url).pathname || '/';
+              const perf = Math.round(result.summary.performance * 100);
+              const a11y = Math.round(result.summary.accessibility * 100);
+              const bp = Math.round(result.summary['best-practices'] * 100);
+              const seo = Math.round(result.summary.seo * 100);
+
+              const perfEmoji = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
+              const a11yEmoji = a11y >= 90 ? '🟢' : a11y >= 50 ? '🟠' : '🔴';
+              const bpEmoji = bp >= 90 ? '🟢' : bp >= 50 ? '🟠' : '🔴';
+              const seoEmoji = seo >= 90 ? '🟢' : seo >= 50 ? '🟠' : '🔴';
+
+              const reportLink = links[result.url] ? `[${url}](${links[result.url]})` : url;
+              body += `| ${reportLink} | ${perfEmoji} ${perf} | ${a11yEmoji} ${a11y} | ${bpEmoji} ${bp} | ${seoEmoji} ${seo} |\n`;
+            }
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body.includes('### Lighthouse Results'));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
