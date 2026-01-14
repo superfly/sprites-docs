@@ -58,6 +58,8 @@ Set it as your active Sprite to avoid adding `-s my-first-sprite` to every comma
 sprite use my-first-sprite
 ```
 
+Use `sprite list` to see all your Sprites, or `sprite destroy my-first-sprite` when you're done with one. You can have multiple Sprites running simultaneously—each with its own isolated environment.
+
 ## Run Commands
 
 Execute commands in your Sprite:
@@ -135,11 +137,9 @@ Visit the URL in your browser—you'll see Python's directory listing page. Your
 
 Here's where it gets cool. Close your terminal, wait a minute, then visit the URL again. Your Sprite wakes up automatically to serve the request. That's the magic of on-demand wakeup—no manual starting or stopping required.
 
-**Managing Sprites**: Use `sprite list` to see all your Sprites, or `sprite destroy my-first-sprite` when you're done with one. You can have multiple Sprites running simultaneously—each with its own isolated environment.
+---
 
 **You've got a working Sprite!** You've created a persistent environment, installed packages, created files, and served HTTP traffic—all of which will be there next time you connect. Try cloning a repo, running a build, or deploying a tiny HTTP service to see what else you can do.
-
----
 
 ## Using the SDKs
 
