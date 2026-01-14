@@ -8,6 +8,116 @@ import { Callout, LinkCard, CardGrid } from '@/components/react';
 
 After you've made it through the Quickstart, you've got a working Sprite and a sense of how to use it. This page covers what comes next: how Sprites behave over time, how to run persistent processes, how networking works, and how to shape the environment to fit your stack. Use it as a reference as you start building more with Sprites.
 
+## Understanding exec, console, and attach
+
+Before diving deeper, let's clarify the three main ways to interact with your Sprite. Understanding when to use each is fundamental to working effectively with Sprites.
+
+### `sprite exec` - Run a command and get output
+
+**What it does**: Executes a single command, waits for it to finish, and returns the output.
+
+**When to use it:**
+- Running one-off commands (`sprite exec "ls -la"`)
+- Installing packages (`sprite exec "npm install express"`)
+- Checking status (`sprite exec "ps aux"`)
+- Scripting and automation (exit codes are returned)
+
+**How it behaves:**
+- Blocks until the command completes
+- Returns stdout/stderr as output
+- Connection closes when command finishes
+- Perfect for scripts and programmatic usage
+
+```bash
+# Examples
+sprite exec "echo 'Hello World'"
+sprite exec "pip install requests && python script.py"
+sprite exec -tty vim  # Can enable TTY for interactive programs
+```
+
+### `sprite console` - Interactive shell session
+
+**What it does**: Opens an interactive shell session, like SSH-ing into a remote machine.
+
+**When to use it:**
+- Exploring your Sprite interactively
+- Debugging issues hands-on
+- Running multiple commands in sequence
+- Working directly in the environment (like a normal terminal)
+
+**How it behaves:**
+- Full interactive shell (bash by default)
+- Supports TTY/terminal features (colors, cursor movement, etc.)
+- Stays connected until you exit
+- Great for human interaction, not scripting
+
+```bash
+# Open an interactive shell
+sprite console
+
+# Inside the console, you're in a full bash session:
+# $ cd /home/sprite
+# $ ls -la
+# $ vim myfile.txt
+# $ exit
+```
+
+### `sprite exec -detachable` and attach - Long-running processes
+
+**What it does**: Creates a persistent session that keeps running even after you disconnect.
+
+**When to use it:**
+- Running dev servers (`npm run dev`, `rails server`)
+- Long-running builds or tests
+- Background workers or daemons
+- Anything you want to keep running indefinitely
+
+**How it behaves:**
+- Process keeps running after you disconnect
+- Captures all output history
+- Can reattach later to see output
+- Automatically restarts if Sprite hibernates (when using detachable sessions)
+
+```bash
+# Start a detachable session
+sprite exec -detachable "npm run dev"
+# Returns immediately with a session ID
+
+# List active sessions
+sprite exec
+# Shows: session-abc123: npm run dev
+
+# Attach to see the output
+sprite exec -id session-abc123
+# Streams the output, press Ctrl+C to detach (doesn't kill it)
+
+# Kill the session when done
+sprite exec -id session-abc123 -kill
+```
+
+### Quick Decision Guide
+
+**Use `exec` when:**
+- You need the output in a script
+- Running a quick one-time command
+- Automating tasks programmatically
+
+**Use `console` when:**
+- You want to explore interactively
+- Debugging or troubleshooting manually
+- Running multiple commands in sequence
+
+**Use `exec -detachable` when:**
+- Running servers or long-running processes
+- You want something to keep running after disconnect
+- You need to check back on output later
+
+<Callout type="tip">
+**Pro tip**: For development workflows, use `exec -detachable` to start your dev server, then use `console` for a separate interactive shell to run commands while the server keeps running in the background.
+</Callout>
+
+---
+
 ## Lifecycle
 
 ### Automatic Hibernation
