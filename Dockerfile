@@ -14,7 +14,7 @@ RUN apt-get update -qq && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Sprites CLI
-RUN curl -fsSL https://sprites.dev/install.sh | sh
+RUN curl -fsSL https://sprites.dev/install.sh | bash
 ENV PATH="/root/.local/bin:$PATH"
 
 # Install dependencies
