@@ -8,7 +8,7 @@
     "dev": "pnpm generate:api && astro dev",
     "start": "pnpm generate:api && astro dev",
     "prebuild": "pnpm generate:cli-docs",
-    "build": "pnpm generate:api && pnpm generate:cli-docs && astro build",
+    "build": "pnpm generate:api && astro build",
     "preview": "astro preview",
     "lint": "biome check",
     "lint:fix": "biome check --write",
