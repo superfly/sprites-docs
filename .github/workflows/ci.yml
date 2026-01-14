@@ -46,6 +46,9 @@ jobs:
         env:
           SPRITES_TEST_TOKEN: ${{ secrets.SPRITES_TEST_TOKEN }}
 
+      - name: Generate CLI Docs
+        run: pnpm generate:cli-docs
+
       - name: Build
         run: pnpm build
 

@@ -8,22 +8,17 @@ ENV NODE_ENV="production"
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Install packages needed for sharp native module and CLI
+# Install packages needed for sharp native module
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git pkg-config python-is-python3 curl ca-certificates && \
+    apt-get install --no-install-recommends -y build-essential git pkg-config python-is-python3 && \
     rm -rf /var/lib/apt/lists/*
-
-# Install Sprites CLI
-RUN curl -fsSL https://sprites.dev/install.sh | bash
-ENV PATH="/root/.local/bin:$PATH"
 
 # Install dependencies
 COPY package.json pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile || pnpm install
 
-# Copy and build (skip CLI tests in Docker - no API access)
+# Copy and build
 COPY . .
-ENV SKIP_CLI_TESTS=true
 RUN pnpm run build
 
 # Final stage - minimal nginx
