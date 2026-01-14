@@ -38,7 +38,7 @@ jobs:
 
       - name: Install Sprites CLI
         run: |
-          curl -fsSL https://sprites.dev/install.sh | sh
+          curl -fsSL https://sprites.dev/install.sh | bash
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build
