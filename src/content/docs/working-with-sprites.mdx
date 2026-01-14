@@ -1,1272 +1,243 @@
 ---
 title: Working with Sprites
-description: Beyond the basics, sessions, ports, persistence, checkpoints
+description: Beyond the basics—sessions, ports, persistence, and everything you need to build real stuff
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
-import { Callout, LinkCard, CardGrid } from '@/components/react';
+import { Callout } from '@/components/react';
 
-After you've made it through the Quickstart, you've got a working Sprite and a sense of how to use it. This page covers what comes next: how Sprites behave over time, how to run persistent processes, how networking works, and how to shape the environment to fit your stack. Use it as a reference as you start building more with Sprites.
+After you've made it through the Quickstart, you've got a working Sprite and a basic idea of how to use it. This guide picks up from there: how to run commands, manage sessions, keep processes alive, and make sure your environment stays consistent over time. The first half covers everything you need to build and deploy real stuff. The rest is there when you're ready to go deeper.
 
-## Understanding exec, console, and attach
+---
 
-Before diving deeper, let's clarify the three main ways to interact with your Sprite. Understanding when to use each is fundamental to working effectively with Sprites.
+## Running Commands and Sessions
 
-### `sprite exec` - Run a command and get output
+Sprites give you three main ways to interact:
 
-**What it does**: Executes a single command, waits for it to finish, and returns the output.
+### `sprite exec` – One-off commands and automation
 
-**When to use it:**
-- Running one-off commands (`sprite exec "ls -la"`)
-- Installing packages (`sprite exec "npm install express"`)
-- Checking status (`sprite exec "ps aux"`)
-- Scripting and automation (exit codes are returned)
+Run a single command, wait for it to finish, get the output. Perfect for scripts, package installs, or quick checks.
 
-**How it behaves:**
+```bash
+sprite exec "ls -la"
+sprite exec "npm install express"
+sprite exec -tty vim
+```
+
 - Blocks until the command completes
-- Returns stdout/stderr as output
-- Connection closes when command finishes
-- Perfect for scripts and programmatic usage
+- Returns stdout/stderr
+- Use for automation or scripting
+
+### `sprite console` – Interactive shell (like SSH)
+
+Opens a full terminal session so you can explore, debug, or run multiple commands.
 
 ```bash
-# Examples
-sprite exec "echo 'Hello World'"
-sprite exec "pip install requests && python script.py"
-sprite exec -tty vim  # Can enable TTY for interactive programs
-```
-
-### `sprite console` - Interactive shell session
-
-**What it does**: Opens an interactive shell session, like SSH-ing into a remote machine.
-
-**When to use it:**
-- Exploring your Sprite interactively
-- Debugging issues hands-on
-- Running multiple commands in sequence
-- Working directly in the environment (like a normal terminal)
-
-**How it behaves:**
-- Full interactive shell (bash by default)
-- Supports TTY/terminal features (colors, cursor movement, etc.)
-- Stays connected until you exit
-- Great for human interaction, not scripting
-
-```bash
-# Open an interactive shell
 sprite console
-
-# Inside the console, you're in a full bash session:
-# $ cd /home/sprite
-# $ ls -la
-# $ vim myfile.txt
-# $ exit
+# Inside:
+# $ cd /home/sprite && ls -la && vim myfile.txt
 ```
 
-### `sprite exec -detachable` and attach - Long-running processes
+- TTY enabled
+- Stays open until you exit
+- Use for manual work or debugging
 
-**What it does**: Creates a persistent session that keeps running even after you disconnect.
+### `exec -detachable` + attach – Keep things running
 
-**When to use it:**
-- Running dev servers (`npm run dev`, `rails server`)
-- Long-running builds or tests
-- Background workers or daemons
-- Anything you want to keep running indefinitely
-
-**How it behaves:**
-- Process keeps running after you disconnect
-- Captures all output history
-- Can reattach later to see output
-- Automatically restarts if Sprite hibernates (when using detachable sessions)
+Start a command that keeps running even after you disconnect. Great for dev servers, long builds, or background processes.
 
 ```bash
-# Start a detachable session
 sprite exec -detachable "npm run dev"
-# Returns immediately with a session ID
-
-# List active sessions
-sprite exec
-# Shows: session-abc123: npm run dev
-
-# Attach to see the output
-sprite exec -id session-abc123
-# Streams the output, press Ctrl+C to detach (doesn't kill it)
-
-# Kill the session when done
-sprite exec -id session-abc123 -kill
+sprite exec            # list sessions
+sprite exec -id <id>   # attach to session
+sprite exec -id <id> -kill  # kill session
 ```
-
-### Quick Decision Guide
-
-**Use `exec` when:**
-- You need the output in a script
-- Running a quick one-time command
-- Automating tasks programmatically
-
-**Use `console` when:**
-- You want to explore interactively
-- Debugging or troubleshooting manually
-- Running multiple commands in sequence
-
-**Use `exec -detachable` when:**
-- Running servers or long-running processes
-- You want something to keep running after disconnect
-- You need to check back on output later
-
-<Callout type="tip">
-**Pro tip**: For development workflows, use `exec -detachable` to start your dev server, then use `console` for a separate interactive shell to run commands while the server keeps running in the background.
-</Callout>
 
 ---
 
-## Lifecycle
+## Sprite Lifecycle: Hibernation and Persistence
 
-### Automatic Hibernation
-
-Here's the magic: Sprites automatically hibernate when you're not using them. No compute charges while sleeping, and your Sprite wakes up instantly when you need it.
-
-Think of it like closing your laptop—everything stays exactly where you left it. Run a command or hit your Sprite's URL, and it springs back to life in milliseconds, ready to pick up where you left off.
+Sprites automatically hibernate after 30 seconds of inactivity. That means:
 
 ### What Persists (and What Doesn't)
-
-When your Sprite hibernates:
 
 - **✅ Filesystem persists**: All files, installed packages, git repos, databases—everything on disk stays intact
 - **❌ RAM doesn't persist**: Running processes stop, in-memory data is lost
 - **✅ Network config persists**: Open ports, URL settings, SSH access all remain configured
 
-This means you can install dependencies once and they're there forever. But if you're running a web server, it'll need to restart when the Sprite wakes up (that's what detachable sessions are for—more on that below).
+This means you can install dependencies once and they're there forever. But if you're running a web server, it'll need to restart when the Sprite wakes up—that's what detachable sessions are for.
 
-### Wake-Up Behavior
+### Wake-up Behavior
 
-When your Sprite wakes from hibernation:
+Wake-up is fast:
 
-1. **Fast wake**: Typically 100-500ms from sleep to ready
-2. **Cold start**: First wake after creation or long idle may take 1-2 seconds
-3. **State restoration**: Filesystem exactly as you left it
-4. **Processes restart**: Any processes in detachable sessions automatically resume
+- ~100–500ms for normal wakes
+- 1–2s on cold starts
 
-Your commands don't need to do anything special—just run them and the Sprite handles the wake-up behind the scenes.
+Use detachable sessions to keep things running across hibernation. You can reattach later and see all the output.
 
-### Timeouts
-
-Sprites currently hibernate after **30 seconds** of inactivity. This timeout is not configurable yet.
-
-<Callout type="tip">
-Pro tip: If you want something to keep running indefinitely, use a detachable session. It keeps your Sprite awake and automatically restarts your process if the Sprite does hibernate.
-</Callout>
+```bash
+sprite exec -detachable "rails server"
+```
 
 ### Idle Detection
 
-A Sprite is considered active if any of the following are true:
+If something's running, your Sprite stays awake. Otherwise, it sleeps. That includes:
 
-1. It has an active command running (via `exec`)
-2. Its stdin is being written to
-3. It has an open TCP connection over its URL
-4. A detachable session is running
-
-In other words: as long as something's happening, your Sprite stays awake.
+- Active exec/console commands
+- Open TCP connections (like your app's URL)
+- Running detachable sessions
 
 ---
 
-## Configuration
+## Networking: URLs and Port Forwarding
 
-### Resource Allocation
+Every Sprite gets a URL: `https://<name>.sprites.dev`
 
-Sprites currently run on machines with a fixed resource cap: 8 vCPUs, 8192 MB RAM, and 100 GB storage. These limits are not configurable yet. The SDK accepts config fields, but the API ignores them.
-
-Keep in mind, Sprites are not billed based on those limits. You are only charged for the resources your Sprite actually uses. The fixed config defines the current **maximum** resources each Sprite can consume, not a flat rate.
-
-### Working Directory
-
-Set the working directory for command execution:
-
-<Tabs>
-<TabItem label="CLI">
-```bash
-sprite exec -dir /home/sprite/project npm test
-```
-</TabItem>
-
-<TabItem label="JavaScript">
-```javascript
-const result = await sprite.exec('npm test', {
-  cwd: '/home/sprite/project',
-});
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-cmd := sprite.Command("npm", "test")
-cmd.Dir = "/home/sprite/project"
-output, err := cmd.Output()
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-{output, 0} = Sprites.cmd(sprite, "npm", ["test"],
-  dir: "/home/sprite/project"
-)
-```
-</TabItem>
-</Tabs>
-
-### Environment Variables
-
-<Tabs>
-<TabItem label="CLI">
-```bash
-sprite exec -env MY_SECRET=hello bash -c 'echo $MY_SECRET'
-```
-</TabItem>
-
-<TabItem label="JavaScript">
-```javascript
-const result = await sprite.execFile('bash', ['-lc', 'echo $MY_SECRET'], {
-  env: { MY_SECRET: 'hello' },
-});
-console.log(result.stdout); // hello
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-cmd := sprite.Command("bash", "-c", "echo $MY_SECRET")
-cmd.Env = []string{"MY_SECRET=hello"}
-output, _ := cmd.Output()
-fmt.Println(string(output)) // hello
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-{output, 0} = Sprites.cmd(sprite, "bash", ["-c", "echo $MY_SECRET"],
-  env: [{"MY_SECRET", "hello"}]
-)
-IO.puts(output) # hello
-```
-</TabItem>
-</Tabs>
-
----
-
-## Environment
-
-### The Base System
-
-Sprites run on **Ubuntu Linux** (currently 24.04 LTS), giving you a familiar POSIX environment with all the standard command-line tools you'd expect. Think of it as a cloud Linux box with the good stuff already installed.
-
-### Pre-installed Tools
-
-The default Sprite environment includes:
-
-- **Languages**: Node.js, Python, Go, Ruby, Rust, Elixir/Erlang, Java, Bun, Deno
-- **AI Tools**: Claude CLI, Gemini CLI, OpenAI Codex, Cursor
-- **Utilities**: Git, curl, wget, vim, and common development tools
-
-### Checking Tool Versions
-
-Want to know what's installed? Just ask:
+### HTTP Access
 
 ```bash
-# Check language versions
-sprite exec "node --version"
-sprite exec "python3 --version"
-sprite exec "go version"
-sprite exec "ruby --version"
-
-# Check everything at once
-sprite exec "node --version && python3 --version && go version && ruby --version"
-
-# See what package managers you have
-sprite exec "which npm pnpm yarn bun pip pip3 cargo gem bundle"
+sprite url                      # see URL
+sprite url update --auth public # make public
+sprite url update --auth default # make private again
 ```
 
-<Callout type="tip">
-**Pro tip**: Run `sprite exec "cat /etc/os-release"` to see the exact Ubuntu version and system details.
+- Routes to port 8080 by default (or first HTTP port opened)
+- Wakes the Sprite on request
+- Private by default (auth token required)
+
+<Callout type="warning">
+**Security note**: Public URLs expose your Sprite to the internet. Only use public mode for demos, webhooks, or non-sensitive work.
 </Callout>
 
-### Custom Setup
+### Port Forwarding
 
-Run setup commands after creating a Sprite:
-
-<Tabs>
-<TabItem label="JavaScript">
-```javascript
-const sprite = await client.createSprite('my-sprite');
-
-// Install custom dependencies
-await sprite.exec('pip install pandas numpy matplotlib');
-await sprite.exec('npm install -g typescript');
-
-// Clone a repository
-await sprite.exec('git clone https://github.com/your/repo.git /home/sprite/project');
+```bash
+sprite proxy 5432           # access Sprite's port 5432 at localhost:5432
+sprite proxy 3001:3000      # map local 3001 to remote 3000
+sprite proxy 3000 8080 5432 # forward multiple ports
 ```
-</TabItem>
 
-<TabItem label="Go">
-```go
-sprite, _ := client.CreateSprite(ctx, "my-sprite", nil)
+Use for database access, dev tools, or private ports. Press `Ctrl+C` to stop forwarding.
 
-// Install custom dependencies
-sprite.Command("pip", "install", "pandas", "numpy", "matplotlib").Run()
-sprite.Command("npm", "install", "-g", "typescript").Run()
+### Port Conflicts
 
-// Clone a repository
-sprite.Command("git", "clone", "https://github.com/your/repo.git", "/home/sprite/project").Run()
-```
-</TabItem>
+If a local port is already in use, you'll get an error. Solutions:
 
-<TabItem label="Elixir">
-```elixir
-{:ok, sprite} = Sprites.create(client, "my-sprite")
-
-# Install custom dependencies
-Sprites.cmd(sprite, "pip", ["install", "pandas", "numpy", "matplotlib"])
-Sprites.cmd(sprite, "npm", ["install", "-g", "typescript"])
-
-# Clone a repository
-Sprites.cmd(sprite, "git", ["clone", "https://github.com/your/repo.git", "/home/sprite/project"])
-```
-</TabItem>
-</Tabs>
-
-### Persistence & Storage
-
-Here's the good news: **anything you install stays installed**. Sprites persist the entire filesystem across hibernation and restarts.
-
-**What persists forever:**
-- ✅ Packages installed via npm, pip, cargo, gem, etc.
-- ✅ Global CLI tools and binaries
-- ✅ Git repositories you've cloned
-- ✅ Database data files
-- ✅ Configuration files and dotfiles
-- ✅ Literally everything on disk
-
-**Where to put your stuff:**
-
-- **`/home/sprite/`** - Your home directory. Perfect for projects, repos, and personal files. This is where you'll spend most of your time.
-- **`/home/sprite/.local/`** - For local binaries and user-installed tools
-- **`/tmp/`** - Temporary files (persists, but use for genuinely temporary stuff)
-- **`/opt/`** - Good for installing standalone applications
-- **`/var/`** - Standard location for databases and application state
-
-<Callout type="note">
-**Storage space**: Each Sprite has 100 GB of persistent storage. Check usage with `sprite exec "df -h"`. If you need more space, consider using multiple Sprites for different workloads.
-</Callout>
-
-**Pro tips:**
-- Install global packages once: `npm install -g`, `pip install`, etc. all persist
-- Keep important work in `/home/sprite/` for easy access
-- Database data (Postgres, Redis, etc.) automatically persists when you install them
-- No need to rebuild or reinstall after hibernation—it all just works
+1. **Choose a different local port**: `sprite proxy 3001:3000` forwards local 3001 to remote 3000
+2. **Stop the conflicting process**: Find what's using the port with `lsof -i :3000` (macOS/Linux)
+3. **Kill the old proxy session**: If you have an old proxy still running, stop it first
 
 ---
 
-## Interactive Sessions
+## Your Environment
 
-Sessions let you run commands that stay connected, receive input, and stream output in real-time. They come in two flavors: regular sessions (for interactive work) and detachable sessions (for long-running processes).
+Sprites run Ubuntu 24.04 LTS with common tools preinstalled:
 
-### TTY Mode
+- **Languages**: Node.js, Python, Go, Ruby, Rust, Elixir, Java, Bun, Deno
+- **AI/CLI Tools**: Claude CLI, Gemini CLI, OpenAI Codex, Cursor
+- **Utilities**: Git, curl, wget, vim, and common dev tools
 
-For interactive applications like shells or text editors, enable TTY mode:
+### Filesystem Basics
 
-<Tabs>
-<TabItem label="CLI">
+- **`/home/sprite/`** — your home directory, put your stuff here
+- **`/home/sprite/.local/`** — for local binaries and user-installed tools
+- **`/opt/`** — good for standalone applications
+- **`/var/`** — for databases and application state
+
+Install packages like you would locally:
+
 ```bash
-# Open interactive shell (TTY enabled by default)
-sprite console
-
-# Or with exec
-sprite exec -tty bash
+sprite exec "pip install pandas numpy"
+sprite exec "npm install -g typescript"
+sprite exec "cargo install ripgrep"
 ```
-</TabItem>
 
-<TabItem label="JavaScript">
-```javascript
-const cmd = sprite.spawn('bash', [], {
-  tty: true,
-  rows: 24,
-  cols: 80,
-});
+They persist across hibernation. No rebuilds needed.
 
-// Write to stdin
-cmd.stdin.write('echo hello\n');
-
-// Read from stdout
-cmd.stdout.on('data', (data) => {
-  process.stdout.write(data);
-});
-
-// Resize terminal
-cmd.resize(30, 100);
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-cmd := sprite.Command("bash")
-cmd.SetTTY(true)
-cmd.SetTTYSize(24, 80)
-
-cmd.Stdin = os.Stdin
-cmd.Stdout = os.Stdout
-cmd.Stderr = os.Stderr
-
-cmd.Start()
-
-// Resize later
-cmd.Resize(30, 100)
-
-cmd.Wait()
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-{:ok, cmd} = Sprites.spawn(sprite, "bash", [],
-  tty: true,
-  tty_rows: 24,
-  tty_cols: 80
-)
-
-# Write to stdin
-Sprites.write(cmd, "echo hello\n")
-
-# Receive output
-receive do
-  {:stdout, ^cmd, data} -> IO.write(data)
-end
-
-# Resize terminal
-Sprites.resize(cmd, 30, 100)
-```
-</TabItem>
-</Tabs>
-
-### Detachable Sessions
-
-Detachable sessions are the secret sauce for running long-lived processes. They keep running even after you disconnect, and they automatically restart if your Sprite hibernates.
-
-**Perfect for:**
-- Web servers and APIs
-- Background workers
-- Development servers (npm run dev, rails server, etc.)
-- Database instances
-- Any process you want to "set and forget"
-
-**How they work with hibernation:**
-- Session keeps your Sprite awake while the process runs
-- If the Sprite does hibernate (after your process exits), the session persists
-- When you reconnect, you can reattach to see the full output history
-- Sessions don't timeout—they stick around until you explicitly kill them
-
-<Tabs>
-<TabItem label="CLI">
-```bash
-# Create a detachable session
-sprite exec -detachable "npm run dev"
-
-# List active sessions
-sprite exec
-
-# Attach to a session
-sprite exec -id <session-id>
-```
-</TabItem>
-
-<TabItem label="JavaScript">
-```javascript
-// Create a detachable session
-const sessionCmd = sprite.createSession('npm', ['run', 'dev']);
-let sessionId;
-
-sessionCmd.on('message', (msg) => {
-  if (msg && msg.type === 'session_info') {
-    sessionId = msg.session_id;
-  }
-});
-
-// ... later, attach to it
-const cmd = sprite.attachSession(sessionId);
-cmd.stdout.pipe(process.stdout);
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-// Create a detachable session
-cmd := sprite.CreateDetachableSession("npm", "run", "dev")
-cmd.Start()
-
-// List sessions to get the session ID
-sessions, _ := client.ListSessions(ctx, "my-sprite")
-sessionID := sessions[0].ID
-
-// ... later, attach to it
-cmd = sprite.AttachSessionContext(ctx, sessionID)
-cmd.Stdout = os.Stdout
-cmd.Run()
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-# Create a detachable session
-{:ok, cmd} = Sprites.spawn(sprite, "npm", ["run", "dev"],
-  detachable: true
-)
-
-# Get the session ID from the message
-session_id = receive do
-  {:session_info, ^cmd, %{session_id: id}} -> id
-end
-
-# ... later, attach to it
-{:ok, cmd} = Sprites.attach_session(sprite, session_id)
-
-receive do
-  {:stdout, ^cmd, data} -> IO.write(data)
-end
-```
-</TabItem>
-</Tabs>
-
-### Listing Sessions
-
-<Tabs>
-<TabItem label="CLI">
-```bash
-sprite exec
-```
-</TabItem>
-
-<TabItem label="JavaScript">
-```javascript
-const sessions = await sprite.listSessions();
-for (const session of sessions) {
-  console.log(`${session.id}: ${session.command}`);
-}
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-sessions, _ := client.ListSessions(ctx, "my-sprite")
-for _, session := range sessions {
-    fmt.Printf("%s: %s\n", session.ID, session.Command)
-}
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-{:ok, sessions} = Sprites.list_sessions(sprite)
-for session <- sessions do
-  IO.puts("#{session.id}: #{session.command}")
-end
-```
-</TabItem>
-</Tabs>
-
-### Terminating Sessions
-
-Need to kill a running session? Here's how:
-
-<Tabs>
-<TabItem label="CLI">
-```bash
-# Kill a detachable session by ID
-sprite exec -id <session-id> -kill
-
-# Or attach and use Ctrl+C to terminate
-sprite exec -id <session-id>
-# Press Ctrl+C to send interrupt signal
-```
-</TabItem>
-
-<TabItem label="JavaScript">
-```javascript
-// Send interrupt signal (Ctrl+C) to a running command
-cmd.signal('SIGINT');
-
-// Or terminate forcefully
-cmd.signal('SIGKILL');
-
-// Kill by attaching to a session
-const cmd = sprite.attachSession(sessionId);
-cmd.signal('SIGTERM');
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-// Attach to session and kill it
-cmd := sprite.AttachSessionContext(ctx, sessionID)
-cmd.Start()
-cmd.Signal(os.Interrupt)  // Send SIGINT
-// or cmd.Signal(os.Kill) for SIGKILL
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-# Attach to session and send signal
-{:ok, cmd} = Sprites.attach_session(sprite, session_id)
-Sprites.signal(cmd, :sigterm)
-# or :sigint, :sigkill
-```
-</TabItem>
-</Tabs>
-
-<Callout type="note">
-**Session cleanup**: Killed sessions are automatically removed from the session list. If a process in a detachable session exits on its own (like a build that finishes), the session remains in the list until you reattach or explicitly kill it.
+<Callout type="info">
+**Storage space**: Each Sprite has 100 GB of persistent storage. Check usage with `sprite exec "df -h"`.
 </Callout>
 
 ---
 
 ## Managing Sprites
 
-### Referencing by Name
+### Set Active Sprite
 
-<Tabs>
-<TabItem label="CLI">
 ```bash
-# Set active sprite for current directory
 sprite use my-sprite
-
-# Commands now use this sprite
-sprite exec echo "hello"
+# Now all commands target this sprite
+sprite exec "echo hello"
 ```
-</TabItem>
 
-<TabItem label="JavaScript">
-```javascript
-// Get sprite by name (doesn't verify it exists)
-const sprite = client.sprite('my-sprite');
+### List and Filter
 
-// Get sprite and verify it exists
-const sprite = await client.getSprite('my-sprite');
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-// Get sprite by name (doesn't verify it exists)
-sprite := client.Sprite("my-sprite")
-
-// Get sprite and verify it exists
-sprite, err := client.GetSprite(ctx, "my-sprite")
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-# Get sprite by name (doesn't verify it exists)
-sprite = Sprites.sprite(client, "my-sprite")
-
-# Get sprite and verify it exists
-{:ok, sprite} = Sprites.get_sprite(client, "my-sprite")
-```
-</TabItem>
-</Tabs>
-
-### Listing Sprites
-
-<Tabs>
-<TabItem label="CLI">
 ```bash
-# List all sprites
 sprite list
-
-# List with prefix filter
 sprite list --prefix "dev-"
 ```
-</TabItem>
 
-<TabItem label="JavaScript">
-```javascript
-// List all sprites
-const sprites = await client.listAllSprites();
-
-// List with prefix filter
-const devSprites = await client.listAllSprites('dev-');
-
-// Paginated listing
-const page = await client.listSprites({ maxResults: 50 });
-console.log(page.sprites);
-if (page.hasMore) {
-  const nextPage = await client.listSprites({
-    continuationToken: page.nextContinuationToken,
-  });
-}
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-// List all sprites
-sprites, _ := client.ListAllSprites(ctx, "")
-
-// List with prefix filter
-devSprites, _ := client.ListAllSprites(ctx, "dev-")
-
-// Paginated listing
-page, _ := client.ListSprites(ctx, &sprites.ListOptions{MaxResults: 50})
-fmt.Println(page.Sprites)
-if page.HasMore {
-    nextPage, _ := client.ListSprites(ctx, &sprites.ListOptions{
-        ContinuationToken: page.NextContinuationToken,
-    })
-}
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-# List all sprites
-{:ok, sprites} = Sprites.list(client)
-
-# List with prefix filter
-{:ok, dev_sprites} = Sprites.list(client, prefix: "dev-")
-
-# Iterate through sprites
-for sprite <- sprites do
-  IO.puts(sprite.name)
-end
-```
-</TabItem>
-</Tabs>
-
----
-
-## HTTP Access
-
-Every Sprite gets its own unique HTTPS URL at `https://<sprite-name>.sprites.dev`. This URL routes traffic directly to your Sprite, waking it up automatically when requests arrive. It's perfect for testing web apps, APIs, webhooks, and sharing demos.
-
-### Getting Your URL
-
-<Tabs>
-<TabItem label="CLI">
-```bash
-# Get sprite URL
-sprite url
-
-# Make URL public (no auth required)
-sprite url update --auth public
-
-# Make URL require sprite auth (default)
-sprite url update --auth default
-```
-</TabItem>
-
-<TabItem label="JavaScript">
-```javascript
-// Get sprite info including URL
-const info = await client.getSprite('my-sprite');
-console.log(info.url);
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-// Get sprite info including URL
-info, _ := client.GetSprite(ctx, "my-sprite")
-fmt.Println(info.URL)
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-# Get sprite info including URL
-{:ok, info} = Sprites.get_sprite(client, "my-sprite")
-IO.puts(info.url)
-
-# Update URL settings
-Sprites.update_url_settings(sprite, public: true)
-```
-</TabItem>
-</Tabs>
-
-### Complete Example: Running a Web Server
-
-Here's a full workflow showing how to run a web server and access it from anywhere:
+### Destroy
 
 ```bash
-# Start a simple Python HTTP server
-sprite exec "cd /home/sprite && python -m http.server 8080 &"
-
-# Get your public URL
-sprite url
-# Output: https://my-sprite.sprites.dev
-
-# Visit in browser - it just works!
-```
-
-Your Sprite automatically routes HTTP traffic to **port 8080** by default. If your app listens on a different port, no problem—Sprites automatically detect when ports open and route to the first available HTTP port.
-
-**Try it yourself:**
-
-```bash
-# Node.js Express app
-sprite exec "npx express-generator myapp && cd myapp && npm install && npm start &"
-
-# Ruby on Rails
-sprite exec "cd my-rails-app && rails server -p 8080 &"
-
-# Go web server
-sprite exec "cd my-go-app && go run main.go &"
-```
-
-Then just visit your Sprite's URL in any browser. The Sprite wakes up, your server handles the request, and everything works as expected.
-
-### Authentication Modes
-
-Sprites support two authentication modes for HTTP access:
-
-**Default (Authenticated)**
-- Requires your Sprites API token to access
-- Use this for development, internal tools, or anything sensitive
-- Perfect for working on private APIs or testing features
-- Requests need an `Authorization: Bearer <token>` header
-
-**Public**
-- No authentication required—anyone with the URL can access
-- Great for sharing demos, webhooks, or public-facing prototypes
-- Be careful: your Sprite is accessible to the entire internet
-- Consider adding your own auth layer if handling sensitive data
-
-**Switching modes:**
-
-```bash
-# Make public (anyone can access)
-sprite url update --auth public
-
-# Make private again (default)
-sprite url update --auth default
+sprite destroy my-sprite
 ```
 
 <Callout type="warning">
-**Security note**: Public URLs are convenient but expose your Sprite to the internet. Only use public mode for demos, webhooks, or non-sensitive work. For production use cases, keep URLs authenticated and implement proper security in your application.
-</Callout>
-
-### How URLs Relate to Port Forwarding
-
-Your Sprite's **HTTPS URL** and **port forwarding** serve different purposes:
-
-- **HTTPS URL** (`https://my-sprite.sprites.dev`):
-  - Public internet access to your Sprite
-  - Automatically routes to port 8080 (or first detected HTTP port)
-  - Wakes your Sprite on-demand
-  - Can be made public or kept authenticated
-  - Use for: webhooks, sharing demos, public APIs
-
-- **Port Forwarding** (`sprite proxy 3000`):
-  - Creates a tunnel from your local machine to your Sprite
-  - Access via `localhost:3000` on your computer
-  - Always private—only you can access it
-  - Can forward any port, not just HTTP
-  - Use for: database connections, debugging, development
-
-**Example scenario:**
-```bash
-# Run a PostgreSQL database on your Sprite
-sprite exec "pg_ctl start -D /home/sprite/pgdata"
-
-# Forward the database port to your local machine
-sprite proxy 5432
-
-# Now connect locally: psql -h localhost -p 5432
-```
-
-The database isn't exposed via HTTPS—only through your secure tunnel.
-
-<Callout type="tip">
-**Best practice**: Use the HTTPS URL for web traffic you want to share, and use port forwarding for private services like databases, Redis, or development servers you're actively working on.
-</Callout>
-
-<Callout type="info">
-**SDK note**: Updating URL settings is available via the CLI, Go SDK, Elixir SDK, or REST API. The JavaScript SDK doesn't expose a helper for this yet—use the CLI or make direct API calls.
+**Destruction is irreversible!** All data is permanently deleted: files, packages, checkpoints. No undo. Create a checkpoint first if you might want to restore later.
 </Callout>
 
 ---
 
-## Port Forwarding
+## Optional: Going Deeper
 
-Forward local ports to your Sprite for private access to services like databases, Redis, or development servers.
+These features are useful once you're comfortable.
 
-<Tabs>
-<TabItem label="CLI">
+### Checkpoints
+
+Snapshot your Sprite's filesystem so you can roll back later.
+
 ```bash
-# Forward local port 3000 to sprite port 3000
-sprite proxy 3000
-
-# Forward multiple ports
-sprite proxy 3000 8080 5432
-
-# Press Ctrl+C to stop forwarding
-```
-</TabItem>
-
-<TabItem label="JavaScript">
-```javascript
-// Forward single port
-const session = await sprite.proxyPort(3000, 3000);
-// localhost:3000 now forwards to sprite:3000
-
-// Forward multiple ports
-const sessions = await sprite.proxyPorts([
-  { localPort: 3000, remotePort: 3000 },
-  { localPort: 8080, remotePort: 80 },
-  { localPort: 5432, remotePort: 5432 },
-]);
-
-// Stop forwarding when done
-session.close();
-// or for multiple: sessions.forEach(s => s.close());
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-// Forward single port
-session, _ := client.ProxyPort(ctx, "my-sprite", 3000, 3000)
-defer session.Close()
-// localhost:3000 now forwards to sprite:3000
-
-// Forward multiple ports
-sessions, _ := client.ProxyPorts(ctx, "my-sprite", []sprites.PortMapping{
-    {LocalPort: 3000, RemotePort: 3000},
-    {LocalPort: 8080, RemotePort: 80},
-})
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-# Forward single port
-{:ok, session} = Sprites.proxy_port(sprite, 3000, 3000)
-# localhost:3000 now forwards to sprite:3000
-
-# Forward multiple ports
-mappings = [
-  %Sprites.Proxy.PortMapping{local_port: 3000, remote_port: 3000},
-  %Sprites.Proxy.PortMapping{local_port: 8080, remote_port: 80}
-]
-{:ok, sessions} = Sprites.proxy_ports(sprite, mappings)
-
-# Stop proxy when done
-Sprites.Proxy.Session.stop(session)
-```
-</TabItem>
-</Tabs>
-
-### Port Notifications
-
-Get notified when ports open in your Sprite:
-
-<Tabs>
-<TabItem label="JavaScript">
-```javascript
-const cmd = sprite.spawn('npm', ['run', 'dev']);
-
-cmd.on('message', (msg) => {
-  if (msg.type === 'port_opened') {
-    console.log(`Port ${msg.port} opened on ${msg.address} by PID ${msg.pid}`);
-    // Auto-forward or notify user
-  }
-});
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-cmd := sprite.Command("npm", "run", "dev")
-cmd.TextMessageHandler = func(data []byte) {
-    var notification sprites.PortNotificationMessage
-    json.Unmarshal(data, &notification)
-
-    if notification.Type == "port_opened" {
-        fmt.Printf("Port %d opened on %s by PID %d\n", notification.Port, notification.Address, notification.PID)
-    }
-}
-cmd.Run()
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-{:ok, cmd} = Sprites.spawn(sprite, "npm", ["run", "dev"])
-
-# Handle port notifications in receive loop
-receive do
-  {:port_opened, ^cmd, %{port: port, address: addr, pid: pid}} ->
-    IO.puts("Port #{port} opened on #{addr} by PID #{pid}")
-
-  {:stdout, ^cmd, data} ->
-    IO.write(data)
-end
-```
-</TabItem>
-</Tabs>
-
-### Stopping Port Forwarding
-
-Port forwarding sessions stay active until you explicitly close them:
-
-- **CLI**: Press `Ctrl+C` to stop the proxy
-- **SDKs**: Call `.close()` on the session object (JavaScript, Go, Elixir)
-
-When the session closes, the local port becomes available again immediately.
-
-### Port Conflicts
-
-If a local port is already in use, you'll get an error and the forwarding won't start. Solutions:
-
-1. **Choose a different local port**: `sprite proxy 3001:3000` forwards local 3001 to remote 3000
-2. **Stop the conflicting process**: Find what's using the port with `lsof -i :3000` (macOS/Linux) or `netstat -ano | findstr :3000` (Windows)
-3. **Kill the proxy session**: If you have an old proxy still running, stop it first
-
-<Callout type="tip">
-**Common use case**: Running a local dev server on port 3000 while also accessing your Sprite's port 3000? Use `sprite proxy 3001:3000` to access the Sprite on localhost:3001 instead.
-</Callout>
-
----
-
-## Checkpoints
-
-Checkpoints let you snapshot your Sprite's entire filesystem and restore it later. Think of them as save points in a video game—if something goes wrong, you can roll back to a known-good state.
-
-### When to Use Checkpoints
-
-- **Before risky operations**: Installing system packages, upgrading dependencies, or making major config changes
-- **Testing workflows**: Try something out, restore if it doesn't work
-- **Reproducible environments**: Save a working setup and restore it across multiple Sprites
-- **Before experiments**: Test new tools or configurations without fear
-
-### Creating and Restoring
-
-<Tabs>
-<TabItem label="CLI">
-```bash
-# Create a checkpoint
 sprite checkpoint create
-
-# List checkpoints
+sprite checkpoint create --comment "before upgrade"
 sprite checkpoint list
-
-# Restore from checkpoint
-sprite restore <checkpoint-id>
+sprite restore <id>
 ```
-</TabItem>
 
-<TabItem label="Elixir">
-```elixir
-# Create a checkpoint
-{:ok, checkpoint} = Sprites.create_checkpoint(sprite, comment: "before deploy")
-
-# List checkpoints
-{:ok, checkpoints} = Sprites.list_checkpoints(sprite)
-
-# Restore from checkpoint
-{:ok, _} = Sprites.restore_checkpoint(sprite, checkpoint.id)
-```
-</TabItem>
-</Tabs>
-
-### Best Practices & Limitations
+Use before risky changes, upgrades, or experiments.
 
 **What gets saved:**
 - ✅ Entire filesystem (all files, installed packages, databases)
 - ✅ File permissions and ownership
 - ❌ Running processes (they stop during checkpoint creation)
-- ❌ In-memory state or RAM contents
+- ❌ In-memory state
 
-**Storage & retention:**
+**Good to know:**
 - Checkpoints count against your storage quota
-- Size depends on your Sprite's disk usage (typically a few GB)
-- Checkpoints are retained indefinitely until you delete them
-- Consider cleaning up old checkpoints to save space
+- Restoring replaces the entire filesystem—changes since the checkpoint are lost
+- Creation takes 10–30 seconds depending on data size
 
-**Important notes:**
-- Restoring a checkpoint replaces the **entire** filesystem—any changes since the checkpoint are lost
-- Active processes stop during checkpoint creation and don't automatically restart
-- Checkpoint creation can take 10-30 seconds depending on data size
-- Use detachable sessions to automatically restart services after restore
+### Mounting Filesystem Locally
 
-<Callout type="tip">
-**Pro tip**: Add descriptive comments when creating checkpoints (`--comment "before npm upgrade"`) so you know what each one represents. This is especially helpful when you have multiple checkpoints.
-</Callout>
+Use SSHFS to mount your Sprite and edit files with your local tools.
 
-See [Checkpoints and Restore](/concepts/checkpoints) for more details.
+**Install SSHFS first:**
 
----
-
-## Error Handling
-
-<Tabs>
-<TabItem label="JavaScript">
-```javascript
-import { ExecError } from '@fly/sprites';
-
-try {
-  await sprite.execFile('bash', ['-lc', 'exit 1']);
-} catch (error) {
-  if (error instanceof ExecError) {
-    console.log('Exit code:', error.exitCode);
-    console.log('Stdout:', error.stdout);
-    console.log('Stderr:', error.stderr);
-  }
-}
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-cmd := sprite.Command("bash", "-lc", "exit 1")
-err := cmd.Run()
-
-if err != nil {
-    if exitErr, ok := err.(*sprites.ExitError); ok {
-        fmt.Printf("Exit code: %d\n", exitErr.ExitCode())
-    }
-}
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-case Sprites.cmd(sprite, "bash", ["-lc", "exit 1"]) do
-  {_output, 0} ->
-    IO.puts("Success")
-
-  {output, exit_code} ->
-    IO.puts("Exit code: #{exit_code}")
-    IO.puts("Output: #{output}")
-end
-```
-</TabItem>
-</Tabs>
-
-### Common Error Scenarios
-
-**Connection errors:**
-- **Symptom**: "Connection refused" or "Unable to connect"
-- **Cause**: Network issues, authentication problems, or Sprite is down
-- **Fix**: Check your auth with `sprite org auth`, verify Sprite exists with `sprite list`, try again in a moment
-
-**Timeout errors:**
-- **Symptom**: Command hangs or times out
-- **Cause**: Long-running command, Sprite is waking up, or network latency
-- **Fix**: Be patient during first wake-up (can take 1-2 seconds), increase timeout if needed, check if command actually needs that long
-
-**Sprite won't wake up:**
-- **Symptom**: Commands fail with wake errors
-- **Cause**: Rare issue with Sprite state
-- **Fix**: Try `sprite list` to verify it exists, wait 30 seconds and retry, contact support if persistent
-
-**Quota/limit errors:**
-- **Symptom**: "Storage full" or "Resource limit exceeded"
-- **Cause**: Hit the 100 GB storage limit
-- **Fix**: Clean up unnecessary files, delete old checkpoints, or create a new Sprite for additional workloads
-
-<Callout type="note">
-**Debugging tip**: Add verbose logging or use `sprite console` to interactively debug issues. You can also check disk space with `sprite exec "df -h"` and running processes with `sprite exec "ps aux"`.
-</Callout>
-
----
-
-## Cleanup
-
-Always clean up Sprites when you're done:
-
-<Tabs>
-<TabItem label="CLI">
 ```bash
-sprite destroy my-sprite
-```
-</TabItem>
-
-<TabItem label="JavaScript">
-```javascript
-await sprite.delete();
-// or
-await client.deleteSprite('my-sprite');
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-err := client.DeleteSprite(ctx, "my-sprite")
-```
-</TabItem>
-
-<TabItem label="Elixir">
-```elixir
-:ok = Sprites.destroy(sprite)
-# or
-:ok = Sprites.destroy(client, "my-sprite")
-```
-</TabItem>
-</Tabs>
-
-<Callout type="warning">
-**Destruction is irreversible!** When you destroy a Sprite, all data is permanently deleted:
-- All files and directories
-- Installed packages and tools
-- Database data
-- Configuration files
-- All checkpoints
-
-There's no undo button. Once it's gone, it's gone forever.
-</Callout>
-
-**Best practices before destroying:**
-
-1. **Create a checkpoint first** if there's any chance you'll need the data later
-2. **Download important files** using `sprite proxy` + scp/rsync, or mount the filesystem locally
-3. **Double-check the Sprite name** to avoid accidentally destroying the wrong one
-4. **Export database data** if you have databases running
-
-<Callout type="tip">
-**Pro tip**: If you're experimenting and might want to recreate the same environment later, create a checkpoint before destroying. You can always create a new Sprite and restore from that checkpoint to get back exactly where you were.
-</Callout>
-
----
-
-## Optional: Mount Sprite Filesystem Locally
-
-Want to access your Sprite's files as if they were on your local machine? Use SSHFS to mount the filesystem and edit files with your favorite local tools.
-
-### Prerequisites
-
-First, install SSHFS:
-
-**macOS:**
-```bash
+# macOS
 brew install macfuse sshfs
-```
 
-**Ubuntu/Debian:**
-```bash
+# Ubuntu/Debian
 sudo apt-get install sshfs
-```
 
-**Fedora/RHEL:**
-```bash
+# Fedora/RHEL
 sudo dnf install fuse-sshfs
 ```
 
-**Windows:**
-SSHFS support on Windows requires WSL2 or third-party tools like WinFsp + SSHFS-Win. We recommend using WSL2 for the best experience.
-
-### Helper Function
-
-Add this helper function to your `.zshrc` or `.bashrc` to mount your Sprite's home directory locally:
+**Add this helper to your shell config:**
 
 ```bash
-# Add to ~/.zshrc
+# Add to ~/.zshrc or ~/.bashrc
 sc() {
   local sprite_name="${1:-$(sprite use)}"
   local mount_point="/tmp/sprite-${sprite_name}"
@@ -1277,84 +248,42 @@ sc() {
 }
 ```
 
-Then use it with:
+**Unmount when done:**
 
 ```bash
-sc my-sprite  # Mounts and cd's to the sprite's filesystem
-```
-
-### Unmounting
-
-When you're done, unmount the filesystem:
-
-```bash
-# From another terminal or after cd'ing out of the mount point
 umount /tmp/sprite-my-sprite
-
-# On macOS, you may need:
-diskutil umount /tmp/sprite-my-sprite
-
-# Force unmount if it's busy (use with caution)
-umount -f /tmp/sprite-my-sprite
+# macOS may need: diskutil umount /tmp/sprite-my-sprite
 ```
 
-### Security Considerations
+### Common Error Scenarios
 
-- **Authentication**: SSHFS uses SSH authentication—your sprites.dev credentials keep the connection secure
-- **Network exposure**: The mount only works from your machine; it's not exposed to others
-- **File permissions**: Files are accessed with your local user's permissions
-- **Disconnects**: The `reconnect` option automatically handles network interruptions
-- **Performance**: SSHFS is convenient but slower than native filesystem operations—use it for editing, not heavy I/O
+**Connection errors:**
+- Check auth: `sprite org auth`
+- Verify Sprite exists: `sprite list`
+- Wait a moment and retry
 
-<Callout type="tip">
-**Use case**: SSHFS is perfect for editing code in your local IDE (VS Code, IntelliJ, etc.) while the code actually runs on your Sprite. Edit locally, test remotely!
-</Callout>
+**Timeout errors:**
+- Be patient on first wake-up (1–2 seconds)
+- Check if command actually needs that long
+
+**Sprite won't wake up:**
+- Verify it exists with `sprite list`
+- Wait 30 seconds and retry
+- Contact support if persistent
+
+**Storage full:**
+- Clean up files: `sprite exec "du -sh /home/sprite/*"`
+- Delete old checkpoints
+- Create a new Sprite for additional workloads
+
+**Quick debugging:**
+
+```bash
+sprite exec "ps aux"      # running processes
+sprite exec "df -h"       # disk space
+sprite exec "free -h"     # memory usage
+```
 
 ---
 
-## Next Steps
-
-<CardGrid client:load>
-  <LinkCard
-    href="/cli/commands"
-    title="CLI Reference"
-    description="Full command documentation and examples"
-    icon="terminal"
-    client:load
-  />
-  <LinkCard
-    href="/sdks/javascript"
-    title="JavaScript SDK"
-    description="Complete SDK reference for Node.js"
-    icon="code"
-    client:load
-  />
-  <LinkCard
-    href="/sdks/go"
-    title="Go SDK"
-    description="Native Go integration mirroring os/exec"
-    icon="code"
-    client:load
-  />
-  <LinkCard
-    href="/sdks/elixir"
-    title="Elixir SDK"
-    description="Idiomatic Elixir with Streams and message passing"
-    icon="code"
-    client:load
-  />
-  <LinkCard
-    href="/concepts/lifecycle"
-    title="Lifecycle & Persistence"
-    description="Deep dive into how Sprites work"
-    icon="layers"
-    client:load
-  />
-  <LinkCard
-    href="/concepts/networking"
-    title="Networking"
-    description="URLs, ports, and connectivity"
-    icon="zap"
-    client:load
-  />
-</CardGrid>
+Thanks for making it this far. Sprites are meant to feel like your own Linux box in the sky—fast to wake, persistent when you need it, and flexible enough to run whatever weird stack you're building. As you get more comfortable, the advanced features are there when you need them. Until then, happy hacking.
