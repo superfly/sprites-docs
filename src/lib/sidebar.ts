@@ -1,9 +1,13 @@
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import type { StarlightUserConfig } from '@astrojs/starlight/types';
+import { DEFAULT_VERSION } from './api-versions';
 
 type SidebarConfig = NonNullable<StarlightUserConfig['sidebar']>;
 type SidebarGroup = Extract<SidebarConfig[number], { items: unknown }>;
+
+// API version to use in sidebar (uses default version)
+const apiVersion = DEFAULT_VERSION.id;
 
 interface SidebarBadge {
   text: string;
@@ -106,6 +110,159 @@ export const sidebarConfig: SidebarGroup[] = [
       { label: 'Overview', slug: 'index' },
       { label: 'Quickstart', slug: 'quickstart' },
       { label: 'Working with Sprites', slug: 'working-with-sprites' },
+    ],
+  },
+  {
+    label: 'API Reference',
+    items: [
+      { label: 'Overview', slug: `api/${apiVersion}` },
+      {
+        label: 'Sprites',
+        collapsed: true,
+        items: [
+          {
+            label: 'Create Sprite',
+            link: `/api/${apiVersion}/sprites#create-sprite`,
+            attrs: { 'data-method': 'post' },
+          },
+          {
+            label: 'List Sprites',
+            link: `/api/${apiVersion}/sprites#list-sprites`,
+            attrs: { 'data-method': 'get' },
+          },
+          {
+            label: 'Get Sprite',
+            link: `/api/${apiVersion}/sprites#get-sprite`,
+            attrs: { 'data-method': 'get' },
+          },
+          {
+            label: 'Update Sprite',
+            link: `/api/${apiVersion}/sprites#update-sprite`,
+            attrs: { 'data-method': 'put' },
+          },
+          {
+            label: 'Delete Sprite',
+            link: `/api/${apiVersion}/sprites#delete-sprite`,
+            attrs: { 'data-method': 'delete' },
+          },
+        ],
+      },
+      {
+        label: 'Checkpoints',
+        collapsed: true,
+        items: [
+          {
+            label: 'Create Checkpoint',
+            link: `/api/${apiVersion}/checkpoints#create-checkpoint`,
+            attrs: { 'data-method': 'post' },
+          },
+          {
+            label: 'List Checkpoints',
+            link: `/api/${apiVersion}/checkpoints#list-checkpoints`,
+            attrs: { 'data-method': 'get' },
+          },
+          {
+            label: 'Get Checkpoint',
+            link: `/api/${apiVersion}/checkpoints#get-checkpoint`,
+            attrs: { 'data-method': 'get' },
+          },
+          {
+            label: 'Restore Checkpoint',
+            link: `/api/${apiVersion}/checkpoints#restore-checkpoint`,
+            attrs: { 'data-method': 'post' },
+          },
+        ],
+      },
+      {
+        label: 'Exec',
+        collapsed: true,
+        items: [
+          {
+            label: 'Execute Command',
+            link: `/api/${apiVersion}/exec#execute-command`,
+            attrs: { 'data-method': 'wss' },
+          },
+          {
+            label: 'List Exec Sessions',
+            link: `/api/${apiVersion}/exec#list-exec-sessions`,
+            attrs: { 'data-method': 'get' },
+          },
+          {
+            label: 'Attach to Exec Session',
+            link: `/api/${apiVersion}/exec#attach-to-exec-session`,
+            attrs: { 'data-method': 'wss' },
+          },
+          {
+            label: 'Kill Exec Session',
+            link: `/api/${apiVersion}/exec#kill-exec-session`,
+            attrs: { 'data-method': 'post' },
+          },
+        ],
+      },
+      {
+        label: 'Network Policy',
+        collapsed: true,
+        items: [
+          {
+            label: 'Get Network Policy',
+            link: `/api/${apiVersion}/policy#get-network-policy`,
+            attrs: { 'data-method': 'get' },
+          },
+          {
+            label: 'Set Network Policy',
+            link: `/api/${apiVersion}/policy#set-network-policy`,
+            attrs: { 'data-method': 'post' },
+          },
+        ],
+      },
+      {
+        label: 'Proxy',
+        collapsed: true,
+        items: [
+          {
+            label: 'TCP Proxy',
+            link: `/api/${apiVersion}/proxy#tcp-proxy`,
+            attrs: { 'data-method': 'wss' },
+          },
+        ],
+      },
+      {
+        label: 'Services',
+        collapsed: true,
+        items: [
+          {
+            label: 'List Services',
+            link: `/api/${apiVersion}/services#list-services`,
+            attrs: { 'data-method': 'get' },
+          },
+          {
+            label: 'Get Service',
+            link: `/api/${apiVersion}/services#get-service`,
+            attrs: { 'data-method': 'get' },
+          },
+          {
+            label: 'Create Service',
+            link: `/api/${apiVersion}/services#create-service`,
+            attrs: { 'data-method': 'put' },
+          },
+          {
+            label: 'Start Service',
+            link: `/api/${apiVersion}/services#start-service`,
+            attrs: { 'data-method': 'post' },
+          },
+          {
+            label: 'Stop Service',
+            link: `/api/${apiVersion}/services#stop-service`,
+            attrs: { 'data-method': 'post' },
+          },
+          {
+            label: 'Get Service Logs',
+            link: `/api/${apiVersion}/services#get-service-logs`,
+            attrs: { 'data-method': 'get' },
+          },
+        ],
+      },
+      { label: 'Type Definitions', slug: `api/${apiVersion}/types` },
     ],
   },
 ];

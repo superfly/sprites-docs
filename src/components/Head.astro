@@ -183,4 +183,121 @@ const breadcrumbSchema = {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(initCodeBlocks, 100);
   });
+
+  // Watch for React islands hydrating and adding new anchor links
+  // This handles MethodHeader components that render after initial page load
+  const anchorObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          // Check if the added node is or contains an anchor link
+          const anchors = node.classList?.contains('sl-anchor-link')
+            ? [node]
+            : node.querySelectorAll?.('.sl-anchor-link') || [];
+          if (anchors.length > 0) {
+            // Re-run init to set up the new anchor links
+            initCodeBlocks();
+            return; // Only need to run once per mutation batch
+          }
+        }
+      }
+    }
+  });
+
+  // Start observing once DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      anchorObserver.observe(document.body, { childList: true, subtree: true });
+    });
+  } else {
+    anchorObserver.observe(document.body, { childList: true, subtree: true });
+  }
+</script>
+
+<!-- Sidebar group navigation: click heading to expand and navigate to page -->
+<script>
+  function initSidebarNavigation() {
+    // Normalize path by removing trailing slash for comparison
+    const normalizePath = (path) => path.replace(/\/$/, '') || '/';
+    const currentPath = normalizePath(window.location.pathname);
+    const currentHash = window.location.hash;
+    const currentUrl = currentPath + currentHash;
+
+    // Find all nested sidebar groups within API Reference
+    const sidebarGroups = document.querySelectorAll('nav[aria-label="Main"] details details');
+
+    sidebarGroups.forEach((details) => {
+      const summary = details.querySelector(':scope > summary');
+      if (!summary) return;
+
+      // Find the first link within this group to determine the page URL
+      const firstLink = details.querySelector(':scope > ul a[href]');
+      if (!firstLink) return;
+
+      // Extract the page URL without the anchor and normalize
+      const href = firstLink.getAttribute('href') || '';
+      const pageUrl = normalizePath(href.split('#')[0]);
+      if (!pageUrl) return;
+
+      // Auto-expand if current page matches this group's page
+      if (currentPath === pageUrl) {
+        details.setAttribute('open', '');
+      }
+
+      // Mark anchor links as current if they match the current URL hash
+      const allLinks = details.querySelectorAll(':scope > ul a[href]');
+      allLinks.forEach((link) => {
+        const linkHref = link.getAttribute('href') || '';
+        const linkPath = normalizePath(linkHref.split('#')[0]);
+        const linkHash = linkHref.includes('#') ? '#' + linkHref.split('#')[1] : '';
+        const fullLinkUrl = linkPath + linkHash;
+
+        // Only mark as current if:
+        // 1. Link has a hash and it matches the current URL exactly (path + hash)
+        // 2. Link has no hash and we're on that exact page with no hash
+        const isCurrentLink = linkHash
+          ? fullLinkUrl === currentUrl
+          : (linkPath === currentPath && !currentHash);
+
+        if (isCurrentLink) {
+          link.setAttribute('data-current', 'true');
+        } else {
+          link.removeAttribute('data-current');
+        }
+      });
+
+      // Skip click handler setup if already initialized
+      if (summary.dataset.navInit) return;
+      summary.dataset.navInit = 'true';
+
+      // Add click handler to summary
+      summary.addEventListener('click', (e) => {
+        // Allow normal toggle behavior with modifier keys
+        if (e.shiftKey || e.ctrlKey || e.metaKey) return;
+
+        // If currently closed, expand and navigate to page
+        if (!details.open) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Navigate to the page (without anchor hash)
+          window.location.href = pageUrl;
+        }
+        // If already open, just toggle closed (default behavior)
+      });
+
+      // Make summary look clickable
+      summary.style.cursor = 'pointer';
+    });
+  }
+
+  // Run on initial load and page transitions
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSidebarNavigation);
+  } else {
+    initSidebarNavigation();
+  }
+  document.addEventListener('astro:page-load', initSidebarNavigation);
+
+  // Also update on hash change (when clicking anchor links)
+  window.addEventListener('hashchange', initSidebarNavigation);
 </script>
