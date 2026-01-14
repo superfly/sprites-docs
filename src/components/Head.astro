@@ -183,6 +183,35 @@ const breadcrumbSchema = {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(initCodeBlocks, 100);
   });
+
+  // Watch for React islands hydrating and adding new anchor links
+  // This handles MethodHeader components that render after initial page load
+  const anchorObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          // Check if the added node is or contains an anchor link
+          const anchors = node.classList?.contains('sl-anchor-link')
+            ? [node]
+            : node.querySelectorAll?.('.sl-anchor-link') || [];
+          if (anchors.length > 0) {
+            // Re-run init to set up the new anchor links
+            initCodeBlocks();
+            return; // Only need to run once per mutation batch
+          }
+        }
+      }
+    }
+  });
+
+  // Start observing once DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      anchorObserver.observe(document.body, { childList: true, subtree: true });
+    });
+  } else {
+    anchorObserver.observe(document.body, { childList: true, subtree: true });
+  }
 </script>
 
 <!-- Sidebar group navigation: click heading to expand and navigate to page -->
