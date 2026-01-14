@@ -1,0 +1,449 @@
+---
+title: Sprites API
+description: Create, list, update, and delete Sprites
+tableOfContents: false
+---
+
+import {
+  MethodPage,
+  MethodPageLeft,
+  MethodPageRight,
+  MethodHeader,
+  PropertyTree,
+  Callout,
+} from '@/components/react';
+import CodeSnippets from '@/components/CodeSnippets.astro';
+
+<div className="api-full-width">
+
+<div id="create-sprite">
+<MethodPage client:load>
+  <MethodPageLeft client:load>
+    <MethodHeader
+      method="POST"
+      path="/v1/sprites"
+      title="Create Sprite"
+      description="Creates a new sprite with a unique name within your organization. The sprite starts in a 'cold' state and will warm up on first request."
+      client:load
+    />
+
+    <div style={{ marginTop: '2rem' }}>
+      <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Request Body</h3>
+      <PropertyTree properties={[
+        { name: 'name', type: 'string', required: true, description: 'Unique name for the sprite within the organization' },
+        { name: 'wait_for_capacity', type: 'boolean', description: 'If true, wait for VM capacity before returning (default: false)' },
+        { name: 'url_settings', type: 'object', description: 'URL access configuration', children: [
+          { name: 'auth', type: 'string', description: '"sprite" (default) or "public"' }
+        ]}
+      ]} client:load />
+    </div>
+
+    <div style={{ marginTop: '2rem' }}>
+
+### Responses
+
+| Status | Description |
+|--------|-------------|
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-green)' }} />`201`</span> | Created - Sprite created successfully |
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-orange)' }} />`400`</span> | Bad Request - Invalid request body or name already exists |
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-orange)' }} />`401`</span> | Unauthorized - Invalid or missing token |
+
+    </div>
+  </MethodPageLeft>
+
+  <MethodPageRight client:load>
+    <CodeSnippets
+      examples={[
+        { language: 'curl', code: `curl -X POST \\
+  -H "Authorization: Bearer $SPRITE_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"name": "my-sprite"}' \\
+  "https://api.sprites.dev/v1/sprites"` },
+        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+const spriteName = process.env.SPRITE_NAME;
+
+await client.createSprite(spriteName);
+console.log(\`Sprite '\${spriteName}' created\`);` },
+        { language: 'python', code: `from sprites import SpritesClient
+import os
+
+token = os.environ["SPRITE_TOKEN"]
+sprite_name = os.environ["SPRITE_NAME"]
+
+client = SpritesClient(token)
+client.create_sprite(sprite_name)
+print(f"Sprite '{sprite_name}' created")` },
+        { language: 'go', code: `token := os.Getenv("SPRITE_TOKEN")
+spriteName := os.Getenv("SPRITE_NAME")
+
+client := sprites.New(token)
+_, err := client.CreateSprite(context.Background(), spriteName, nil)
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Printf("Sprite '%s' created\\n", spriteName)` },
+        { language: 'elixir', code: `token = System.get_env("SPRITE_TOKEN")
+sprite_name = System.get_env("SPRITE_NAME")
+
+client = Sprites.new(token)
+{:ok, _sprite} = Sprites.create(client, sprite_name)
+IO.puts("Sprite '\#{sprite_name}' created")` }
+      ]}
+      response={`{
+  "id": "01234567-89ab-cdef-0123-456789abcdef",
+  "name": "my-sprite",
+  "organization": "my-org",
+  "url": "https://my-sprite-abc123.sprites.app",
+  "url_settings": {
+    "auth": "sprite"
+  },
+  "status": "cold",
+  "created_at": "2026-01-13T10:30:00Z",
+  "updated_at": "2026-01-13T10:30:00Z"
+}`}
+    />
+  </MethodPageRight>
+</MethodPage>
+</div>
+
+---
+
+<div id="list-sprites">
+<MethodPage client:load>
+  <MethodPageLeft client:load>
+    <MethodHeader
+      method="GET"
+      path="/v1/sprites"
+      title="List Sprites"
+      description="Lists all sprites for the authenticated organization. Supports pagination and filtering by name prefix."
+      client:load
+    />
+
+    <div style={{ marginTop: '2rem' }}>
+      <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Query Parameters</h3>
+      <PropertyTree properties={[
+        { name: 'prefix', type: 'string', description: 'Filter sprites by name prefix' },
+        { name: 'max_results', type: 'number', description: 'Maximum results to return (1-50, default: 50)' },
+        { name: 'continuation_token', type: 'string', description: 'Token from previous response for pagination' }
+      ]} client:load />
+    </div>
+
+    <div style={{ marginTop: '2rem' }}>
+
+### Responses
+
+| Status | Description |
+|--------|-------------|
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-green)' }} />`200`</span> | Success - Returns list of sprites |
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-orange)' }} />`401`</span> | Unauthorized - Invalid or missing token |
+
+    </div>
+  </MethodPageLeft>
+
+  <MethodPageRight client:load>
+    <CodeSnippets
+      examples={[
+        { language: 'curl', code: `curl -H "Authorization: Bearer $SPRITE_TOKEN" \\
+  "https://api.sprites.dev/v1/sprites"` },
+        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+
+const sprites = await client.listSprites();
+console.log(JSON.stringify(sprites, null, 2));` },
+        { language: 'python', code: `from sprites import SpritesClient
+import os
+import json
+
+token = os.environ["SPRITE_TOKEN"]
+
+client = SpritesClient(token)
+sprites = client.list_sprites()
+print(json.dumps([{"name": s.name} for s in sprites.sprites], indent=2))` },
+        { language: 'go', code: `token := os.Getenv("SPRITE_TOKEN")
+
+client := sprites.New(token)
+list, err := client.ListSprites(context.Background(), nil)
+if err != nil {
+	log.Fatal(err)
+}
+out, _ := json.MarshalIndent(list.Sprites, "", "  ")
+fmt.Println(string(out))` },
+        { language: 'elixir', code: `token = System.get_env("SPRITE_TOKEN")
+
+client = Sprites.new(token)
+{:ok, sprites} = Sprites.list(client)
+sprites |> Jason.encode!(pretty: true) |> IO.puts()` }
+      ]}
+      response={`{
+  "sprites": [
+    {
+      "name": "my-sprite",
+      "org_slug": "my-org",
+      "updated_at": "2026-01-13T10:30:00Z"
+    },
+    {
+      "name": "dev-sprite",
+      "org_slug": "my-org",
+      "updated_at": "2026-01-12T08:15:00Z"
+    }
+  ],
+  "has_more": false,
+  "next_continuation_token": null
+}`}
+    />
+  </MethodPageRight>
+</MethodPage>
+</div>
+
+---
+
+<div id="get-sprite">
+<MethodPage client:load>
+  <MethodPageLeft client:load>
+    <MethodHeader
+      method="GET"
+      path="/v1/sprites/{name}"
+      title="Get Sprite"
+      description="Retrieves details for a specific sprite by name."
+      client:load
+    />
+
+    <div style={{ marginTop: '2rem' }}>
+
+### Responses
+
+| Status | Description |
+|--------|-------------|
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-green)' }} />`200`</span> | Success - Returns sprite details |
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-orange)' }} />`401`</span> | Unauthorized - Invalid or missing token |
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-orange)' }} />`404`</span> | Not Found - Sprite does not exist |
+
+    </div>
+  </MethodPageLeft>
+
+  <MethodPageRight client:load>
+    <CodeSnippets
+      examples={[
+        { language: 'curl', code: `curl -H "Authorization: Bearer $SPRITE_TOKEN" \\
+  "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` },
+        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+const spriteName = process.env.SPRITE_NAME;
+
+const sprite = await client.getSprite(spriteName);
+console.log(JSON.stringify(sprite, null, 2));` },
+        { language: 'python', code: `from sprites import SpritesClient
+import os
+import json
+
+token = os.environ["SPRITE_TOKEN"]
+sprite_name = os.environ["SPRITE_NAME"]
+
+client = SpritesClient(token)
+sprite = client.get_sprite(sprite_name)
+print(json.dumps({"name": sprite.name}, indent=2))` },
+        { language: 'go', code: `token := os.Getenv("SPRITE_TOKEN")
+spriteName := os.Getenv("SPRITE_NAME")
+
+client := sprites.New(token)
+sprite, err := client.GetSprite(context.Background(), spriteName)
+if err != nil {
+	log.Fatal(err)
+}
+out, _ := json.MarshalIndent(sprite, "", "  ")
+fmt.Println(string(out))` },
+        { language: 'elixir', code: `token = System.get_env("SPRITE_TOKEN")
+sprite_name = System.get_env("SPRITE_NAME")
+
+client = Sprites.new(token)
+{:ok, sprite} = Sprites.get_sprite(client, sprite_name)
+sprite |> Jason.encode!(pretty: true) |> IO.puts()` }
+      ]}
+      response={`{
+  "id": "01234567-89ab-cdef-0123-456789abcdef",
+  "name": "my-sprite",
+  "organization": "my-org",
+  "url": "https://my-sprite-abc123.sprites.app",
+  "url_settings": {
+    "auth": "sprite"
+  },
+  "status": "running",
+  "created_at": "2026-01-13T10:30:00Z",
+  "updated_at": "2026-01-13T14:22:00Z"
+}`}
+    />
+  </MethodPageRight>
+</MethodPage>
+</div>
+
+---
+
+<div id="update-sprite">
+<MethodPage client:load>
+  <MethodPageLeft client:load>
+    <MethodHeader
+      method="PUT"
+      path="/v1/sprites/{name}"
+      title="Update Sprite"
+      description="Updates settings for an existing sprite. Currently supports updating URL authentication settings."
+      client:load
+    />
+
+    <div style={{ marginTop: '2rem' }}>
+      <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>Request Body</h3>
+      <PropertyTree properties={[
+        { name: 'url_settings', type: 'object', required: true, description: 'URL access configuration', children: [
+          { name: 'auth', type: 'string', required: true, description: '"sprite" or "public"' }
+        ]}
+      ]} client:load />
+    </div>
+
+    <div style={{ marginTop: '2rem' }}>
+
+### Responses
+
+| Status | Description |
+|--------|-------------|
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-green)' }} />`200`</span> | Success - Returns updated sprite |
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-orange)' }} />`400`</span> | Bad Request - Invalid request body |
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-orange)' }} />`401`</span> | Unauthorized - Invalid or missing token |
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-orange)' }} />`404`</span> | Not Found - Sprite does not exist |
+
+    </div>
+  </MethodPageLeft>
+
+  <MethodPageRight client:load>
+    <CodeSnippets
+      examples={[
+        { language: 'curl', code: `curl -X PUT \\
+  -H "Authorization: Bearer $SPRITE_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url_settings": {"auth": "public"}}' \\
+  "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` },
+        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+const spriteName = process.env.SPRITE_NAME;
+
+await client.updateURLSettings(spriteName, { auth: "public" });
+console.log("URL settings updated");` },
+        { language: 'python', code: `from sprites import SpritesClient, URLSettings
+import os
+
+token = os.environ["SPRITE_TOKEN"]
+sprite_name = os.environ["SPRITE_NAME"]
+
+client = SpritesClient(token)
+client.update_url_settings(sprite_name, URLSettings(auth="public"))
+print("URL settings updated")` },
+        { language: 'go', code: `token := os.Getenv("SPRITE_TOKEN")
+spriteName := os.Getenv("SPRITE_NAME")
+
+client := sprites.New(token)
+err := client.UpdateURLSettings(context.Background(), spriteName, &sprites.URLSettings{
+	Auth: "public",
+})
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Println("URL settings updated")` },
+        { language: 'elixir', code: `token = System.get_env("SPRITE_TOKEN")
+sprite_name = System.get_env("SPRITE_NAME")
+
+client = Sprites.new(token)
+sprite = Sprites.sprite(client, sprite_name)
+:ok = Sprites.update_url_settings(sprite, %{auth: "public"})
+IO.puts("URL settings updated")` }
+      ]}
+      response={`{
+  "id": "01234567-89ab-cdef-0123-456789abcdef",
+  "name": "my-sprite",
+  "organization": "my-org",
+  "url": "https://my-sprite-abc123.sprites.app",
+  "url_settings": {
+    "auth": "public"
+  },
+  "status": "running",
+  "created_at": "2026-01-13T10:30:00Z",
+  "updated_at": "2026-01-13T15:00:00Z"
+}`}
+    />
+  </MethodPageRight>
+</MethodPage>
+</div>
+
+---
+
+<div id="delete-sprite">
+<MethodPage client:load>
+  <MethodPageLeft client:load>
+    <MethodHeader
+      method="DELETE"
+      path="/v1/sprites/{name}"
+      title="Delete Sprite"
+      description="Permanently deletes a sprite and all associated resources. This action cannot be undone."
+      client:load
+    />
+
+    <div style={{ marginTop: '2rem' }}>
+
+### Responses
+
+| Status | Description |
+|--------|-------------|
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-green)' }} />`204`</span> | No Content - Sprite deleted successfully |
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-orange)' }} />`401`</span> | Unauthorized - Invalid or missing token |
+| <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--sl-color-orange)' }} />`404`</span> | Not Found - Sprite does not exist |
+
+    </div>
+  </MethodPageLeft>
+
+  <MethodPageRight client:load>
+    <CodeSnippets
+      examples={[
+        { language: 'curl', code: `curl -X DELETE \\
+  -H "Authorization: Bearer $SPRITE_TOKEN" \\
+  "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` },
+        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+
+const client = new SpritesClient(process.env.SPRITE_TOKEN);
+const spriteName = process.env.SPRITE_NAME;
+
+await client.deleteSprite(spriteName);
+console.log(\`Sprite '\${spriteName}' destroyed\`);` },
+        { language: 'python', code: `from sprites import SpritesClient
+import os
+
+token = os.environ["SPRITE_TOKEN"]
+sprite_name = os.environ["SPRITE_NAME"]
+
+client = SpritesClient(token)
+client.delete_sprite(sprite_name)
+print(f"Sprite '{sprite_name}' destroyed")` },
+        { language: 'go', code: `token := os.Getenv("SPRITE_TOKEN")
+spriteName := os.Getenv("SPRITE_NAME")
+
+client := sprites.New(token)
+err := client.DestroySprite(context.Background(), spriteName)
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Printf("Sprite '%s' destroyed\\n", spriteName)` },
+        { language: 'elixir', code: `token = System.get_env("SPRITE_TOKEN")
+sprite_name = System.get_env("SPRITE_NAME")
+
+client = Sprites.new(token)
+sprite = Sprites.sprite(client, sprite_name)
+:ok = Sprites.destroy(sprite)
+IO.puts("Sprite '\#{sprite_name}' destroyed")` }
+      ]}
+    />
+  </MethodPageRight>
+</MethodPage>
+</div>
+
+</div>

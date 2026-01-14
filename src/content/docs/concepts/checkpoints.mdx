@@ -5,7 +5,7 @@ draft: true
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
-import { Snippet, LinkCard, CardGrid } from '@/components/react';
+import { Snippet, LinkCard, CardGrid, Callout } from '@/components/react';
 
 **Sprites are programmable Linux environments you can spin up, script, and share. Checkpoints let you save a Sprite's entire state and bring it back later.** They capture persistent state: your filesystem, installed packages, environment config, dotfiles. They don't include running processes, network connections, or anything in memory.
 
@@ -284,16 +284,19 @@ Deleted
 </TabItem>
 </Tabs>
 
-### Delete Restrictions
-
+<Callout type="warning" title="Delete Restrictions" client:load>
 You cannot delete the currently active checkpoint. Attempting to do so returns an error:
 
 ```bash
 sprite checkpoint delete v2
-# Error: cannot delete active checkpoint
+```
+
+```output
+Error: cannot delete active checkpoint
 ```
 
 To delete an active checkpoint, first restore to a different checkpoint, then delete the original.
+</Callout>
 
 ### Cleanup Considerations
 

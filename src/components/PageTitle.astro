@@ -2,14 +2,25 @@
 import StarlightPageTitle from '@astrojs/starlight/components/PageTitle.astro';
 import CopyPageButton from './CopyPageButton.astro';
 import { ContentBreadcrumbs } from './react/Breadcrumbs';
+import { VersionSelector } from './react/api/VersionSelector';
+import { getVersionFromPath, API_VERSIONS } from '@/lib/api-versions';
 
 const currentPath = Astro.url.pathname;
 const sidebar = Astro.locals.starlightRoute?.sidebar ?? [];
+
+// Check if this is a versioned API page
+const versionId = getVersionFromPath(currentPath);
+const isVersionedApiPage = versionId !== null && API_VERSIONS.length > 1;
 ---
 
 <div class="page-nav-container">
 	<ContentBreadcrumbs client:load currentPath={currentPath} sidebar={sidebar} />
-	<CopyPageButton />
+	<div class="page-nav-actions">
+		{isVersionedApiPage && (
+			<VersionSelector client:load currentPath={currentPath} />
+		)}
+		<CopyPageButton />
+	</div>
 </div>
 <StarlightPageTitle />
 
@@ -19,5 +30,11 @@ const sidebar = Astro.locals.starlightRoute?.sidebar ?? [];
 		justify-content: space-between;
 		align-items: center;
 		margin-bottom: 0.5rem;
+	}
+	.page-nav-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-left: auto; /* Always push to right even if breadcrumbs are empty */
 	}
 </style>

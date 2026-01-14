@@ -7,10 +7,13 @@ const pageTitle = entry?.data?.title || 'Documentation'
 const pageMarkdown = entry?.body || ''
 const pageUrl = Astro.url.href
 
-// Construct GitHub URL for this page
+// API pages are auto-generated, so no GitHub source to link to
+const isApiPage = slug?.startsWith('api/')
+
+// Construct GitHub URL for this page (empty for API pages)
 const githubBaseUrl = 'https://github.com/superfly/sprites-docs/blob/main/src/content/docs/'
 const filePath = slug ? `${slug}.mdx` : 'index.mdx'
-const githubUrl = `${githubBaseUrl}${filePath}`
+const githubUrl = isApiPage ? '' : `${githubBaseUrl}${filePath}`
 ---
 
 <div class="copy-page-button-wrapper">
