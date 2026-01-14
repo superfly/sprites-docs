@@ -242,7 +242,8 @@ export function CopyPageButton({
             </span>
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={() => window.open(githubUrl, '_blank')}
+            onClick={() => githubUrl && window.open(githubUrl, '_blank')}
+            disabled={!githubUrl}
             className="flex flex-col items-start gap-0.5 py-2"
           >
             <div className="flex items-center gap-2">
@@ -251,13 +252,20 @@ export function CopyPageButton({
                 View on GitHub
                 <VisuallyHidden> (opens in new tab)</VisuallyHidden>
               </span>
-              <ArrowUpRight className="size-3 opacity-50" aria-hidden="true" />
+              {githubUrl && (
+                <ArrowUpRight
+                  className="size-3 opacity-50"
+                  aria-hidden="true"
+                />
+              )}
             </div>
             <span
               className="text-xs text-muted-foreground pl-6"
               aria-hidden="true"
             >
-              View source on GitHub
+              {githubUrl
+                ? 'View source on GitHub'
+                : 'Not available for generated pages'}
             </span>
           </DropdownMenuItem>
         </DropdownMenuContent>

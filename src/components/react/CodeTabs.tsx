@@ -1,5 +1,6 @@
 import { Children, isValidElement, type ReactNode } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getLanguageLabel } from '@/lib/language-config';
 
 interface CodeTabsProps {
   children: ReactNode;
@@ -33,7 +34,7 @@ export function CodeTabs({ children }: CodeTabsProps) {
         <TabsList className="mb-2">
           {snippets.map((snippet) => (
             <TabsTrigger key={snippet.name} value={snippet.name}>
-              {formatTabName(snippet.name)}
+              {getLanguageLabel(snippet.name)}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -49,21 +50,4 @@ export function CodeTabs({ children }: CodeTabsProps) {
 
 export function Snippet({ children }: SnippetProps) {
   return <>{children}</>;
-}
-
-function formatTabName(name: string): string {
-  const names: Record<string, string> = {
-    cli: 'CLI',
-    javascript: 'JavaScript',
-    go: 'Go',
-    macos: 'macOS',
-    linux: 'Linux',
-    windows: 'Windows',
-    bash: 'Bash',
-    typescript: 'TypeScript',
-    python: 'Python',
-  };
-  return (
-    names[name.toLowerCase()] || name.charAt(0).toUpperCase() + name.slice(1)
-  );
 }

@@ -52,5 +52,9 @@ cypress/downloads
 styles/Google/
 styles/proselint/
 styles/write-good/
+# Generated CLI documentation (rebuilt on deploy)
 cli-test-report.json
 src/content/docs/cli/commands.mdx
+
+# Generated API documentation (rebuilt on deploy)
+src/content/docs/api/
