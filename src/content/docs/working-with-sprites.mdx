@@ -41,15 +41,17 @@ sprite console
 - Stays open until you exit
 - Use for manual work or debugging
 
-### `exec -detachable` + attach – Keep things running
+### Sessions – Keep things running
 
-Start a command that keeps running even after you disconnect. Great for dev servers, long builds, or background processes.
+All TTY sessions are automatically detachable. Start a command, disconnect with `Ctrl+\`, and reattach later. Great for dev servers, long builds, or background processes.
 
 ```bash
-sprite exec -detachable "npm run dev"
-sprite exec            # list sessions
-sprite exec -id <id>   # attach to session
-sprite exec -id <id> -kill  # kill session
+sprite exec -tty "npm run dev"   # start a TTY session
+# Press Ctrl+\ to detach
+
+sprite sessions                  # list running sessions
+sprite sessions attach <id>      # reattach to session
+sprite sessions kill <id>        # kill session
 ```
 
 ---
@@ -64,7 +66,7 @@ Sprites automatically hibernate after 30 seconds of inactivity. That means:
 <StatusIcon type="x" client:load>**RAM doesn't persist**: Running processes stop, in-memory data is lost</StatusIcon>
 <StatusIcon type="check" client:load>**Network config persists**: Open ports, URL settings, SSH access all remain configured</StatusIcon>
 
-This means you can install dependencies once and they're there forever. But if you're running a web server, it'll need to restart when the Sprite wakes up—that's what detachable sessions are for.
+This means you can install dependencies once and they're there forever. But if you're running a web server, it'll need to restart when the Sprite wakes up—that's what TTY sessions are for.
 
 ### Wake-up Behavior
 
@@ -73,10 +75,11 @@ Wake-up is fast:
 - ~100–500ms for normal wakes
 - 1–2s on cold starts
 
-Use detachable sessions to keep things running without hibernating. You can reattach later and see all the output.
+Use TTY sessions to keep things running without hibernating. You can detach with `Ctrl+\` and reattach later to see all the output.
 
 ```bash
-sprite exec -detachable "rails server"
+sprite exec -tty "rails server"
+# Press Ctrl+\ to detach, use `sprite sessions attach <id>` to reattach
 ```
 
 ### Idle Detection
@@ -85,7 +88,7 @@ If something's running, your Sprite stays awake. Otherwise, it sleeps. That incl
 
 - Active exec/console commands
 - Open TCP connections (like your app's URL)
-- Running detachable sessions
+- Running TTY sessions
 
 ---
 
