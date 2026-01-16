@@ -6,7 +6,9 @@ tableOfContents: false
 
 import { LinkCard, CardGrid } from '@/components/react';
 
-**Sprites are persistent, hardware-isolated Linux environments for running arbitrary code.** It's like having a small, stateful computer you can spin up on demand. Unlike serverless functions, Sprites keep their filesystem and memory between runs. They're useful for things like AI agents, persistent development environments, or user-submitted code.
+Running arbitrary code safely is hard. You need strong isolation, persistent state between runs, and fast startup times—without the complexity of managing infrastructure yourself.
+
+Sprites are persistent, hardware-isolated Linux environments for running arbitrary code. It's like having a small, stateful computer you can spin up on demand. Unlike serverless functions, Sprites keep their filesystem and memory between runs. They're useful for things like AI agents, persistent development environments, or user-submitted code.
 
 <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
   <iframe
@@ -20,15 +22,18 @@ import { LinkCard, CardGrid } from '@/components/react';
   ></iframe>
 </div>
 
+*Watch: A 3-minute introduction to Sprites—see how to create, execute commands, and manage persistent environments.*
+
 ## What makes Sprites different?
 
-| Feature | Traditional Serverless | Sprites |
+| Feature | Serverless Functions | Sprites |
 |---------|----------------------|---------|
-| State | Ephemeral | Persistent |
-| Filesystem | Read-only or temporary | Full ext4, persists between runs |
-| Startup | Cold starts | Instant wake from hibernation |
-| Billing | Per-invocation | Per-second compute, free when idle |
-| Environment | Fixed container | Full Linux with any tools |
+| **State** | Ephemeral | **Persistent** ✓ |
+| **Filesystem** | Read-only or temporary | **Full ext4** ✓ — persists between runs |
+| **Startup** | Cold starts (100ms–seconds) | **Instant** ✓ — wake from hibernation |
+| **Billing** | Per-invocation | **Per-second** ✓ — compute free when idle |
+| **Environment** | Fixed container image | **Full Linux** ✓ — install any tools |
+| **Isolation** | Container-level | **Hardware-level** ✓ — dedicated microVM |
 
 ## Use Cases
 
@@ -62,20 +67,6 @@ Every Sprite gets a unique URL, making it easy to expose web services or APIs ru
     title="Quickstart"
     description="Install the CLI, create your first Sprite, and explore the features"
     icon="rocket"
-    client:load
-  />
-  <LinkCard
-    href="/sdks/javascript"
-    title="JavaScript SDK"
-    description="Build with Sprites in Node.js applications"
-    icon="code"
-    client:load
-  />
-  <LinkCard
-    href="/sdks/go"
-    title="Go SDK"
-    description="Use the native Go client mirroring os/exec"
-    icon="code"
     client:load
   />
   <LinkCard
