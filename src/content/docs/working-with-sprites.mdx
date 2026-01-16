@@ -3,7 +3,7 @@ title: Working with Sprites
 description: Beyond the basics—sessions, ports, persistence, and everything you need to build real stuff
 ---
 
-import { Callout } from '@/components/react';
+import { Callout, StatusIcon } from '@/components/react';
 
 After you've made it through the [Quickstart](/quickstart), you've got a working Sprite and a basic idea of how to use it. This guide picks up from there: how to run commands, manage sessions, keep processes alive, and make sure your environment stays consistent over time. The first half covers everything you need to build and deploy real stuff. The rest is there when you're ready to go deeper.
 
@@ -60,9 +60,9 @@ Sprites automatically hibernate after 30 seconds of inactivity. That means:
 
 ### What Persists (and What Doesn't)
 
-- **✅ Filesystem persists**: All files, installed packages, git repos, databases—everything on disk stays intact
-- **❌ RAM doesn't persist**: Running processes stop, in-memory data is lost
-- **✅ Network config persists**: Open ports, URL settings, SSH access all remain configured
+<StatusIcon type="check" client:load>**Filesystem persists**: All files, installed packages, git repos, databases—everything on disk stays intact</StatusIcon>
+<StatusIcon type="x" client:load>**RAM doesn't persist**: Running processes stop, in-memory data is lost</StatusIcon>
+<StatusIcon type="check" client:load>**Network config persists**: Open ports, URL settings, SSH access all remain configured</StatusIcon>
 
 This means you can install dependencies once and they're there forever. But if you're running a web server, it'll need to restart when the Sprite wakes up—that's what detachable sessions are for.
 
@@ -203,10 +203,11 @@ sprite restore <id>
 Use before risky changes, upgrades, or experiments.
 
 **What gets saved:**
-- ✅ Entire filesystem (all files, installed packages, databases)
-- ✅ File permissions and ownership
-- ❌ Running processes (they stop during checkpoint creation)
-- ❌ In-memory state
+
+<StatusIcon type="check" client:load>Entire filesystem (all files, installed packages, databases)</StatusIcon>
+<StatusIcon type="check" client:load>File permissions and ownership</StatusIcon>
+<StatusIcon type="x" client:load>Running processes (they stop during checkpoint creation)</StatusIcon>
+<StatusIcon type="x" client:load>In-memory state</StatusIcon>
 
 **Good to know:**
 - Checkpoints count against your storage quota
@@ -271,7 +272,7 @@ umount /tmp/sprite-my-sprite
 **Sprite won't wake up:**
 - Verify it exists with `sprite list`
 - Wait 30 seconds and retry
-- Contact support if persistent
+- [Contact support](https://fly.io/dashboard/support) if persistent
 
 **Storage full:**
 - Clean up files: `sprite exec "du -sh /home/sprite/*"`
@@ -288,4 +289,4 @@ sprite exec "free -h"     # memory usage
 
 ---
 
-Thanks for making it this far. Sprites are meant to feel like your own Linux box in the sky—fast to wake, persistent when you need it, and flexible enough to run whatever weird stack you're building. As you get more comfortable, the advanced features are there when you need them. Until then, happy hacking.
+Sprites are meant to feel like your own Linux box in the sky—fast to wake, persistent when you need it, and flexible enough to run whatever weird stack you're building. As you get more comfortable, the advanced features are there when you need them.

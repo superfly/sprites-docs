@@ -34,4 +34,5 @@ export { PricingRates } from './PricingRates';
 export { SearchDialog } from './SearchDialog';
 export { SearchDialogWrapper } from './SearchDialogWrapper';
 export { StatusBadge, StatusCodes } from './StatusCodes';
+export { StatusIcon } from './StatusIcon';
 export { ThemeSwitcher } from './ThemeSwitcher';
