@@ -26,12 +26,12 @@ Sprites are persistent, hardware-isolated Linux environments for running arbitra
 
 ## What makes Sprites different?
 
-| Feature | Traditional Serverless | Sprites |
+| Feature | Serverless Functions | Sprites |
 |---------|----------------------|---------|
 | **State** | Ephemeral | **Persistent** ✓ |
 | **Filesystem** | Read-only or temporary | **Full ext4** ✓ — persists between runs |
 | **Startup** | Cold starts (100ms–seconds) | **Instant** ✓ — wake from hibernation |
-| **Billing** | Per-invocation | **Per-second** ✓ — free when idle |
+| **Billing** | Per-invocation | **Per-second** ✓ — compute free when idle |
 | **Environment** | Fixed container image | **Full Linux** ✓ — install any tools |
 | **Isolation** | Container-level | **Hardware-level** ✓ — dedicated microVM |
 
