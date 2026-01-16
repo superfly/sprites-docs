@@ -8,7 +8,7 @@ import { Callout, LinkCard, CardGrid } from '@/components/react';
 
 Sprites are cloud VMs that feel like persistent dev environments. You can run commands, install packages, create files—and everything stays exactly how you left it. Unlike containers that reset each time, Sprites remember your entire filesystem between sessions.
 
-The magic: when you're not using your Sprite, it goes to sleep. Send a command or HTTP request, and it wakes up instantly. No setup, no rebuilding—just pick up where you left off.
+The magic: when you're not using your Sprite, it goes to sleep. Send a command or HTTP request, and it wakes up instantly. Everything is right where you left it.
 
 This guide will walk you through creating your first Sprite. In just a few minutes, you'll have a persistent development environment that responds to HTTP traffic and remembers everything between runs.
 
@@ -20,7 +20,7 @@ Install with our install script (macOS/Linux):
 curl -fsSL https://sprites.dev/install.sh | sh
 ```
 
-This script is safe to run—it auto-detects your platform, verifies checksums, and installs the latest CLI to `~/.local/bin`.
+This script auto-detects your platform, verifies checksums, and installs the latest Sprite CLI to `~/.local/bin`.
 
 For Windows or manual installation, see [CLI Installation](/cli/installation) or download from [GitHub Releases](https://github.com/superfly/sprite-env/releases).
 
