@@ -49,7 +49,8 @@ All TTY sessions are automatically detachable. Start a command, disconnect with 
 sprite exec -tty "npm run dev"   # start a TTY session
 # Press Ctrl+\ to detach
 
-sprite sessions                  # list running sessions
+sprite sessions list             # list running sessions
+sprite s ls                      # short form list sessions
 sprite sessions attach <id>      # reattach to session
 sprite sessions kill <id>        # kill session
 ```
