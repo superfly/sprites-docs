@@ -27,7 +27,7 @@ These options work with any command:
 Authenticate with Fly.io
 
 ```bash
-sprite login [-o <org>]
+sprite login [api-url] [-o <org>]
 ```
 
 **Options:**
@@ -41,6 +41,7 @@ sprite login [-o <org>]
 ```bash
 sprite login
 sprite login -o my-org
+sprite login https://custom-api.sprites.dev
 ```
 
 ### `sprite logout`
@@ -127,7 +128,7 @@ sprite org keyring enable
 
 ### `sprite auth setup`
 
-Set up authentication from a token
+Set up authentication using a pre-generated token.
 
 ```bash
 sprite auth setup --token <token>
@@ -253,39 +254,35 @@ sprite destroy --force
 
 ### `sprite exec`
 
-Execute a command in the sprite environment or list running sessions
+Execute a command in the sprite environment
 
 ```bash
-sprite exec [options] [command] [args...]
+sprite exec [options] <command> [args...]
 ```
 
 **Aliases:** `sprite x`
 
 **Options:**
-- `-d, --detachable` - Create a detachable tmux session
 - `-d, --dir <string>` - Working directory for the command
 - `-e, --env <string>` - Environment variables (KEY=value,KEY2=value2)
+- `-f, --file <value>` - Upload file before exec (source:dest format, can be repeated)
 - `-h, --help` - Show help for this command Use HTTP/1.1 POST /exec instead of WebSockets (non-TTY only)
-- `-i, --id <string>` - Attach to existing session by ID
 - `-o, --o <string>` - Organization to use (shorthand)
 - `-o, --org <string>` - Organization to use
 - `-s, --s <string>` - Sprite to use (shorthand)
 - `-s, --sprite <string>` - Sprite to use
 - `-t, --tty` - Allocate a pseudo-TTY
 
-> When no command is specified, lists all running sessions in the sprite.
 > When using -tty, terminal environment variables (TERM, COLORTERM, LANG, LC_ALL)
 > are automatically passed through from your local environment.
-> When using -detachable, creates a tmux session that can be detached and reattached.
+> Use 'sprite sessions' to list, attach to, or kill running sessions.
 
 **Examples:**
 ```bash
-sprite exec                  # List running sessions
 sprite exec ls -la
 sprite exec -dir /app echo hello world
 sprite exec -env KEY=value,FOO=bar env
 sprite exec -tty /bin/bash
-sprite exec -detachable /bin/bash --login
 sprite exec -o myorg -s mysprite npm start
 ```
 
@@ -300,7 +297,6 @@ sprite console [options]
 **Aliases:** `sprite c`
 
 **Options:**
-- `-d, --detachable` - Deprecated: all sessions are now detachable by default (hidden, no-op)
 - `-h, --help` - Show help for this command
 - `-o, --o <string>` - Organization to use (shorthand)
 - `-o, --org <string>` - Organization to use
@@ -323,33 +319,25 @@ sprite console -o myorg -s mysprite
 
 ### `sprite checkpoint create`
 
-Create a new checkpoint
+Error: sprite name required: use -s flag or create a .sprite file
 
 ```bash
 sprite checkpoint create
 ```
 
-**Options:**
-- `-c, --comment <string>` - Optional comment to describe this checkpoint
-- `-h, --help` - Show help for this command
-
 ### `sprite checkpoint list`
 
-List all checkpoints
+Error: sprite name required: use -s flag or create a .sprite file
 
 ```bash
-sprite checkpoint list [options]
+sprite checkpoint list
 ```
 
 **Aliases:** `sprite checkpoint ls`, `sprite checkpoints ls`
 
-**Options:**
-- `-h, --help` - Show help for this command
-- `-h, --history <string>` - Filter by history version
-
 ### `sprite checkpoint info`
 
-Error: Failed to get checkpoint info: API returned status 500: Failed to get checkpoint: failed to get checkpoint: checkpoint not found: checkpoint with path checkpoints/--help not found
+Error: sprite name required: use -s flag or create a .sprite file
 
 ```bash
 sprite checkpoint info
@@ -357,21 +345,13 @@ sprite checkpoint info
 
 ### `sprite checkpoint delete`
 
-Delete a checkpoint (soft delete)
+Error: sprite name required: use -s flag or create a .sprite file
 
 ```bash
-sprite checkpoint delete <version-id>
+sprite checkpoint delete
 ```
 
 **Aliases:** `sprite checkpoint rm`
-
-**Options:**
-- `-h, --help` - Show help for this command
-
-**Examples:**
-```bash
-sprite checkpoint delete v3
-```
 
 ### `sprite restore`
 
