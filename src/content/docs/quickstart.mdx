@@ -6,7 +6,11 @@ description: Get up and running with Sprites in 5 minutes
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import { Callout, LinkCard, CardGrid } from '@/components/react';
 
-This guide shows you how to install the CLI, create your first Sprite, and start running commands. By the end, you'll have a working environment that sticks around between runs, serves traffic over HTTP, and wakes up automatically when you need it.
+Sprites are cloud VMs that feel like persistent dev environments. You can run commands, install packages, create files—and everything stays exactly how you left it. Unlike containers that reset each time, Sprites remember your entire filesystem between sessions.
+
+The magic: when you're not using your Sprite, it goes to sleep. Send a command or HTTP request, and it wakes up instantly. Everything is right where you left it.
+
+This guide will walk you through creating your first Sprite. In just a few minutes, you'll have a persistent development environment that responds to HTTP traffic and remembers everything between runs.
 
 ## Install the CLI
 
@@ -16,7 +20,7 @@ Install with our install script (macOS/Linux):
 curl -fsSL https://sprites.dev/install.sh | sh
 ```
 
-This auto-detects your platform, downloads the binary with checksum verification, and installs to `~/.local/bin`.
+This script auto-detects your platform, verifies checksums, and installs the latest Sprite CLI to `~/.local/bin`.
 
 For Windows or manual installation, see [CLI Installation](/cli/installation) or download from [GitHub Releases](https://github.com/superfly/sprite-env/releases).
 
@@ -54,6 +58,8 @@ Set it as your active Sprite to avoid adding `-s my-first-sprite` to every comma
 sprite use my-first-sprite
 ```
 
+Use `sprite list` to see all your Sprites, or `sprite destroy my-first-sprite` when you're done with one. You can have multiple Sprites running simultaneously—each with its own isolated environment.
+
 ## Run Commands
 
 Execute commands in your Sprite:
@@ -69,56 +75,87 @@ sprite exec "cd /tmp && ls -la"
 sprite console
 ```
 
-## Explore the Environment
+<Callout type="info">
+**Auto-wakeup magic**: When you're not using your Sprite, it shuts down to save resources. When you run a command or hit its URL, it wakes up instantly—like magic. No manual starting or stopping required.
+</Callout>
 
-Sprites come pre-configured with common development tools:
+## See Persistence in Action
+
+Your Sprite comes pre-configured with common development tools (Node.js, Python, Go, Git, and more). Here's the magic: **everything you install or create persists between commands**.
+
+### Check available runtimes
+
+See what's already installed and ready to use:
 
 ```bash
-# Check available runtimes
 sprite exec "node --version && python3 --version && go version"
-
-# Install packages
-sprite exec "pip install requests"
-
-# Clone a repository
-sprite exec "git clone https://github.com/your/repo.git"
 ```
 
-## Persistence in Action
+### Install a package
 
-Your Sprite's filesystem persists between commands:
+Install dependencies just like you would locally—they'll stick around:
+
+```bash
+sprite exec "pip install requests"
+```
+
+### Create and read files
+
+Files you create persist across sessions. Write once, read anytime:
 
 ```bash
 # Create a file
-sprite exec "echo 'Hello' > /home/sprite/greeting.txt"
+sprite exec "echo 'Hello from my persistent Sprite!' > /home/sprite/greeting.txt"
 
-# Later, it's still there
+# Disconnect, get coffee, come back later...
+# Everything is still there!
 sprite exec "cat /home/sprite/greeting.txt"
+sprite exec "python -c 'import requests; print(requests.__version__)'"
 ```
 
-## View Your Sprite's URL
+Unlike containers that reset on each run, your Sprite keeps your installed packages, files, and entire filesystem intact.
 
-Every Sprite has a unique HTTP URL:
+## Start a Web Server
+
+Every Sprite has a unique HTTP URL and can serve traffic. This makes it perfect for testing APIs, hosting prototypes, or running background services.
+
+### Serve HTTP
+
+Start a simple Python server and get your public URL:
 
 ```bash
+# Start a simple HTTP server on port 8080
+sprite exec "python -m http.server 8080 &"
+
+# Get your Sprite's public URL
 sprite url
 ```
 
-## Manage Sprites
+Visit the URL in your browser—you'll see Python's directory listing page. Your Sprite automatically routes HTTP traffic to port 8080 and wakes up to handle requests.
+
+<Callout type="info">
+By default, your Sprite's URL requires authentication. To make it publicly accessible, run:
 
 ```bash
-# List all sprites
-sprite list
-
-# Destroy when done
-sprite destroy my-first-sprite
+sprite url update --auth public
 ```
+
+The default `sprite` auth mode allows access using a Sprite token with Bearer authentication.
+</Callout>
+
+### Test on-demand wake-up
+
+Here's where it gets cool. Close your terminal, wait a minute, then visit the URL again. Your Sprite wakes up automatically to serve the request. That's the magic of on-demand wakeup—no manual starting or stopping required.
 
 ---
 
+<Callout type="tip">
+**You've got a working Sprite!** You've created a persistent environment, installed packages, created files, and served HTTP traffic—all of which will be there next time you connect. Try cloning a repo, running a build, or deploying a tiny HTTP service to see what else you can do.
+</Callout>
+
 ## Using the SDKs
 
-Beyond the CLI, you can create and manage Sprites programmatically:
+The CLI is perfect for day-to-day development, but if you're building tools, automation workflows, or integrating Sprites into your application, the SDKs give you programmatic control. Use them to dynamically create environments, orchestrate workloads, or embed Sprites into your product.
 
 <Tabs>
 <TabItem label="JavaScript">
@@ -209,20 +246,6 @@ Sprites.destroy(sprite)
     title="Working with Sprites"
     description="Sessions, ports, persistence, and everything beyond the basics"
     icon="book-open"
-    client:load
-  />
-  <LinkCard
-    href="/concepts/lifecycle"
-    title="Lifecycle & Persistence"
-    description="Deep dive into how Sprites work under the hood"
-    icon="layers"
-    client:load
-  />
-  <LinkCard
-    href="/reference/billing"
-    title="Billing & Costs"
-    description="Pricing, cost estimation, and optimization strategies"
-    icon="file-text"
     client:load
   />
   <LinkCard
