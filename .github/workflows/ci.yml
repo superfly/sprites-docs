@@ -51,6 +51,8 @@ jobs:
 
       - name: Generate CLI Docs
         run: pnpm generate:cli-docs
+        env:
+          SKIP_CLI_TESTS: 'true'
 
       - name: Commit generated CLI docs
         run: |
