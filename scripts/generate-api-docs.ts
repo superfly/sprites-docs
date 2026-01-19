@@ -8,7 +8,14 @@
  */
 
 import { constants } from 'node:fs';
-import { access, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import {
+  access,
+  mkdir,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   API_VERSIONS,
@@ -1489,7 +1496,10 @@ async function main() {
     const entries = await readdir(OUTPUT_BASE_DIR);
     for (const entry of entries) {
       if (entry !== '_manual') {
-        await rm(join(OUTPUT_BASE_DIR, entry), { recursive: true, force: true });
+        await rm(join(OUTPUT_BASE_DIR, entry), {
+          recursive: true,
+          force: true,
+        });
       }
     }
   } catch {
