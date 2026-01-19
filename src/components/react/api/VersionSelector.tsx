@@ -64,7 +64,10 @@ export function VersionSelector({ currentPath }: VersionSelectorProps) {
 
   return (
     <Select value={currentVersionId || ''} onValueChange={handleVersionChange}>
-      <SelectTrigger className="w-full h-9 text-sm bg-[var(--sl-color-bg)] border-[var(--sl-color-gray-5)]">
+      <SelectTrigger
+        className="w-full h-9 text-sm border-[var(--sl-color-gray-5)]"
+        style={{ backgroundColor: 'var(--sl-color-gray-6)' }}
+      >
         <SelectValue>
           <div className="flex items-center gap-2">
             <span>{currentVersion.label}</span>
