@@ -59,4 +59,6 @@ styles/write-good/
 cli-test-report.json
 
 # Generated API documentation (rebuilt on deploy)
-src/content/docs/api/
+# Manual pages in _manual/ are tracked, versioned output is generated
+src/content/docs/api/*
+!src/content/docs/api/_manual/

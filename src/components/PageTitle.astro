@@ -2,23 +2,14 @@
 import StarlightPageTitle from '@astrojs/starlight/components/PageTitle.astro';
 import CopyPageButton from './CopyPageButton.astro';
 import { ContentBreadcrumbs } from './react/Breadcrumbs';
-import { VersionSelector } from './react/api/VersionSelector';
-import { getVersionFromPath, API_VERSIONS } from '@/lib/api-versions';
 
 const currentPath = Astro.url.pathname;
 const sidebar = Astro.locals.starlightRoute?.sidebar ?? [];
-
-// Check if this is a versioned API page
-const versionId = getVersionFromPath(currentPath);
-const isVersionedApiPage = versionId !== null && API_VERSIONS.length > 1;
 ---
 
 <div class="page-nav-container">
 	<ContentBreadcrumbs client:load currentPath={currentPath} sidebar={sidebar} />
 	<div class="page-nav-actions">
-		{isVersionedApiPage && (
-			<VersionSelector client:load currentPath={currentPath} />
-		)}
 		<CopyPageButton />
 	</div>
 </div>

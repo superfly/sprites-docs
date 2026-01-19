@@ -8,7 +8,7 @@
  */
 
 import { constants } from 'node:fs';
-import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   API_VERSIONS,
@@ -1328,8 +1328,10 @@ ${itemsStr}
 }
 
 // ============================================================================
-// Manual page preservation
+// Manual page handling - shared across all versions
 // ============================================================================
+
+const MANUAL_PAGES_DIR = join(OUTPUT_BASE_DIR, '_manual');
 
 async function fileExists(path: string): Promise<boolean> {
   try {
@@ -1340,31 +1342,20 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-async function preserveManualPages(
-  versionId: string,
-): Promise<Map<string, string>> {
-  const preserved = new Map<string, string>();
-
+/**
+ * Copy manual pages from _manual/ directory to a specific version directory.
+ * Manual pages are shared across all versions.
+ */
+async function copyManualPagesToVersion(versionId: string): Promise<void> {
   for (const page of MANUAL_PAGES) {
-    const filePath = join(OUTPUT_BASE_DIR, versionId, `${page.category}.mdx`);
-    if (await fileExists(filePath)) {
-      const content = await readFile(filePath, 'utf-8');
-      preserved.set(page.category, content);
-      console.log(`  📌 Preserving manual page: ${page.category}.mdx`);
+    const sourcePath = join(MANUAL_PAGES_DIR, `${page.category}.mdx`);
+    const destPath = join(OUTPUT_BASE_DIR, versionId, `${page.category}.mdx`);
+
+    if (await fileExists(sourcePath)) {
+      const content = await readFile(sourcePath, 'utf-8');
+      await writeFile(destPath, content);
+      console.log(`  📄 Copied manual page: ${page.category}.mdx`);
     }
-  }
-
-  return preserved;
-}
-
-async function restoreManualPages(
-  versionId: string,
-  preserved: Map<string, string>,
-): Promise<void> {
-  for (const [category, content] of preserved) {
-    const filePath = join(OUTPUT_BASE_DIR, versionId, `${category}.mdx`);
-    await writeFile(filePath, content);
-    console.log(`  📌 Restored manual page: ${category}.mdx`);
   }
 }
 
@@ -1492,34 +1483,26 @@ async function main() {
     `📋 Versions to generate: ${API_VERSIONS.map((v) => v.id).join(', ')}`,
   );
 
-  // Preserve manual pages before cleaning
-  console.log('\n📌 Preserving manual pages...');
-  const preservedPages = new Map<string, Map<string, string>>();
-  for (const version of API_VERSIONS) {
-    const preserved = await preserveManualPages(version.id);
-    if (preserved.size > 0) {
-      preservedPages.set(version.id, preserved);
-    }
-  }
-
-  // Clean output directory
+  // Clean output directory (but preserve _manual/)
   console.log('\n🧹 Cleaning output directory...');
   try {
-    await rm(OUTPUT_BASE_DIR, { recursive: true, force: true });
+    const entries = await readdir(OUTPUT_BASE_DIR);
+    for (const entry of entries) {
+      if (entry !== '_manual') {
+        await rm(join(OUTPUT_BASE_DIR, entry), { recursive: true, force: true });
+      }
+    }
   } catch {
     // Directory may not exist
+    await mkdir(OUTPUT_BASE_DIR, { recursive: true });
   }
-  await mkdir(OUTPUT_BASE_DIR, { recursive: true });
 
   // Generate docs for each version
   for (const version of API_VERSIONS) {
     await generateVersionDocs(version);
 
-    // Restore manual pages for this version
-    const preserved = preservedPages.get(version.id);
-    if (preserved) {
-      await restoreManualPages(version.id, preserved);
-    }
+    // Copy shared manual pages to this version
+    await copyManualPagesToVersion(version.id);
   }
 
   // Generate root redirect page

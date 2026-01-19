@@ -1,0 +1,33 @@
+---
+import StarlightSidebar from '@astrojs/starlight/components/Sidebar.astro';
+import { VersionSelector } from './react/api/VersionSelector';
+import { getVersionFromPath, API_VERSIONS } from '@/lib/api-versions';
+
+const currentPath = Astro.url.pathname;
+
+// Check if this is a versioned API page (or any page where we want to show the selector)
+const versionId = getVersionFromPath(currentPath);
+const showVersionSelector = versionId !== null && API_VERSIONS.length > 1;
+---
+
+<StarlightSidebar {...Astro.props}>
+	<slot />
+</StarlightSidebar>
+
+{showVersionSelector && (
+	<div class="sidebar-version-selector">
+		<VersionSelector client:load currentPath={currentPath} />
+	</div>
+)}
+
+{/* Version redirect is handled in Head.astro for earliest execution */}
+
+<style>
+	.sidebar-version-selector {
+		position: sticky;
+		bottom: 0;
+		padding: 1rem;
+		background: var(--sl-color-bg-sidebar);
+		margin-top: auto;
+	}
+</style>

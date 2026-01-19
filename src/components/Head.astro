@@ -48,7 +48,37 @@ const breadcrumbSchema = {
     item: item.url,
   })),
 };
+
+// API version redirect - check if we need to redirect to stored preference
+const currentPath = Astro.url.pathname;
+const apiMatch = currentPath.match(/^\/api\/([^/]+)/);
+const isApiPage = apiMatch !== null;
+
+// Build version map for the inline script
+import { API_VERSIONS, versionToSlug, getVersionFromPath } from '@/lib/api-versions';
+const versionMap = Object.fromEntries(
+	API_VERSIONS.map(v => [v.id, versionToSlug(v.id)])
+);
+const currentVersionId = isApiPage ? getVersionFromPath(currentPath) : null;
 ---
+
+{/* Version redirect script - must run immediately before any content */}
+{isApiPage && (
+<script is:inline define:vars={{ versionMap, currentVersionId }}>
+(function() {
+	var STORAGE_KEY = 'sprites-api-version';
+	var storedVersion = localStorage.getItem(STORAGE_KEY);
+	if (!storedVersion || !currentVersionId || storedVersion === currentVersionId) return;
+	var storedSlug = versionMap[storedVersion];
+	if (!storedSlug) return;
+	var path = window.location.pathname;
+	var match = path.match(/^\/api\/[^/]+\/?(.*)$/);
+	var page = match ? match[1] : '';
+	var newPath = '/api/' + storedSlug + (page ? '/' + page : '/');
+	window.location.replace(newPath);
+})();
+</script>
+)}
 
 <Default {...Astro.props}><slot /></Default>
 <Background />
@@ -219,9 +249,13 @@ const breadcrumbSchema = {
   function initSidebarNavigation() {
     // Normalize path by removing trailing slash for comparison
     const normalizePath = (path) => path.replace(/\/$/, '') || '/';
+
+    // Strip API version from path for comparison (e.g., /api/v001-rc30/sprites -> /api/sprites)
+    const stripApiVersion = (path) => path.replace(/^\/api\/[^/]+/, '/api');
+
     const currentPath = normalizePath(window.location.pathname);
+    const currentPathNoVersion = stripApiVersion(currentPath);
     const currentHash = window.location.hash;
-    const currentUrl = currentPath + currentHash;
 
     // Find all nested sidebar groups within API Reference
     const sidebarGroups = document.querySelectorAll('nav[aria-label="Main"] details details');
@@ -237,10 +271,11 @@ const breadcrumbSchema = {
       // Extract the page URL without the anchor and normalize
       const href = firstLink.getAttribute('href') || '';
       const pageUrl = normalizePath(href.split('#')[0]);
+      const pageUrlNoVersion = stripApiVersion(pageUrl);
       if (!pageUrl) return;
 
-      // Auto-expand if current page matches this group's page
-      if (currentPath === pageUrl) {
+      // Auto-expand if current page matches this group's page (comparing without version)
+      if (currentPathNoVersion === pageUrlNoVersion) {
         details.setAttribute('open', '');
       }
 
@@ -249,15 +284,15 @@ const breadcrumbSchema = {
       allLinks.forEach((link) => {
         const linkHref = link.getAttribute('href') || '';
         const linkPath = normalizePath(linkHref.split('#')[0]);
+        const linkPathNoVersion = stripApiVersion(linkPath);
         const linkHash = linkHref.includes('#') ? '#' + linkHref.split('#')[1] : '';
-        const fullLinkUrl = linkPath + linkHash;
 
         // Only mark as current if:
-        // 1. Link has a hash and it matches the current URL exactly (path + hash)
-        // 2. Link has no hash and we're on that exact page with no hash
+        // 1. Link has a hash and path matches (ignoring version) + hash matches exactly
+        // 2. Link has no hash and we're on that exact page (ignoring version) with no hash
         const isCurrentLink = linkHash
-          ? fullLinkUrl === currentUrl
-          : (linkPath === currentPath && !currentHash);
+          ? (linkPathNoVersion === currentPathNoVersion && linkHash === currentHash)
+          : (linkPathNoVersion === currentPathNoVersion && !currentHash);
 
         if (isCurrentLink) {
           link.setAttribute('data-current', 'true');
@@ -275,14 +310,15 @@ const breadcrumbSchema = {
         // Allow normal toggle behavior with modifier keys
         if (e.shiftKey || e.ctrlKey || e.metaKey) return;
 
-        // If currently closed, expand and navigate to page
-        if (!details.open) {
+        // If currently closed and we're NOT already on this page, expand and navigate
+        // (Compare without version to handle being on different version of same page)
+        if (!details.open && currentPathNoVersion !== pageUrlNoVersion) {
           e.preventDefault();
           e.stopPropagation();
           // Navigate to the page (without anchor hash)
           window.location.href = pageUrl;
         }
-        // If already open, just toggle closed (default behavior)
+        // If already on this page or already open, let default toggle behavior happen
       });
 
       // Make summary look clickable

@@ -1,13 +1,13 @@
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import type { StarlightUserConfig } from '@astrojs/starlight/types';
-import { DEFAULT_VERSION } from './api-versions';
+import { DEFAULT_VERSION, versionToSlug } from './api-versions';
 
 type SidebarConfig = NonNullable<StarlightUserConfig['sidebar']>;
 type SidebarGroup = Extract<SidebarConfig[number], { items: unknown }>;
 
-// API version to use in sidebar (uses default version)
-const apiVersion = DEFAULT_VERSION.id;
+// API version slug to use in sidebar (slugified for Astro routing)
+const apiVersion = versionToSlug(DEFAULT_VERSION.id);
 
 interface SidebarBadge {
   text: string;
@@ -123,7 +123,7 @@ export const sidebarConfig: SidebarGroup[] = [
   {
     label: 'API Reference',
     items: [
-      { label: 'Overview', slug: `api/${apiVersion}` },
+      { label: 'Overview', link: `/api/${apiVersion}/` },
       {
         label: 'Sprites',
         collapsed: true,
@@ -270,7 +270,7 @@ export const sidebarConfig: SidebarGroup[] = [
           },
         ],
       },
-      { label: 'Type Definitions', slug: `api/${apiVersion}/types` },
+      { label: 'Type Definitions', link: `/api/${apiVersion}/types` },
     ],
   },
 ];

@@ -18,19 +18,18 @@ export interface APIVersion {
 
 export const API_VERSIONS: APIVersion[] = [
   {
+    id: 'v0.0.1-rc30',
+    label: 'v0.0.1-rc30',
+    schemaUrl: 'https://sprites-binaries.t3.storage.dev/api/v0.0.1-rc30',
+    isLatest: true,
+    badge: 'stable',
+  },
+  {
     id: 'dev-latest',
     label: 'Development',
     schemaUrl: 'https://sprites-binaries.t3.storage.dev/api/dev-latest',
-    isLatest: true,
     badge: 'dev',
   },
-  // Future versions will be added here:
-  // {
-  //   id: 'v1.0.0',
-  //   label: 'v1.0.0',
-  //   schemaUrl: 'https://sprites-binaries.t3.storage.dev/api/v1.0.0',
-  //   badge: 'stable',
-  // },
 ];
 
 export const DEFAULT_VERSION =
@@ -44,16 +43,25 @@ export function getVersion(id: string): APIVersion | undefined {
 }
 
 /**
- * Extract version ID from a URL path
+ * Extract version ID from a URL path (handles both raw IDs and slugified versions).
  * e.g., "/api/dev-latest/exec" → "dev-latest"
+ * e.g., "/api/v001-rc30/exec" → "v0.0.1-rc30"
  */
 export function getVersionFromPath(path: string): string | null {
   const match = path.match(/^\/api\/([^/]+)/);
   if (match) {
-    const versionId = match[1];
-    // Verify it's a valid version
-    if (API_VERSIONS.some((v) => v.id === versionId)) {
-      return versionId;
+    const slugOrId = match[1];
+    // Check for exact ID match first
+    const exactMatch = API_VERSIONS.find((v) => v.id === slugOrId);
+    if (exactMatch) {
+      return exactMatch.id;
+    }
+    // Check for slugified version match
+    const slugMatch = API_VERSIONS.find(
+      (v) => versionToSlug(v.id) === slugOrId,
+    );
+    if (slugMatch) {
+      return slugMatch.id;
     }
   }
   return null;
@@ -70,10 +78,19 @@ export function getPageFromPath(path: string): string {
 }
 
 /**
- * Build a versioned API path
- * e.g., ("v1.0.0", "exec") → "/api/v1.0.0/exec"
+ * Convert a version ID to an Astro-compatible slug.
+ * Astro removes dots from slugs, e.g., "v0.0.1-rc30" → "v001-rc30"
+ */
+export function versionToSlug(versionId: string): string {
+  return versionId.replace(/\./g, '');
+}
+
+/**
+ * Build a versioned API path using the slugified version.
+ * e.g., ("v0.0.1-rc30", "exec") → "/api/v001-rc30/exec"
  */
 export function buildVersionedPath(versionId: string, page: string): string {
-  const basePath = `/api/${versionId}`;
+  const slug = versionToSlug(versionId);
+  const basePath = `/api/${slug}`;
   return page ? `${basePath}/${page}` : basePath;
 }

@@ -15,6 +15,8 @@ import {
   getVersionFromPath,
 } from '@/lib/api-versions';
 
+const STORAGE_KEY = 'sprites-api-version';
+
 interface VersionSelectorProps {
   currentPath: string;
 }
@@ -36,7 +38,7 @@ function BadgeIcon({ badge }: { badge?: APIVersion['badge'] }) {
 
   return (
     <span
-      className={`ml-2 px-1.5 py-0.5 text-[10px] font-medium rounded ${colors[badge]}`}
+      className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${colors[badge]}`}
     >
       {labels[badge]}
     </span>
@@ -54,24 +56,26 @@ export function VersionSelector({ currentPath }: VersionSelectorProps) {
   }
 
   const handleVersionChange = (newVersionId: string) => {
+    // Save preference and navigate
+    localStorage.setItem(STORAGE_KEY, newVersionId);
     const newPath = buildVersionedPath(newVersionId, currentPage);
     window.location.href = newPath;
   };
 
   return (
     <Select value={currentVersionId || ''} onValueChange={handleVersionChange}>
-      <SelectTrigger className="w-[160px] h-8 text-sm bg-[var(--sl-color-bg)] border-[var(--sl-color-gray-5)]">
+      <SelectTrigger className="w-full h-9 text-sm bg-[var(--sl-color-bg)] border-[var(--sl-color-gray-5)]">
         <SelectValue>
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
             <span>{currentVersion.label}</span>
             <BadgeIcon badge={currentVersion.badge} />
           </div>
         </SelectValue>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="min-w-[200px]">
         {API_VERSIONS.map((version) => (
-          <SelectItem key={version.id} value={version.id}>
-            <div className="flex items-center">
+          <SelectItem key={version.id} value={version.id} className="py-2">
+            <div className="flex items-center gap-2">
               <span>{version.label}</span>
               <BadgeIcon badge={version.badge} />
             </div>
