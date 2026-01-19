@@ -26,6 +26,7 @@ export { default as CardGrid } from './CardGrid';
 export { CodeTabs, Snippet } from './CodeTabs';
 export { CopyPageButton } from './CopyPageButton';
 export { DotPattern } from './DotPattern';
+export { default as DownloadCards } from './DownloadCards';
 export { LifecycleDiagram } from './LifecycleDiagram';
 export { default as LinkCard } from './LinkCard';
 export { Pagination } from './Pagination';

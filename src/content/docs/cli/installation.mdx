@@ -4,6 +4,7 @@ description: Install the Sprites CLI on macOS, Linux, or Windows
 ---
 
 import { Callout, LinkCard, CardGrid } from '@/components/react';
+import CliDownloads from '@/components/CliDownloads.astro';
 
 The Sprites CLI (`sprite`) is available for macOS, Linux, and Windows.
 
@@ -27,25 +28,7 @@ After installation, you may need to add `~/.local/bin` to your PATH if it's not 
 
 ## Manual Installation
 
-For specific versions or manual installation, download binaries from [GitHub Releases](https://github.com/superfly/sprite-env/releases).
-
-### macOS / Linux
-
-```bash
-# Download and extract the appropriate binary for your platform
-tar xzf sprite-<platform>-<arch>.tar.gz
-sudo mv sprite /usr/local/bin/
-```
-
-### Windows
-
-```powershell
-# Download and extract
-Expand-Archive sprite-windows-amd64.zip -DestinationPath $env:USERPROFILE\bin
-
-# Add to PATH (run in PowerShell as Administrator)
-[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:USERPROFILE\bin", "User")
-```
+<CliDownloads />
 
 ## Verify Installation
 

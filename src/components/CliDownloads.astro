@@ -1,0 +1,160 @@
+---
+import { Code } from '@astrojs/starlight/components';
+import { DownloadCards } from '@/components/react';
+import { getLatestRcRelease } from '@/lib/cli-releases';
+
+const release = await getLatestRcRelease();
+
+// Get specific binaries for examples
+const darwinArm64 = release.binaries.find(b => b.filename.includes('darwin-arm64'))!;
+const linuxAmd64 = release.binaries.find(b => b.filename.includes('linux-amd64'))!;
+const windowsAmd64 = release.binaries.find(b => b.filename.includes('windows-amd64'))!;
+
+const instructions = [
+  {
+    platform: 'macOS',
+    steps: [
+      {
+        label: 'Download the binary',
+        code: `curl -LO ${darwinArm64.url}`,
+      },
+      {
+        label: 'Verify checksum (recommended)',
+        code: `curl -LO ${darwinArm64.checksumUrl}
+shasum -a 256 -c ${darwinArm64.filename}.sha256`,
+      },
+      {
+        label: 'Extract and install',
+        code: `tar xzf ${darwinArm64.filename}
+sudo mv sprite /usr/local/bin/`,
+      },
+    ],
+    note: 'For Intel Macs, replace "arm64" with "amd64" in the URLs above.',
+  },
+  {
+    platform: 'Linux',
+    steps: [
+      {
+        label: 'Download the binary',
+        code: `curl -LO ${linuxAmd64.url}`,
+      },
+      {
+        label: 'Verify checksum (recommended)',
+        code: `curl -LO ${linuxAmd64.checksumUrl}
+sha256sum -c ${linuxAmd64.filename}.sha256`,
+      },
+      {
+        label: 'Extract and install',
+        code: `tar xzf ${linuxAmd64.filename}
+sudo mv sprite /usr/local/bin/`,
+      },
+    ],
+    note: 'For ARM64, replace "amd64" with "arm64" in the URLs above.',
+  },
+  {
+    platform: 'Windows',
+    steps: [
+      {
+        label: 'Download the binary',
+        code: `Invoke-WebRequest -Uri "${windowsAmd64.url}" -OutFile "${windowsAmd64.filename}"`,
+      },
+      {
+        label: 'Extract to your bin directory',
+        code: `Expand-Archive ${windowsAmd64.filename} -DestinationPath $env:USERPROFILE\\bin`,
+      },
+      {
+        label: 'Add to PATH (run as Administrator)',
+        code: `[Environment]::SetEnvironmentVariable("Path", $env:Path + ";$env:USERPROFILE\\bin", "User")`,
+      },
+    ],
+    note: 'For ARM64 Windows, replace "amd64" with "arm64" in the URL above.',
+  },
+];
+---
+
+<div class="cli-downloads" data-default-platform="macOS">
+  <DownloadCards
+    client:load
+    binaries={release.binaries}
+    version={release.version}
+  />
+
+  {instructions.map((instruction) => (
+    <div class="platform-instructions" data-platform={instruction.platform}>
+      {instruction.steps.map((step) => (
+        <div class="instruction-step">
+          <p class="step-label">{step.label}</p>
+          <Code code={step.code} lang={instruction.platform === 'Windows' ? 'powershell' : 'bash'} />
+        </div>
+      ))}
+      {instruction.note && (
+        <p class="step-note">{instruction.note}</p>
+      )}
+    </div>
+  ))}
+</div>
+
+<style>
+  .platform-instructions {
+    display: none;
+    margin-top: 2rem;
+  }
+
+  .platform-instructions.active {
+    display: block;
+  }
+
+  .instruction-step {
+    margin-bottom: 1.25rem;
+  }
+
+  .step-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .step-note {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-3);
+    font-style: italic;
+    margin-top: 0.5rem;
+  }
+</style>
+
+<script is:inline>
+  (function() {
+    function initCliDownloads() {
+      document.querySelectorAll('.cli-downloads').forEach(function(container) {
+        var defaultPlatform = container.getAttribute('data-default-platform') || 'macOS';
+
+        // Show default platform instructions
+        var defaultInstructions = container.querySelector('[data-platform="' + defaultPlatform + '"]');
+        if (defaultInstructions) {
+          defaultInstructions.classList.add('active');
+        }
+      });
+    }
+
+    // Listen for platform changes from DownloadCards
+    document.addEventListener('cli-platform-changed', function(event) {
+      var platform = event.detail.platform;
+
+      document.querySelectorAll('.cli-downloads').forEach(function(container) {
+        // Hide all instructions
+        container.querySelectorAll('.platform-instructions').forEach(function(el) {
+          el.classList.remove('active');
+        });
+
+        // Show selected platform
+        var selected = container.querySelector('[data-platform="' + platform + '"]');
+        if (selected) {
+          selected.classList.add('active');
+        }
+      });
+    });
+
+    // Run on page load
+    initCliDownloads();
+  })();
+</script>
