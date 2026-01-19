@@ -1,5 +1,6 @@
 'use client';
 
+import type React from 'react';
 import {
   Select,
   SelectContent,
@@ -21,26 +22,34 @@ interface VersionSelectorProps {
   currentPath: string;
 }
 
-function BadgeIcon({ badge }: { badge?: APIVersion['badge'] }) {
+const BADGE_CONFIG = {
+  dev: {
+    label: 'dev',
+    className: 'bg-amber-500/20 text-amber-600 dark:text-amber-400',
+  },
+  stable: {
+    label: 'stable',
+    className: 'bg-green-500/20 text-green-600 dark:text-green-400',
+  },
+  deprecated: {
+    label: 'old',
+    className: 'bg-red-500/20 text-red-600 dark:text-red-400',
+  },
+} as const;
+
+function BadgeIcon({
+  badge,
+}: {
+  badge?: APIVersion['badge'];
+}): React.ReactNode {
   if (!badge) return null;
 
-  const colors = {
-    dev: 'bg-amber-500/20 text-amber-600 dark:text-amber-400',
-    stable: 'bg-green-500/20 text-green-600 dark:text-green-400',
-    deprecated: 'bg-red-500/20 text-red-600 dark:text-red-400',
-  };
-
-  const labels = {
-    dev: 'dev',
-    stable: 'stable',
-    deprecated: 'old',
-  };
-
+  const config = BADGE_CONFIG[badge];
   return (
     <span
-      className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${colors[badge]}`}
+      className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${config.className}`}
     >
-      {labels[badge]}
+      {config.label}
     </span>
   );
 }

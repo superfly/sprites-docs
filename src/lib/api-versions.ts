@@ -49,22 +49,15 @@ export function getVersion(id: string): APIVersion | undefined {
  */
 export function getVersionFromPath(path: string): string | null {
   const match = path.match(/^\/api\/([^/]+)/);
-  if (match) {
-    const slugOrId = match[1];
-    // Check for exact ID match first
-    const exactMatch = API_VERSIONS.find((v) => v.id === slugOrId);
-    if (exactMatch) {
-      return exactMatch.id;
-    }
-    // Check for slugified version match
-    const slugMatch = API_VERSIONS.find(
-      (v) => versionToSlug(v.id) === slugOrId,
-    );
-    if (slugMatch) {
-      return slugMatch.id;
-    }
-  }
-  return null;
+  if (!match) return null;
+
+  const slugOrId = match[1];
+  // Check for exact ID match first, then slugified version match
+  const version =
+    API_VERSIONS.find((v) => v.id === slugOrId) ??
+    API_VERSIONS.find((v) => versionToSlug(v.id) === slugOrId);
+
+  return version?.id ?? null;
 }
 
 /**
