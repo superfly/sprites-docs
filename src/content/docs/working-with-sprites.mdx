@@ -232,7 +232,17 @@ These features are useful once you're comfortable.
 
 Use SSHFS to mount your Sprite and edit files with your local tools.
 
-**Install SSHFS first:**
+**Prepare an SSH server on your Sprite:**
+
+```bash
+# Install OpenSSH
+sudo apt install -y openssh-server
+
+# Create a service to automatically start it
+sprite-env services create sshd --cmd /usr/sbin/sshd
+```
+
+**Install SSHFS on your local machine:**
 
 ```bash
 # macOS
@@ -245,18 +255,29 @@ sudo apt-get install sshfs
 sudo dnf install fuse-sshfs
 ```
 
+**Authorize your SSH public keys:**
+
+```bash
+sprite exec mkdir -p .ssh
+cat ~/.ssh/id_*.pub | sprite exec tee -a .ssh/authorized_keys
+```
+
 **Add this helper to your shell config:**
 
 ```bash
 # Add to ~/.zshrc or ~/.bashrc
 sc() {
-  local sprite_name="${1:-$(sprite use)}"
+  local sprite_name="$1"
   local mount_point="/tmp/sprite-${sprite_name}"
+  test -n "$(sprite url -s "${sprite_name}")"
   mkdir -p "$mount_point"
+  sprite proxy -s "${sprite_name}" 2000:22 &
   sshfs -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
-    "sprite@${sprite_name}.sprites.dev:" "$mount_point"
+    "sprite@localhost:" -p 2000 "$mount_point"
   cd "$mount_point"
 }
+
+# Mount the sprite with "sc my-sprite"
 ```
 
 **Unmount when done:**
@@ -264,6 +285,7 @@ sc() {
 ```bash
 umount /tmp/sprite-my-sprite
 # macOS may need: diskutil umount /tmp/sprite-my-sprite
+kill "$(lsof -t -i:2000)"
 ```
 
 ### Common Error Scenarios
