@@ -94,3 +94,70 @@ export function buildVersionedPath(versionId: string, page: string): string {
   const basePath = `/api/${slug}`;
   return page ? `${basePath}/${page}` : basePath;
 }
+
+/**
+ * Rewrite an API URL to use a different version.
+ * Preserves the page path and hash fragment.
+ * e.g., ("/api/v001-rc30/exec#execute", "dev-latest") → "/api/dev-latest/exec#execute"
+ */
+export function rewriteApiUrl(url: string, targetVersionId: string): string {
+  // Match /api/{version}/{page}#{hash} or /api/{version}/{page} or /api/{version}/
+  const match = url.match(/^\/api\/[^/]+\/?(.*)$/);
+  if (!match) return url;
+
+  const pageAndHash = match[1]; // e.g., "exec#execute-command" or "exec" or ""
+  const targetSlug = versionToSlug(targetVersionId);
+
+  if (!pageAndHash) {
+    return `/api/${targetSlug}/`;
+  }
+  return `/api/${targetSlug}/${pageAndHash}`;
+}
+
+// Re-export types for sidebar transformation (used by Sidebar.astro)
+export interface SidebarLink {
+  type: 'link';
+  label: string;
+  href: string;
+  isCurrent: boolean;
+  badge?: { text: string; variant: string };
+  attrs?: Record<string, string>;
+}
+
+export interface SidebarGroup {
+  type: 'group';
+  label: string;
+  entries: SidebarEntry[];
+  collapsed: boolean;
+  badge?: { text: string; variant: string };
+}
+
+export type SidebarEntry = SidebarLink | SidebarGroup;
+
+/**
+ * Recursively transform sidebar entries to use a specific API version.
+ * Only affects links that start with /api/.
+ */
+export function transformSidebarForVersion(
+  entries: SidebarEntry[],
+  targetVersionId: string,
+): SidebarEntry[] {
+  return entries.map((entry): SidebarEntry => {
+    if (entry.type === 'link') {
+      // Only transform API links
+      if (entry.href.startsWith('/api/')) {
+        return {
+          ...entry,
+          href: rewriteApiUrl(entry.href, targetVersionId),
+        };
+      }
+      return entry;
+    }
+
+    // It's a group - recurse into entries
+    return {
+      ...entry,
+      entries: transformSidebarForVersion(entry.entries, targetVersionId),
+    };
+  });
+}
