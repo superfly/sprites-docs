@@ -7,6 +7,7 @@
  * Supports multiple API versions with versioned output directories.
  */
 
+import { execSync } from 'node:child_process';
 import { constants } from 'node:fs';
 import {
   access,
@@ -1588,6 +1589,10 @@ async function main() {
       DEFAULT_VERSION.id,
     );
     await writeFile(API_SIDEBAR_OUTPUT_PATH, sidebarContent);
+    // Format with biome to match project style
+    execSync(`npx biome format --write ${API_SIDEBAR_OUTPUT_PATH}`, {
+      stdio: 'pipe',
+    });
     console.log(`  ✅ Generated ${API_SIDEBAR_OUTPUT_PATH}`);
   }
 
