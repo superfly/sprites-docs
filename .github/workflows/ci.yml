@@ -355,27 +355,35 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const manifest = ${{ steps.lighthouse.outputs.manifest }};
-            const links = ${{ steps.lighthouse.outputs.links }};
+            const manifestRaw = `${{ steps.lighthouse.outputs.manifest }}`;
+            const linksRaw = `${{ steps.lighthouse.outputs.links }}`;
 
             let body = '### Lighthouse Results\n\n';
-            body += '| URL | Performance | Accessibility | Best Practices | SEO |\n';
-            body += '|-----|-------------|---------------|----------------|-----|\n';
 
-            for (const result of manifest) {
-              const url = new URL(result.url).pathname || '/';
-              const perf = Math.round(result.summary.performance * 100);
-              const a11y = Math.round(result.summary.accessibility * 100);
-              const bp = Math.round(result.summary['best-practices'] * 100);
-              const seo = Math.round(result.summary.seo * 100);
+            if (!manifestRaw || manifestRaw === '') {
+              body += '⚠️ Lighthouse failed to collect results. This may be due to the preview deployment not being ready.\n';
+            } else {
+              const manifest = JSON.parse(manifestRaw);
+              const links = JSON.parse(linksRaw);
 
-              const perfEmoji = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
-              const a11yEmoji = a11y >= 90 ? '🟢' : a11y >= 50 ? '🟠' : '🔴';
-              const bpEmoji = bp >= 90 ? '🟢' : bp >= 50 ? '🟠' : '🔴';
-              const seoEmoji = seo >= 90 ? '🟢' : seo >= 50 ? '🟠' : '🔴';
+              body += '| URL | Performance | Accessibility | Best Practices | SEO |\n';
+              body += '|-----|-------------|---------------|----------------|-----|\n';
 
-              const reportLink = links[result.url] ? `[${url}](${links[result.url]})` : url;
-              body += `| ${reportLink} | ${perfEmoji} ${perf} | ${a11yEmoji} ${a11y} | ${bpEmoji} ${bp} | ${seoEmoji} ${seo} |\n`;
+              for (const result of manifest) {
+                const url = new URL(result.url).pathname || '/';
+                const perf = Math.round(result.summary.performance * 100);
+                const a11y = Math.round(result.summary.accessibility * 100);
+                const bp = Math.round(result.summary['best-practices'] * 100);
+                const seo = Math.round(result.summary.seo * 100);
+
+                const perfEmoji = perf >= 90 ? '🟢' : perf >= 50 ? '🟠' : '🔴';
+                const a11yEmoji = a11y >= 90 ? '🟢' : a11y >= 50 ? '🟠' : '🔴';
+                const bpEmoji = bp >= 90 ? '🟢' : bp >= 50 ? '🟠' : '🔴';
+                const seoEmoji = seo >= 90 ? '🟢' : seo >= 50 ? '🟠' : '🔴';
+
+                const reportLink = links[result.url] ? `[${url}](${links[result.url]})` : url;
+                body += `| ${reportLink} | ${perfEmoji} ${perf} | ${a11yEmoji} ${a11y} | ${bpEmoji} ${bp} | ${seoEmoji} ${seo} |\n`;
+              }
             }
 
             const { data: comments } = await github.rest.issues.listComments({
