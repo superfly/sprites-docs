@@ -63,3 +63,5 @@ cli-test-report.json
 src/content/docs/api/*
 !src/content/docs/api/_manual/
 .playwright-mcp/
+# Auto-generated
+src/lib/api-sidebar.ts
