@@ -20,7 +20,7 @@
   "dependencies": {
     "@astrojs/react": "^4.4.2",
     "@astrojs/sitemap": "^3.6.0",
-    "@astrojs/starlight": "^0.37.1",
+    "@astrojs/starlight": "^0.37.3",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@radix-ui/react-accordion": "^1.2.12",
