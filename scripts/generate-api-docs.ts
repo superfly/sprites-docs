@@ -1013,6 +1013,7 @@ async function generateIndexPage(
   schema: APISchema,
   versionId: string,
 ): Promise<string> {
+  const versionSlug = versionToSlug(versionId);
   return `---
 title: API Reference
 description: REST and WebSocket API for managing Sprites programmatically
@@ -1046,7 +1047,7 @@ Create a token at [sprites.dev/account](https://sprites.dev/account), or generat
 <CardGrid client:load>
 ${MANUAL_PAGES.map(
   (page) => `  <LinkCard
-    href="/api/${versionId}/${page.category}"
+    href="/api/${versionSlug}/${page.category}"
     title="${page.title}"
     description="${page.description}"
     icon="code"
@@ -1056,7 +1057,7 @@ ${MANUAL_PAGES.map(
 ${categories
   .map(
     (cat) => `  <LinkCard
-    href="/api/${versionId}/${cat}"
+    href="/api/${versionSlug}/${cat}"
     title="${getCategoryTitle(cat)}"
     description="${getCategoryDescription(cat)}"
     icon="code"
