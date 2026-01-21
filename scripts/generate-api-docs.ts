@@ -1087,13 +1087,6 @@ For a better developer experience, use our official SDKs:
     client:load
   />
   <LinkCard
-    href="/sdks/python"
-    title="Python SDK"
-    description="Python client library"
-    icon="code"
-    client:load
-  />
-  <LinkCard
     href="/sdks/elixir"
     title="Elixir SDK"
     description="Elixir client library"
