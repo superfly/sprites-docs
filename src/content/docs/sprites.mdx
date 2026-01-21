@@ -31,7 +31,7 @@ sprite exec python -c "print('hello')"
 sprite exec "for i in {1..10}; do date +%T; sleep 0.5; done"
 
 # Destroy when done
-sprite destroy my-sprite
+sprite destroy -s my-sprite
 ```
 </TabItem>
 
@@ -783,7 +783,7 @@ Always clean up Sprites when you're done:
 <Tabs>
 <TabItem label="CLI">
 ```bash
-sprite destroy my-sprite
+sprite destroy -s my-sprite
 ```
 </TabItem>
 

@@ -119,7 +119,7 @@ export async function createTestSprite(): Promise<string> {
   const useResult = await runCommand(['sprite', 'use', spriteName]);
   if (!useResult.success) {
     // Try to cleanup
-    await runCommand(['sprite', 'destroy', spriteName]);
+    await runCommand(['sprite', 'destroy', '-s', spriteName]);
     throw new Error(`Failed to set test sprite: ${useResult.stderr}`);
   }
 
