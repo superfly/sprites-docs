@@ -837,22 +837,7 @@ ${streamingEventsDocs}
 }
 
 function getCategoryTitle(category: string): string {
-  const titles: Record<string, string> = {
-    sprites: 'Sprites',
-    exec: 'Exec',
-    checkpoints: 'Checkpoints',
-    services: 'Services',
-    proxy: 'HTTP Proxy',
-    policy: 'Policy',
-    organization: 'Organization',
-    tokens: 'Tokens',
-    files: 'Files',
-    filesystem: 'Filesystem',
-    attach: 'Attach',
-  };
-  return (
-    titles[category] || category.charAt(0).toUpperCase() + category.slice(1)
-  );
+  return category.charAt(0).toUpperCase() + category.slice(1);
 }
 
 // Manual pages that are not generated from schema but should be included
@@ -883,23 +868,60 @@ const MANUAL_PAGES: ManualPage[] = [
   },
 ];
 
+// Short descriptions for YAML frontmatter and meta tags (must be single-line)
 function getCategoryDescription(category: string): string {
   const descriptions: Record<string, string> = {
-    sprites: 'Create, list, update, and delete Sprites',
-    exec: 'Execute commands in Sprites via WebSocket',
-    checkpoints: 'Create, list, and restore environment snapshots',
-    services: 'Manage background services running in Sprites',
-    proxy: 'Forward HTTP requests to services inside Sprites',
-    policy: 'Manage access control policies',
-    organization: 'Organization settings and information',
-    tokens: 'Create and manage API tokens',
-    files: 'Upload and download files',
-    filesystem: 'Browse and manage the filesystem',
-    attach: 'Interactive terminal sessions via WebSocket',
+    sprites:
+      'Persistent environments that hibernate when idle and wake automatically on demand.',
+    exec: 'Run commands inside Sprites over WebSocket connections.',
+    checkpoints:
+      "Capture your Sprite's complete filesystem state for instant rollback.",
+    services: 'Manage background services running in your Sprite environment.',
+    proxy:
+      'Tunnel TCP connections directly to services running inside your Sprite.',
+    policy: 'Control outbound network access using DNS-based filtering.',
+    organization: 'Organization settings and information.',
+    tokens: 'Create and manage API tokens.',
+    files: 'Upload and download files.',
+    filesystem: 'Browse and manage the filesystem.',
+    attach: 'Interactive terminal sessions via WebSocket.',
   };
   return (
     descriptions[category] || `${getCategoryTitle(category)} API endpoints`
   );
+}
+
+// Full descriptions for page content (can be multi-paragraph)
+function getCategoryFullDescription(category: string): string[] {
+  const descriptions: Record<string, string[]> = {
+    sprites: [
+      'Sprites are persistent environments that hibernate when idle and wake automatically on demand. You only pay for compute while actively using them—storage persists indefinitely.',
+      'Create Sprites for development environments, CI runners, code execution sandboxes, or any workload that benefits from fast startup with preserved state. Each Sprite gets a unique URL for HTTP access, configurable as public or authenticated.',
+    ],
+    exec: [
+      'Run commands inside Sprites over WebSocket connections. The exec API is designed for both one-shot commands and long-running interactive sessions.',
+      'Sessions persist across disconnections—start a dev server or build, disconnect, and reconnect later to resume streaming output. The binary protocol efficiently multiplexes stdin, stdout, and stderr over a single connection.',
+    ],
+    checkpoints: [
+      "Checkpoints capture your Sprite's complete filesystem state for instant rollback. They're live snapshots—creation takes milliseconds with no interruption to running processes.",
+      'Use checkpoints before risky operations, to create reproducible environments, or to share known-good states across a team. Copy-on-write storage keeps incremental checkpoints small; you only store what changed.',
+    ],
+    services: [],
+    proxy: [
+      'Tunnel TCP connections directly to services running inside your Sprite. After a brief WebSocket handshake, the connection becomes a transparent relay to any port.',
+      'Use this to access dev servers, databases, or any TCP service as if it were running locally. The proxy handles connection setup; your client speaks directly to the target service.',
+    ],
+    policy: [
+      'Control outbound network access using DNS-based filtering. Policies define which domains sprites can reach, with support for exact matches, wildcard subdomains, and preset rule bundles.',
+      'Changes apply immediately—existing connections to newly-blocked domains are terminated. Failed DNS lookups return REFUSED for fast failure.',
+    ],
+    organization: [],
+    tokens: [],
+    files: [],
+    filesystem: [],
+    attach: [],
+  };
+  return descriptions[category] || [];
 }
 
 async function generateCategoryPage(
@@ -916,8 +938,19 @@ async function generateCategoryPage(
 ): Promise<string> {
   const title = getCategoryTitle(category);
   const description = getCategoryDescription(category);
+  const fullDescription = getCategoryFullDescription(category);
 
   const hasWebSocket = endpoints.some((e) => e.protocol === 'websocket');
+
+  // Render full description paragraphs (only if there are any)
+  const descriptionHtml =
+    fullDescription.length > 0
+      ? `<div style={{ marginBottom: '2rem' }}>
+${fullDescription.map((para) => `<p className="sl-text-lg" style={{ marginBottom: '1rem', color: 'var(--sl-color-gray-2)' }}>${para}</p>`).join('\n')}
+</div>
+
+`
+      : '';
 
   let content = `---
 title: ${title} API
@@ -937,7 +970,7 @@ import CodeSnippets from '@/components/CodeSnippets.astro';
 
 <div className="api-full-width">
 
-`;
+${descriptionHtml}`;
 
   if (hasWebSocket) {
     content += `<Callout type="info" client:load>
