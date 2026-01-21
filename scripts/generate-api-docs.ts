@@ -1066,41 +1066,6 @@ ${categories
   .join('\n')}
 </CardGrid>
 
-## SDK Libraries
-
-For a better developer experience, use our official SDKs:
-
-<CardGrid client:load>
-  <LinkCard
-    href="/sdks/javascript"
-    title="JavaScript SDK"
-    description="TypeScript/JavaScript client"
-    icon="code"
-    client:load
-  />
-  <LinkCard
-    href="/sdks/go"
-    title="Go SDK"
-    description="Native Go client"
-    icon="code"
-    client:load
-  />
-  <LinkCard
-    href="/sdks/python"
-    title="Python SDK"
-    description="Python client library"
-    icon="code"
-    client:load
-  />
-  <LinkCard
-    href="/sdks/elixir"
-    title="Elixir SDK"
-    description="Elixir client library"
-    icon="code"
-    client:load
-  />
-</CardGrid>
-
 ## Version
 
 API Version: \`${schema.version}\`
