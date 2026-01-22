@@ -11,7 +11,7 @@ Sprites hibernate when idle and wake on demand. Your files persist across sessio
 
 ## How it works
 
-A Sprite starts in a `cold` state. When you run a command or connect to it, the Sprite wakes and transitions to `running`. After 30 seconds of inactivity, it hibernates back to `cold`. (You may see a `warm` state when listing Sprites—this is a brief suspended state before full hibernation. You don't need to manage it.)
+A Sprite starts in a `cold` state. When you run a command or connect to it, the Sprite wakes and transitions to `running`. After 30 seconds of inactivity, it hibernates back to `cold`. (You may see a `warm` state when listing Sprites. This is a brief suspended state before full hibernation. You don't need to manage it.)
 
 A Sprite is considered active when:
 
@@ -26,20 +26,24 @@ When none of these are true, the 30-second idle timer starts. Once it expires, t
 
 ## Waking up
 
-Sprites wake automatically when you interact with them—via CLI, API, or HTTP request. Wake time is typically a few seconds. The request blocks until the Sprite is ready.
+Sprites wake automatically when you interact with them: CLI, API, or HTTP request. Wake time is typically a few seconds. The request blocks until the Sprite is ready.
 
 Disk state is preserved. Running processes are not. If you need processes to restart on wake, use [Services](/concepts/services).
 
 ## Storage
 
-Every Sprite has a 100 GB ext4 filesystem backed by a two-tier storage system:
+Every Sprite has an ext4 filesystem backed by a two-tier storage system:
 
 - **Hot storage**: NVMe cache for active data while the Sprite is running
 - **Cold storage**: Object storage where all data persists
 
-When you write files, they go to the fast NVMe cache. The filesystem (JuiceFS) syncs data to object storage automatically. When the Sprite hibernates, your data lives in cold storage. On wake, it's available again through the cache.
+When you write files, they go to the fast NVMe cache. The filesystem syncs data to object storage automatically. When the Sprite hibernates, your data lives in cold storage. On wake, it's available again with the same paths and data.
 
-You don't need to manage this. It looks and feels like a normal Linux filesystem. SQLite works. Git works. Most tools work without surprises.
+You don't need to manage this. It looks and feels like a normal Linux filesystem. Since it's real ext4 (not NFS or FUSE), you won't hit weird edge cases. Shared memory files work. SQLite works in all its modes.
+
+### Capacity
+
+You start with 100 GB. Storage grows automatically as needed.
 
 ### What persists
 
@@ -48,13 +52,18 @@ You don't need to manage this. It looks and feels like a normal Linux filesystem
 | All files and directories | Running processes |
 | Installed packages | In-memory state |
 | Git repositories | Network connections |
-| Databases (SQLite, etc.) | Process PIDs |
+| Databases (SQLite, etc.) | |
 
 The `/tmp` directory is cleared on hibernation.
 
 ### Billing
 
-You pay for cold storage 24/7 (actual bytes stored, not provisioned capacity). Hot storage is only billed while the Sprite is running. See [Billing](/reference/billing) for rates.
+You pay for actual bytes stored, not allocated space. Storage is TRIM-friendly, so your bill goes down when you delete files.
+
+- **Hot storage**: Sampled every few seconds while the Sprite is running. 2 GB cached for 4 hours = 8 GB-hours.
+- **Cold storage**: Measured hourly. 10 GB stored for 24 hours = 240 GB-hours.
+
+See [Billing](/reference/billing) for rates.
 
 ## Resources
 
