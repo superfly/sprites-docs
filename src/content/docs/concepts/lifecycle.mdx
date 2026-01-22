@@ -1,160 +1,102 @@
 ---
 title: Lifecycle and Persistence
-description: Understanding Sprite hibernation, persistence, and state management
+description: How Sprites hibernate, wake, and persist data
 draft: true
 ---
 
 import LifecycleDiagram from '@/components/LifecycleDiagram.astro';
 import { Callout, LinkCard, CardGrid } from '@/components/react';
 
-This page is about what happens to a Sprite after you create it. Where it lives, how it sleeps, when it wakes up, and what it remembers.
+Sprites hibernate when idle and wake on demand. Your files persist across sessions. You only pay for compute while actively working.
 
-We'll cover how Sprites hibernate when idle, what counts as “activity,” what persists on resume, and how storage behaves under the hood.
+## How it works
 
-## The Sprite Lifecycle
+A Sprite starts in a `cold` state. When you run a command or connect to it, the Sprite wakes and transitions to `running`. After 30 seconds of inactivity, it hibernates back to `cold`. (You may see a `warm` state when listing Sprites—this is a brief suspended state before full hibernation. You don't need to manage it.)
 
-Sprites aren't always running. That's the whole point. Once launched, a Sprite starts in an active state, ready to do work. If it sits idle for a while, it hibernates. That shuts down compute but keeps its state on disk. Later, when something pokes it (like a CLI call or HTTP request), it resumes.
+A Sprite is considered active when:
 
-This model keeps things lean. Sprites pause when you're not using them, so you don't burn CPU or RAM just to keep state around. It also keeps billing predictable — storage sticks around, compute doesn't.
-
-The platform handles this automatically by tracking usage. If nothing interacts with a Sprite for long enough, it goes to sleep. If something hits it again, it spins back up and picks up where it left off.
-
-You don't have to manage any of this directly. But it helps to know what's going on, especially if you're optimizing for latency or trying to debug weird behavior on resume.
-
-## Automatic Hibernation
-
-Sprites automatically hibernate when they're no longer doing anything useful. The default timeout is **30 seconds**, and it's not configurable yet.
-
-A Sprite is considered *active* when any of the following are true:
-
-- A command is executing (via `exec` or the console)
-- Data is being written to `stdin`
-- There's an active TCP connection to the Sprite's URL
+- A command is executing
+- A TTY session is open
 - A detachable session is running
+- There's an active TCP connection to the Sprite's URL
 
-If none of those are happening, the Sprite is considered idle. The inactivity timer starts at 30 seconds and resets whenever new activity is detected. Once the timer runs out, the Sprite hibernates. At that point, you're only billed for storage.
-
-While hibernated, Sprites have:
-
-- **No compute charges** — You only pay for storage
-- **Full state preserved** — All files and data stay intact
-- **Instant wake** — Sprite resumes execution on the next request
-
-## Wake-on-Request
-
-Sprites wake up automatically when something tries to use them. This could be a CLI command, an HTTP request to a running service, or a call to the API. You don't have to manually start anything.
-
-Wake time is typically under a few seconds. The Sprite picks up where it left off. Disk state is preserved, but any running processes are gone. If a request comes in while the Sprite is hibernated, it will block until the Sprite is ready.
-
-You don't need to change anything in your code to handle this. But if your workflow is latency-sensitive, it helps to know what's happening under the hood.
-
-## Persistence Fundamentals
-
-Every Sprite has a persistent ext4 filesystem. That means files you write stick around between hibernations, even if the Sprite shuts down completely. You get the benefits of local storage with the durability of object storage, and you don't have to think about where the bits live.
-
-When a Sprite is active, it writes to fast NVMe-backed storage. When it hibernates, that storage is snapshotted and moved to object storage. On resume, the snapshot is restored and mounted back in — same data, same paths, same state.
-
-Refer to this diagram to visualize how this works:
+When none of these are true, the 30-second idle timer starts. Once it expires, the Sprite hibernates. Compute billing stops immediately.
 
 <LifecycleDiagram />
 
-### What you get:
+## Waking up
 
-- **100 GB provisioned storage** (default)
-- **Standard ext4 compatibility** — SQLite works. `shm` works. Most tools work without surprises.
-- **TRIM-friendly billing** — you only pay for the actual data stored, not the full 100 GB.
+Sprites wake automatically when you interact with them—via CLI, API, or HTTP request. Wake time is typically a few seconds. The request blocks until the Sprite is ready.
 
-This isn't a custom virtual filesystem or an S3 shim. It's real disk, with real semantics. If your app expects local writes to behave like Linux, it'll feel at home here.
+Disk state is preserved. Running processes are not. If you need processes to restart on wake, use [Services](/concepts/services).
 
-### What's preserved (and what isn't)
+## Storage
 
-Here's a quick reference on what survives hibernation:
+Every Sprite has a 100 GB ext4 filesystem backed by a two-tier storage system:
 
-| Persisted | Not Persisted |
+- **Hot storage**: NVMe cache for active data while the Sprite is running
+- **Cold storage**: Object storage where all data persists
+
+When you write files, they go to the fast NVMe cache. The filesystem (JuiceFS) syncs data to object storage automatically. When the Sprite hibernates, your data lives in cold storage. On wake, it's available again through the cache.
+
+You don't need to manage this. It looks and feels like a normal Linux filesystem. SQLite works. Git works. Most tools work without surprises.
+
+### What persists
+
+| Persisted | Not persisted |
 |-----------|---------------|
 | All files and directories | Running processes |
-| Installed packages | Network connections |
-| Environment configurations | In-memory state |
-| Git repositories | Temporary `/tmp` files |
+| Installed packages | In-memory state |
+| Git repositories | Network connections |
 | Databases (SQLite, etc.) | Process PIDs |
 
-Hibernation clears out compute state, but your data and filesystem don't go anywhere. If your workload can start cleanly from disk, this works great. If it needs long-lived processes or runtime state, you'll want to look at **Services** or **Detachable Sessions**, which we'll get to shortly.
+The `/tmp` directory is cleared on hibernation.
 
-## Resource Profile
+### Billing
 
-Sprites run with fixed resources:
+You pay for cold storage 24/7 (actual bytes stored, not provisioned capacity). Hot storage is only billed while the Sprite is running. See [Billing](/reference/billing) for rates.
+
+## Resources
+
+Each Sprite runs with:
 
 - **8 vCPUs**
-- **8 GB RAM**
-- **100 GB persistent storage**
+- **4 GB RAM**
+- **100 GB storage**
 
-You can't resize them (yet). That's by design — one size, no config. It keeps things simple and predictable.
+This configuration is fixed. One size keeps things simple.
 
+## Tips
 
-## Sprite States
+**Let it sleep.** Sprites hibernate for a reason. Don't fight the lifecycle unless you have a specific need for low-latency wake times.
 
-Sprites move through a few internal states depending on what they're doing. These aren't yet exposed in the CLI or SDK, but they can show up in logs or support traces.
+**Use file-based storage.** SQLite, flat files, and Git repos persist automatically. You don't need external databases for most use cases.
 
-| State | Description |
-|-------|-------------|
-| `pending` | Sprite is being created |
-| `active` | Sprite is running and ready |
-| `hibernating` | Sprite is transitioning to hibernation |
-| `hibernated` | Sprite is hibernated (no compute) |
-| `waking` | Sprite is waking from hibernation |
-| `error` | Sprite encountered an error |
+**Keep sessions detachable.** Long-running work should use detachable sessions or [Services](/concepts/services) so it survives disconnects and hibernation.
 
-These states are not currently exposed in CLI/SDK responses.
+**Clean up before idle.** Flush writes and close files cleanly. The filesystem handles this well, but it's good practice.
 
-## Detached Sessions
-
-Detached sessions let you run long-lived processes inside a Sprite without keeping a connection open. Think of it like starting a background job and coming back later to check on it.
-
-Sessions persist across CLI disconnects and can survive hibernation. If the Sprite goes to sleep mid-task, the session resumes when it wakes. This makes them ideal for long-running or asynchronous work.
-
-If you're looking to run a persistent service that automatically starts on wake, see [Services](/concepts/services) for complete documentation.
-
-
-## Best Practices
-
-You don't need to micromanage Sprite lifecycle — it mostly just works. But a few habits can make things smoother:
-
-- **Use SQLite or file-based databases.** The filesystem is persistent, so tools that store data in files just work. You don't need to wire up external storage for most use cases.
-- **Plan for 30s idle hibernation.** If you need a Sprite to stay warm, keep something running — a background process or open session will do it.
-- **Clean up temporary state before idle.** If your Sprite drops temp files or leaves things half-written, make sure they get flushed before it hibernates.
-- **Checkpoint long-running work.** Detached sessions survive hibernation, but writing progress to disk gives you more control — and makes debugging easier.
-- **Don't fight the lifecycle.** Sprites hibernate for a reason. Unless you've got a real-time use case, let them sleep.
-
-If you're running something where latency matters and you want to keep a Sprite warm, consider using Services or a background process — but use that power sparingly.
-
-## Related Documentation
+## Related
 
 <CardGrid client:load>
   <LinkCard
     href="/concepts/services"
     title="Services"
-    description="Run persistent processes that restart automatically on resume"
+    description="Persistent processes that restart on wake"
     icon="cog"
     client:load
   />
   <LinkCard
     href="/concepts/checkpoints"
     title="Checkpoints"
-    description="Save and restore sprite state with checkpoints"
+    description="Save and restore Sprite state"
     icon="folder"
-    client:load
-  />
-  <LinkCard
-    href="/reference/configuration"
-    title="Configuration"
-    description="All configuration options for Sprites"
-    icon="settings"
     client:load
   />
   <LinkCard
     href="/reference/billing"
     title="Billing"
-    description="Pricing details and cost estimation"
+    description="Pricing and cost optimization"
     icon="file-text"
     client:load
   />
