@@ -52,9 +52,7 @@ You start with 100 GB. Storage grows automatically as needed.
 | All files and directories | Running processes |
 | Installed packages | In-memory state |
 | Git repositories | Network connections |
-| Databases (SQLite, etc.) | |
-
-The `/tmp` directory is cleared on hibernation.
+| Databases (SQLite, etc.) | `/tmp` contents |
 
 ### Billing
 
@@ -107,6 +105,13 @@ This configuration is fixed. One size keeps things simple.
     title="Billing"
     description="Pricing and cost optimization"
     icon="file-text"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/networking"
+    title="Networking"
+    description="HTTP access, URLs, and port forwarding"
+    icon="globe"
     client:load
   />
 </CardGrid>
