@@ -81,47 +81,36 @@ end)
 
 ## Restoring from a Checkpoint
 
-Restoring from a checkpoint replaces your Sprite's current filesystem with the saved snapshot. It stops any running processes and restarts the environment with the restored state. Note that new processes need to be started manually.
-
-If you're using the SDKs, restore works like create, it's a streamed operation that sends progress messages as it runs.
-
-To restore from a checkpoint:
+Restoring replaces your Sprite's filesystem with the saved snapshot. Running processes are stopped, and the environment restarts with the restored state.
 
 <Tabs>
 <TabItem label="CLI">
 ```bash
-# Restore from a checkpoint
-sprite restore v1
+sprite checkpoint restore v1
 ```
 </TabItem>
 <TabItem label="Go">
 ```go
-ctx := context.Background()
-
 stream, err := sprite.RestoreCheckpoint(ctx, "v1")
 if err != nil {
     log.Fatal(err)
 }
-defer stream.Close()
 
-// Process streaming progress messages
-stream.ProcessAll(func(msg *sprites.StreamMessage) error {
-    fmt.Println(msg.Data)
+err = stream.ProcessAll(func(msg *sprites.StreamMessage) error {
+    fmt.Printf("%s: %s\n", msg.Type, msg.Data)
     return nil
 })
+if err != nil {
+    log.Fatal(err)
+}
 ```
 </TabItem>
 <TabItem label="JavaScript">
 ```javascript
-const response = await sprite.restoreCheckpoint("v1");
+const stream = await sprite.restoreCheckpoint("v1");
 
-// Process NDJSON stream
-const reader = response.body.getReader();
-const decoder = new TextDecoder();
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-  console.log(decoder.decode(value));
+for await (const msg of stream) {
+  console.log(`${msg.type}: ${msg.data}`);
 }
 ```
 </TabItem>
@@ -129,22 +118,19 @@ while (true) {
 ```elixir
 {:ok, messages} = Sprites.restore_checkpoint(sprite, "v1")
 
-# Process streaming progress messages
-Enum.each(messages, fn
-  %{"status" => "complete"} -> IO.puts("Restore complete")
-  %{"type" => "info", "data" => data} -> IO.puts(data)
-  _ -> :ok
+Enum.each(messages, fn msg ->
+  IO.puts("#{msg.type}: #{msg.data}")
 end)
 ```
 </TabItem>
 </Tabs>
 
-### Restore Considerationss
+### Restore Considerations
 
-- **Performance** - Restores are fast, typically completing in under a second
-- **Destructive operation** - Current state is replaced (but backed up automatically)
-- **Process restart** - All running processes are terminated
-- **CLI retry** - Subsequent `sprite exec` commands automatically retry if the sprite is still restarting
+- **Fast** - typically under a second
+- **Destructive** - current state is replaced (but backed up automatically)
+- **Processes stop** - you'll need to restart any services
+- **CLI retry** - `sprite exec` commands automatically retry if the Sprite is still restarting
 
 ## Managing Checkpoints
 
