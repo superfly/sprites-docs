@@ -319,41 +319,34 @@ The last 5 checkpoints are mounted read-only at `/.sprite/checkpoints/` inside y
 
 ## Common Patterns
 
-Checkpoints make it easier to standardize environments, test changes safely, and recover quickly when things break. Here are a few ways teams are using them in practice.
+Checkpoints make it easier to standardize environments, test changes safely, and recover quickly when things break.
 
 ### Environment Templates
 
-You can use a checkpoint as a clean baseline for new projects or teammates. Set up a Sprite with all the tools and configs you want, checkpoint it, and reuse it as needed.
+Use a checkpoint as a clean baseline for new projects or teammates:
 
 ```bash
-# Create the baseline environment
 sprite create gold-standard
 sprite exec "install-base-tools.sh"
 sprite exec "configure-defaults.sh"
-
-# Save it in a checkpoint
 sprite checkpoint create --comment "Gold standard v1.0"
 
 # Start a new project from the same base
 sprite use gold-standard
-sprite restore v1  # Start from identical baseline
+sprite checkpoint restore v1
 ```
 
 ### Automated Checkpointing in Scripts
 
-Checkpoints are fast enough to include in regular automation. For example, you can create one just before a deployment, so you can roll back quickly if something fails.
+Create a checkpoint before deployments so you can roll back if something fails:
 
 ```bash
 #!/bin/bash
-# deployment.sh - Safe deployment with automatic rollback
-
-# Create safety checkpoint
 sprite checkpoint create --comment "Pre-deploy $(date +%Y%m%d-%H%M)"
 
-# Try deployment
 if ! sprite exec "deploy.sh"; then
   echo "Deployment failed, rolling back..."
-  sprite restore v$(sprite checkpoint list | head -2 | tail -1 | awk '{print $1}')
+  sprite checkpoint restore v1
   exit 1
 fi
 
@@ -362,22 +355,21 @@ echo "Deployment successful"
 
 ### A/B Testing Configurations
 
-You can use checkpoints to fan out from a common base config. This makes it easy to set up multiple test environments with minimal drift.
+Fan out from a common base to create multiple test environments:
 
 ```bash
-# Create base configuration
 sprite use base-config
 sprite exec "setup-base.sh"
 sprite checkpoint create --comment "Base config for A/B test"
 
 # Create variant A
 sprite create variant-a
-sprite restore v1
+sprite checkpoint restore v1
 sprite exec "apply-config-a.sh"
 
 # Create variant B
 sprite create variant-b
-sprite restore v1
+sprite checkpoint restore v1
 sprite exec "apply-config-b.sh"
 
 # Run tests in parallel
