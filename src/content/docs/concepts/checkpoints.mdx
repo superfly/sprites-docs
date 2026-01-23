@@ -13,22 +13,18 @@ Checkpoints are fast to create (~300ms), safe to restore, and useful anywhere yo
 
 ## What is a Checkpoint?
 
-A checkpoint is a snapshot of your Sprite's persistent state. It includes:
+A checkpoint is a snapshot of your Sprite's persistent state:
 
-- **Complete filesystem** - All files, directories, and data
-- **Installed packages** -  System and language-specific packages
-- **Configuration files** - Environment setup sand dotfiles
-- **Services and policies** - Any services or network policies you've configured
+- **Filesystem** - all files, directories, and data
+- **Installed packages** - system and language-specific
+- **Configuration** - environment setup and dotfiles
+- **Services and policies** - any you've configured
 
-Creating a checkpoint takes about 300ms and doesn't interrupt the Sprite. It keeps running while the snapshot is taken, so you can keep working.
+The Sprite keeps running while the snapshot is taken, so you can keep working.
 
-Checkpoints don't include:
+Checkpoints don't capture running processes, network connections, or anything in memory. Services need to be restarted after a restore.
 
-- Running processes (services are reconfigured, not snapshotted and you'll need to restart those after restore)
-- Network connections
-- Anything in memory
-
-Think of checkpoints as a fast, copy-on-write backup of your environment. They're stored in object storage and can be listed, restored, or deleted later.
+Under the hood, checkpoints use copy-on-write storage, meaning only changed blocks get saved. This keeps them fast and space-efficient.
 
 ## Creating a Checkpoint
 
