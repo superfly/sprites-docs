@@ -45,47 +45,35 @@ If you're automating in code, the Go, JavaScript, and Elixir SDKs support stream
 <Tabs>
 <TabItem label="Go">
 ```go
-ctx := context.Background()
-
-// Create a checkpoint
-stream, err := sprite.CreateCheckpoint(ctx)
+stream, err := sprite.CreateCheckpointWithComment(ctx, "my checkpoint")
 if err != nil {
     log.Fatal(err)
 }
-defer stream.Close()
 
-// Process streaming progress messages
-stream.ProcessAll(func(msg *sprites.StreamMessage) error {
-    fmt.Println(msg.Data)
+err = stream.ProcessAll(func(msg *sprites.StreamMessage) error {
+    fmt.Printf("%s: %s\n", msg.Type, msg.Data)
     return nil
 })
+if err != nil {
+    log.Fatal(err)
+}
 ```
 </TabItem>
 <TabItem label="JavaScript">
 ```javascript
-// Create a checkpoint
-const response = await sprite.createCheckpoint();
+const stream = await sprite.createCheckpoint("my checkpoint");
 
-// Process NDJSON stream
-const reader = response.body.getReader();
-const decoder = new TextDecoder();
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-  console.log(decoder.decode(value));
+for await (const msg of stream) {
+  console.log(`${msg.type}: ${msg.data}`);
 }
 ```
 </TabItem>
 <TabItem label="Elixir">
 ```elixir
-# Create a checkpoint
-{:ok, messages} = Sprites.create_checkpoint(sprite, comment: "My checkpoint")
+{:ok, messages} = Sprites.create_checkpoint(sprite, comment: "my checkpoint")
 
-# Process streaming progress messages
-Enum.each(messages, fn
-  %{"status" => "complete", "id" => id} -> IO.puts("Checkpoint created: #{id}")
-  %{"type" => "info", "data" => data} -> IO.puts(data)
-  _ -> :ok
+Enum.each(messages, fn msg ->
+  IO.puts("#{msg.type}: #{msg.data}")
 end)
 ```
 </TabItem>
