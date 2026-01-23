@@ -303,20 +303,19 @@ sprite-env checkpoints restore v4
 
 ## Checkpoint Storage
 
-Checkpoints are stored in durable object storage using [Tigris Standard tier](https://www.tigrisdata.com/docs/objects/tiers/#standard-tier):
+Checkpoints are stored using [Tigris Standard tier](https://www.tigrisdata.com/docs/objects/tiers/#standard-tier):
 
-- **Copy-on-write** - Only blocks that have changed are copied, keeping incremental checkpoints small
-- **Geographically redundant** - Data replicated across regions
-- **Highly durable** - High durability, availability and performance for frequently accessed data
-- **Compressed** - Efficient storage usage
+- **Geographically redundant** - data replicated across regions
+- **Highly durable** - designed for frequently accessed data
+- **Compressed** - efficient storage usage
 
 ### Storage Costs
 
-Checkpoints are billed as regular storage at $0.50/GB/month. Because of copy-on-write, incremental checkpoints don't use much space—you're only billed for changed blocks. See [Billing](/reference/billing) for details.
+Checkpoints are billed at $0.50/GB/month. Because of copy-on-write, incremental checkpoints only store changed blocks. See [Billing](/reference/billing) for details.
 
 ### Browsing Checkpoints
 
-The last 5 checkpoints are mounted read-only at `/.sprite/checkpoints/` inside your Sprite, allowing you to browse or diff previous states without restoring.
+The last 5 checkpoints are mounted read-only at `/.sprite/checkpoints/` inside your Sprite, so you can browse or diff previous states without restoring.
 
 ## Common Patterns
 
