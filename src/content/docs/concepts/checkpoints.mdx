@@ -378,118 +378,40 @@ sprite use variant-b && sprite exec "run-tests.sh" &
 wait
 ```
 
-## Best Practices
+## Checkpoint Tips
 
-Checkpoints are lightweight and fast, but they're not magic. Here are a few practices to help you use them effectively.
+### Use Comments
 
-### Using Comments
+Checkpoints use sequential version IDs (v0, v1, v2...), so comments help you remember what each one is for:
 
-Checkpoints use sequential version IDs (v0, v1, v2, etc.), so adding a descriptive comment makes it easier to remember what each one is for.
-
-<Tabs>
-<TabItem label="CLI">
 ```bash
-# Create checkpoint with a descriptive comment
 sprite checkpoint create --comment "Clean Python 3.11 + Node 20 setup"
 ```
 
-```output
-Checkpoint created: v1
-```
+### When to Checkpoint
 
-```bash
-# List checkpoints to see comments
-sprite checkpoint list
-```
-
-```output
-ID    CREATED              COMMENT
-v1    2024-01-15 10:30:00  Clean Python 3.11 + Node 20 setup
-```
-</TabItem>
-<TabItem label="Go">
-```go
-ctx := context.Background()
-
-// Create checkpoint with comment
-stream, err := sprite.CreateCheckpointWithComment(ctx, "Clean Python 3.11 + Node 20 setup")
-if err != nil {
-    log.Fatal(err)
-}
-defer stream.Close()
-stream.ProcessAll(func(msg *sprites.StreamMessage) error {
-    fmt.Println(msg.Data)
-    return nil
-})
-```
-</TabItem>
-<TabItem label="JavaScript">
-```javascript
-// Create checkpoint with comment
-const response = await sprite.createCheckpoint("Clean Python 3.11 + Node 20 setup");
-
-const reader = response.body.getReader();
-const decoder = new TextDecoder();
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-  console.log(decoder.decode(value));
-}
-```
-</TabItem>
-<TabItem label="Elixir">
-```elixir
-# Create checkpoint with comment
-{:ok, messages} = Sprites.create_checkpoint(sprite,
-  comment: "Clean Python 3.11 + Node 20 setup"
-)
-
-Enum.each(messages, fn
-  %{"status" => "complete", "id" => id} -> IO.puts("Checkpoint created: #{id}")
-  _ -> :ok
-end)
-```
-</TabItem>
-</Tabs>
-
-### When to Create Checkpoints
-
-Checkpoints are fast enough to use regularly. Some good times to create one:
-
+- Before upgrades, refactors, or experiments
+- After milestones (tests pass, feature complete)
 - Daily during active development
-- Before upgrades, refactors, experiments, or other risky operations
-- After milestones (when tests pass or a feature is complete)
 
 ### Clean Up Old Checkpoints
 
-Checkpoints take up space. You don't need to keep every one.
+Checkpoints take up space. Delete the ones you don't need:
 
 ```bash
-# List all checkpoints
 sprite checkpoint list
-
-# Delete checkpoints you no longer need
 sprite checkpoint delete v1
-sprite checkpoint delete v2
 ```
 
-See [Deleting Checkpoints](#deleting-checkpoints) for details.
+See [Delete a Checkpoint](#delete-a-checkpoint) for details.
 
-### Integrate with LLMs
+### Use Git for Code
 
-Point your LLM at `/.sprite/llm.txt` inside your Sprite and it can manage checkpoints for you programmatically to create snapshots before risky operations and restoring when things go wrong. This makes it easier to recover from failed experiments without external coordination.
-
-### Use Git for Code...Don't Rely on Checkpoints Alone
-
-Checkpoints capture environment state, not version history. They're not a replacement for Git. Use checkpoints for setup, config, and temporary state. Use Git for everything else.
+Checkpoints capture environment state, not version history. Use checkpoints for setup, config, and temporary state. Use Git for code.
 
 ```bash
-# Good: Use both
 sprite exec "git commit -am 'Save progress'"
 sprite checkpoint create
-
-# Bad: Only using checkpoints for code
-sprite checkpoint create  # Don't do this for code changes
 ```
 
 ## Related Documentation
