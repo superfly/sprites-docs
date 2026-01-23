@@ -134,11 +134,7 @@ end)
 
 ## Managing Checkpoints
 
-Here are some additional common ways to interact and mange Checkpoings.
-
 ### List Checkpoints
-
-You can list all checkpoints for the current Sprite:
 
 <Tabs>
 <TabItem label="CLI">
@@ -147,16 +143,13 @@ sprite checkpoint list
 ```
 
 ```output
-ID                             CREATED             COMMENT
------------------------------- ------------------- ------------------------
-v1                             2024-01-15 10:30:00 After npm install
-v0                             2024-01-14 15:45:00 Base (clean) state
+ID    CREATED              COMMENT
+v1    2024-01-15 10:30:00  After npm install
+v0    2024-01-14 15:45:00  Base (clean) state
 ```
 </TabItem>
 <TabItem label="Go">
 ```go
-ctx := context.Background()
-
 checkpoints, err := sprite.ListCheckpoints(ctx, "")
 if err != nil {
     log.Fatal(err)
@@ -187,9 +180,7 @@ end
 </TabItem>
 </Tabs>
 
-### Checkpoint Information
-
-To get details about a specific checkpoint:
+### Get Checkpoint Details
 
 <Tabs>
 <TabItem label="CLI">
@@ -201,13 +192,10 @@ sprite checkpoint info v1
 ID: v1
 Created: 2024-01-15T10:30:00Z
 Comment: After npm install
-History: (none)
 ```
 </TabItem>
 <TabItem label="Go">
 ```go
-ctx := context.Background()
-
 cp, err := sprite.GetCheckpoint(ctx, "v1")
 if err != nil {
     log.Fatal(err)
@@ -238,14 +226,11 @@ IO.puts("Comment: #{cp.comment}")
 </TabItem>
 </Tabs>
 
-### Deleting Checkpoints
-
-You can delete individual checkpoints by their ID. Deleted checkpoints cannot be recovered.
+### Delete a Checkpoint
 
 <Tabs>
 <TabItem label="CLI">
 ```bash
-# Delete a specific checkpoint
 sprite checkpoint delete v3
 ```
 
@@ -255,26 +240,15 @@ Deleted
 </TabItem>
 </Tabs>
 
-<Callout type="warning" title="Delete Restrictions" client:load>
-You cannot delete the currently active checkpoint. Attempting to do so returns an error:
-
-```bash
-sprite checkpoint delete v2
-```
-
-```output
-Error: cannot delete active checkpoint
-```
-
-To delete an active checkpoint, first restore to a different checkpoint, then delete the original.
+<Callout type="warning" title="You can't delete the active checkpoint" client:load>
+Restore to a different checkpoint first, then delete the original.
 </Callout>
 
-### Cleanup Considerations
+Deleted checkpoints can't be recovered. A few things to keep in mind:
 
-- **Deleted checkpoints cannot be recovered** - Make sure you don't need it before deleting
-- **Storage costs decrease immediately** - Billing stops once the checkpoint is deleted
-- **Keep at least one stable checkpoint** - Always maintain a known-good fallback
-- **Review old checkpoints periodically** - Remove unused checkpoints to manage storage costs
+- **Billing stops immediately** once the checkpoint is deleted
+- **Keep at least one stable checkpoint** as a known-good fallback
+- **Review old checkpoints periodically** to manage storage costs
 
 ## Manage Checkpoints with the API Inside Your Sprite
 
