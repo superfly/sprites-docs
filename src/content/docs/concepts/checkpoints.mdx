@@ -250,29 +250,19 @@ Deleted checkpoints can't be recovered. A few things to keep in mind:
 - **Keep at least one stable checkpoint** as a known-good fallback
 - **Review old checkpoints periodically** to manage storage costs
 
-## Manage Checkpoints with the API Inside Your Sprite
+## Checkpointing from Inside a Sprite
 
-You can create and restore checkpoints from within the Sprite itself using its internal API. This is useful for automation, error recovery, and self-managing agents like LLMs.
-
+You can create and restore checkpoints from within the Sprite itself. This is useful for automation, error recovery, and self-managing agents.
 
 ### Using sprite-env
 
-The `sprite-env` CLI provides a straightforward way to interact with the internal checkpoint API:
-
 ```bash
-# List all checkpoints
 sprite-env checkpoints list
-
-# Create a new checkpoint (streams progress)
 sprite-env checkpoints create
-
-# Restore from a checkpoint
 sprite-env checkpoints restore v1
 ```
 
 ### Direct API Access
-
-If you prefer to use the internal API with curl:
 
 ```bash
 # List checkpoints
@@ -286,49 +276,28 @@ curl --unix-socket /.sprite/api.sock \
   -X POST http://sprite/v1/checkpoint
 ```
 
-### Checkpoint Creation Response
-
-Creating a checkpoint streams progress in NDJSON format:
+Both methods stream NDJSON progress:
 
 ```json
-{"status": "starting", "message": "Creating checkpoint..."}
-{"status": "progress", "percent": 50}
-{"status": "complete", "id": "v3"}
+{"type": "info", "data": "Creating checkpoint..."}
+{"type": "complete", "data": "Checkpoint v3 created"}
 ```
 
 ### Restore Behavior
 
-Restoring a checkpoint resets the Sprite's filesystem to the saved state and restarts the environment. The restore request returns an HTTP 202 (Accepted) immediately and does not wait for completion, since the connection will close during the restart.
+The restore request returns HTTP 202 immediately since the Sprite restarts during the operation. The connection closes, and subsequent commands retry automatically.
+
+### Self-Checkpointing Agents
+
+Point your LLM at `/.sprite/llm.txt` to help it understand the environment, then it can use `sprite-env` to checkpoint before risky operations:
 
 ```bash
-# This returns immediately, then the sprite restarts with restored state
-sprite-env checkpoints restore v1
-```
-
-This operation replaces the current state with the checkpoint. Running processes will not persist.
-
-### Self-Checkpointing with LLMs
-
-If you're running an agent or script that modifies the environment, it can use sprite-env or write to`/.sprite/llm.txt` to create a checkpoint before making changes.
-
-```bash
-# Before risky operations
 sprite-env checkpoints create
-```
-
-```output
-{"status": "complete", "id": "v4"}
-```
-
-```bash
-# Try something risky...
 rm -rf node_modules && npm install
 
-# If things go wrong, restore
+# If things go wrong
 sprite-env checkpoints restore v4
 ```
-
-This allows autonomous tools to recover gracefully from failed experiments.
 
 
 
