@@ -26,6 +26,14 @@ import {
 
 const OUTPUT_BASE_DIR = './src/content/docs/api';
 
+// SDK GitHub repository URLs
+const SDK_REPOS = {
+  go: 'https://github.com/superfly/sprites-go',
+  javascript: 'https://github.com/superfly/sprites-js',
+  python: 'https://github.com/superfly/sprites-py',
+  elixir: 'https://github.com/superfly/sprites-ex',
+} as const;
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -1041,6 +1049,15 @@ curl -H "Authorization: Bearer $SPRITE_TOKEN" \\
 <Callout type="tip" client:load>
 Create a token at [sprites.dev/account](https://sprites.dev/account), or generate one via the CLI with \`sprite org auth\`.
 </Callout>
+
+## SDK Libraries
+
+For a better developer experience, use our official SDKs:
+
+- [Go ↗](${SDK_REPOS.go})
+- [JavaScript ↗](${SDK_REPOS.javascript})
+- [Python ↗](${SDK_REPOS.python})
+- [Elixir ↗](${SDK_REPOS.elixir})
 
 ## API Categories
 
