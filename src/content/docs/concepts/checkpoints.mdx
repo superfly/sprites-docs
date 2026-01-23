@@ -28,10 +28,9 @@ Under the hood, checkpoints use copy-on-write storage, meaning only changed bloc
 
 ## Creating a Checkpoint
 
-Checkpoints are fast to create and don't interrupt your running Sprite. You can make one from the CLI in a single command, including an optional descriptive comment. This takes about 300ms and returns a versioned ID.
+You can create a checkpoint with a single CLI command:
 
 ```bash
-# Create a checkpoint of the current sprite with a descriptive comment
 sprite checkpoint create --comment "Clean Python 3.11 + Node 20 setup"
 ```
 
@@ -39,7 +38,9 @@ sprite checkpoint create --comment "Clean Python 3.11 + Node 20 setup"
 Checkpoint created: v1
 ```
 
-If you're automating this in code, the Go, JavaScript and Elixir SDKs support streaming progress. You'll receive real-time updates as the checkpoint is built, which is handy for long-running environments or instrumentation.
+The `--comment` flag is optional but helps you remember what each checkpoint is for.
+
+If you're automating in code, the Go, JavaScript, and Elixir SDKs support streaming progress. You'll get real-time updates as the checkpoint is built.
 
 <Tabs>
 <TabItem label="Go">
