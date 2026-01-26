@@ -59,7 +59,7 @@ sprite sessions kill <id>        # kill session
 
 ## Sprite Lifecycle: Idle Behavior and Persistence
 
-Sprites transition to `warm` quickly when idle, and eventually to `cold`. That means:
+When activity stops, Sprites immediately become `warm`. Over time they may transition to `cold`. `warm` Sprites resume quickly; `cold` Sprites take longer to wake. That means:
 
 ### What Persists (and What Doesn't)
 
