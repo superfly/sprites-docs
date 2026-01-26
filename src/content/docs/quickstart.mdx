@@ -69,7 +69,7 @@ Execute commands in your Sprite:
 sprite exec echo "Hello, Sprites!"
 
 # Run multiple commands
-sprite exec "cd /tmp && ls -la"
+sprite exec bash -c "cd /tmp && ls -la"
 
 # Open an interactive shell
 sprite console
@@ -88,7 +88,7 @@ Your Sprite comes pre-configured with common development tools (Node.js, Python,
 See what's already installed and ready to use:
 
 ```bash
-sprite exec "node --version && python3 --version && go version"
+sprite exec bash -c "node --version && python3 --version && go version"
 ```
 
 ### Install a package
@@ -96,7 +96,7 @@ sprite exec "node --version && python3 --version && go version"
 Install dependencies just like you would locally—they'll stick around:
 
 ```bash
-sprite exec "pip install requests"
+sprite exec pip install requests
 ```
 
 ### Create and read files
@@ -105,12 +105,12 @@ Files you create persist across sessions. Write once, read anytime:
 
 ```bash
 # Create a file
-sprite exec "echo 'Hello from my persistent Sprite!' > /home/sprite/greeting.txt"
+sprite exec bash -c "echo 'Hello from my persistent Sprite!' > /home/sprite/greeting.txt"
 
 # Disconnect, get coffee, come back later...
 # Everything is still there!
-sprite exec "cat /home/sprite/greeting.txt"
-sprite exec "python -c 'import requests; print(requests.__version__)'"
+sprite exec cat /home/sprite/greeting.txt
+sprite exec python -c "import requests; print(requests.__version__)"
 ```
 
 Unlike containers that reset on each run, your Sprite keeps your installed packages, files, and entire filesystem intact.
@@ -125,7 +125,7 @@ Start a simple Python server and get your public URL:
 
 ```bash
 # Start a simple HTTP server on port 8080
-sprite exec "python -m http.server 8080 &"
+sprite exec bash -c "python -m http.server 8080 &"
 
 # Get your Sprite's public URL
 sprite url
@@ -140,7 +140,7 @@ By default, your Sprite's URL requires authentication. To make it publicly acces
 sprite url update --auth public
 ```
 
-The default `sprite` auth mode allows access using a Sprite token with Bearer authentication.
+The `default` auth mode requires a Sprite token with Bearer authentication.
 </Callout>
 
 ### Test on-demand wake-up
