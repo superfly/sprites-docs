@@ -121,17 +121,19 @@ Every Sprite has a unique HTTP URL and can serve traffic. This makes it perfect 
 
 ### Serve HTTP
 
-Start a simple Python server and get your public URL:
+First, get your Sprite's public URL:
 
 ```bash
-# Start a simple HTTP server on port 8080
-sprite exec bash -c "python -m http.server 8080 &"
-
-# Get your Sprite's public URL
 sprite url
 ```
 
-Visit the URL in your browser—you'll see Python's directory listing page. Your Sprite automatically routes HTTP traffic to port 8080 and wakes up to handle requests.
+Then start a simple Python server:
+
+```bash
+sprite exec python -m http.server 8080
+```
+
+Visit the URL in your browser—you'll see Python's directory listing page. Press `Ctrl+C` to stop the server when you're done. Your Sprite automatically routes HTTP traffic to port 8080 and wakes up to handle requests.
 
 <Callout type="info">
 By default, your Sprite's URL requires authentication. To make it publicly accessible, run:
