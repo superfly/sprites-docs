@@ -21,13 +21,13 @@ A Sprite is considered active when:
 
 When none of these are true, the 30-second idle timer starts. Once it expires, the Sprite hibernates. Compute billing stops immediately.
 
-<LifecycleDiagram />
+{/* <LifecycleDiagram /> */}
 
 ## Waking up
 
 Sprites wake automatically when you interact with them: CLI, API, or HTTP request. Wake time is typically a few seconds. The request blocks until the Sprite is ready.
 
-Disk state is preserved. Running processes are not. If you need processes to restart on wake, use [Services](/concepts/services).
+Disk state is preserved. Running processes are not.
 
 ## Persistence
 
@@ -60,7 +60,7 @@ You pay for actual bytes stored, not allocated space. Storage is TRIM-friendly, 
 - **Hot storage**: Sampled every few seconds while the Sprite is running. 2 GB cached for 4 hours = 8 GB-hours.
 - **Cold storage**: Measured hourly. 10 GB stored for 24 hours = 240 GB-hours.
 
-See [Billing](/reference/billing) for rates.
+{/* See [Billing](/reference/billing) for rates. */}
 
 ## Resources
 
@@ -78,11 +78,11 @@ Compute is fixed. One size keeps things simple.
 
 **Use file-based storage.** SQLite, flat files, and Git repos persist automatically. You don't need external databases for most use cases.
 
-**Keep sessions detachable.** Long-running work should use detachable sessions or [Services](/concepts/services) so it survives disconnects and hibernation.
+**Keep sessions detachable.** Long-running work should use detachable sessions so it survives disconnects and hibernation.
 
 **Clean up before idle.** Flush writes and close files cleanly. The filesystem handles this well, but it's good practice.
 
-## Related
+{/* ## Related
 
 <CardGrid client:load>
   <LinkCard
@@ -113,4 +113,4 @@ Compute is fixed. One size keeps things simple.
     icon="globe"
     client:load
   />
-</CardGrid>
+</CardGrid> */}
