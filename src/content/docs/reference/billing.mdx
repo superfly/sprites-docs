@@ -56,7 +56,7 @@ Compute is billed **per-second** with no minimum. If you run a command for 30 se
 
 ## Storage Billing
 
-Sprites use a two-tier storage system: **hot storage** for active working data and **cold storage** for persistent object storage.
+Sprites use a two-tier storage system: **hot storage** for active working data and **storage** for persistent object storage.
 
 ### Hot Storage
 
@@ -68,12 +68,12 @@ Hot storage is the local NVMe cache used by the filesystem (JuiceFS) for active 
 
 Hot storage represents the working set of data actively being used during your session.
 
-### Cold Storage
+### Storage
 
-Cold storage is the object storage bucket where all your Sprite's persistent data lives.
+Storage is the object storage bucket where all your Sprite's persistent data lives.
 
 - **Measured hourly** by summing the actual size of all objects in your bucket
-- **Always charged**: Cold storage accrues 24/7, even when hibernated
+- **Always charged**: Storage accrues 24/7, even when hibernated
 - **TRIM-friendly**: You only pay for data actually written
 - **Deleted files reduce cost**: Deleting files reduces your storage bill
 
@@ -83,7 +83,7 @@ Every Sprite includes 100 GB of storage capacity. Storage does not autoscale yet
 
 ### Typical Usage
 
-| Environment | Hot Storage (active) | Cold Storage | Within Plan? |
+| Environment | Hot Storage (active) | Storage | Within Plan? |
 |------------|---------------------|--------------|--------------|
 | Minimal (OS + tools) | ~1 GB | ~2 GB | Yes |
 | Dev environment | ~2 GB | ~5 GB | Yes |
@@ -149,10 +149,10 @@ Usage and billing information is available through your Fly.io dashboard and org
 > Compute billing starts when you execute a command and stops when the command completes or the Sprite hibernates.
 
 **Do I pay while hibernated?**
-> No compute or hot storage charges while hibernated. You only pay for cold storage (object storage), which accrues 24/7.
+> No compute or hot storage charges while hibernated. You only pay for storage (object storage), which accrues 24/7.
 
 **How is storage measured?**
-> Hot storage (NVMe cache) is sampled every few seconds while your Sprite is active. Cold storage (object storage) is measured hourly based on actual data stored, not allocated capacity.
+> Hot storage (NVMe cache) is sampled every few seconds while your Sprite is active. Storage (object storage) is measured hourly based on actual data stored, not allocated capacity.
 
 **Are checkpoints billed?**
 > Yes, checkpoints count toward your storage usage.

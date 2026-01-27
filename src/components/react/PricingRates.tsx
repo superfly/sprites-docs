@@ -5,7 +5,7 @@ export const HOURLY_RATES = {
   cpu: 0.07,
   ram: 0.04375,
   storageHot: 0.5,
-  storageCold: 0.02,
+  storage: 0.02,
 };
 
 export function PricingRates() {
@@ -60,8 +60,8 @@ export function PricingRates() {
           description="Local NVMe cache for active working data, sampled every few seconds."
         />
         <RateCard
-          title="Cold Storage"
-          rate={`$${HOURLY_RATES.storageCold.toFixed(2)}`}
+          title="Storage"
+          rate={`$${HOURLY_RATES.storage.toFixed(2)}`}
           unit="/GB-month"
           description="Object storage for persistent data, measured hourly."
         />
@@ -69,7 +69,7 @@ export function PricingRates() {
 
       <p className="text-xs text-[var(--sl-color-gray-2)] pt-2 border-t border-[var(--sl-color-hairline)]">
         All compute resources are billed per second. Hot storage is sampled
-        every few seconds while active; cold storage is measured hourly.
+        every few seconds while active; storage is measured hourly.
       </p>
     </div>
   );
