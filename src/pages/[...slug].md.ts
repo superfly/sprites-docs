@@ -94,9 +94,5 @@ ${doc.data.description ? `\n${doc.data.description}\n` : ''}
 ${cleanedContent}
 `;
 
-  return new Response(markdown, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-    },
-  });
+  return new Response(markdown);
 };

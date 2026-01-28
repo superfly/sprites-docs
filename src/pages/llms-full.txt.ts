@@ -193,9 +193,5 @@ ${cleanedContent}
 
   const fullContent = parts.join('\n');
 
-  return new Response(fullContent, {
-    headers: {
-      'Content-Type': 'text/plain; charset=utf-8',
-    },
-  });
+  return new Response(fullContent);
 };
