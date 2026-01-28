@@ -100,8 +100,8 @@ sprite console
 # (leave terminal open for hours while doing other things)
 
 # Good: Run specific commands
-sprite exec "npm test"
-sprite exec "npm build"
+sprite exec npm test
+sprite exec npm build
 ```
 
 ### Use Hibernation Effectively
@@ -112,9 +112,9 @@ Sprites hibernate after ~30 seconds of inactivity. Close idle TTY sessions and k
 
 ```bash
 # Remove unnecessary files
-sprite exec "rm -rf node_modules/.cache"
-sprite exec "apt-get clean"
-sprite exec "pip cache purge"
+sprite exec rm -rf node_modules/.cache
+sprite exec apt-get clean
+sprite exec pip cache purge
 ```
 
 ### Use Checkpoints Wisely
