@@ -30,7 +30,7 @@ Sprites is a product by Fly.io that provides instant, secure sandboxes for AI ag
 ${groups
   .map(({ label, items }) => {
     const lines = items.map(
-      ({ slug, title }) => `  - ${title}: https://docs.sprites.dev/${slug}.md`,
+      ({ slug, name }) => `  - ${name}: https://docs.sprites.dev/${slug}.md`,
     );
     return `- ${label}:\n${lines.join('\n')}`;
   })

@@ -10,6 +10,7 @@ export type DocsGroup = {
   label: string;
   items: {
     slug: string;
+    name: string;
     body: string;
     title: string;
     description?: string;
@@ -28,30 +29,55 @@ export async function getGroupedDocs(): Promise<DocsGroup[]> {
 
   const groups = [];
   for (const { label, items: sidebarItems } of sidebarConfig) {
-    const items = [];
+    const group = { label, items: [] };
     for (const sidebarItem of sidebarItems) {
-      if (
-        typeof sidebarItem === 'object' &&
-        sidebarItem != null &&
-        'slug' in sidebarItem
-      ) {
-        const doc = atlas.get(sidebarItem.slug);
-        if (doc != null && doc.body != null) {
-          items.push({
-            slug: doc.id,
-            body: doc.body,
-            title: doc.data.title,
-            description: doc.data.description,
-          });
-        } else {
-          console.warn(`Warning: Could not find ${sidebarItem.label}:`);
+      if (typeof sidebarItem === 'object' && sidebarItem != null) {
+        if ('slug' in sidebarItem) {
+          // Handle normal pages, which have a "slug" attribute
+          tryPushDoc(group.items, sidebarItem.slug, sidebarItem.label);
+          continue;
+        } else if ('items' in sidebarItem && Array.isArray(sidebarItem.items)) {
+          // Handle API pages, which have an "items" array
+          if (sidebarItem.items.length > 0) {
+            const item = sidebarItem.items[0];
+            if (typeof item === 'object' && item != null && 'link' in item) {
+              const hashIndex = item.link.lastIndexOf('#');
+              if (hashIndex !== -1) {
+                // Remove the leading slash and the URL hash
+                tryPushDoc(
+                  group.items,
+                  item.link.slice(1, hashIndex),
+                  sidebarItem.label,
+                );
+                continue;
+              }
+            }
+          }
         }
+        console.warn(
+          `Warning: Failed to identify sidebar style of ${sidebarItem.label}:`,
+        );
       }
     }
-    groups.push({ label, items });
+    groups.push(group);
   }
 
   return groups;
+
+  function tryPushDoc(items: DocsGroup['items'], slug: string, name?: string) {
+    const doc = atlas.get(slug);
+    if (doc != null && doc.body != null) {
+      items.push({
+        slug: doc.id,
+        name: name ?? doc.data.title,
+        body: doc.body,
+        title: doc.data.title,
+        description: doc.data.description,
+      });
+    } else {
+      console.warn(`Warning: Could not find ${slug}:`);
+    }
+  }
 }
 
 export const GET: APIRoute = async () => {
