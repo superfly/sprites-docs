@@ -18,8 +18,8 @@ Sprites give you three main ways to interact:
 Run a single command, wait for it to finish, get the output. Perfect for scripts, package installs, or quick checks.
 
 ```bash
-sprite exec "ls -la"
-sprite exec "npm install express"
+sprite exec ls -la
+sprite exec npm install express
 sprite exec -tty vim
 ```
 
@@ -46,7 +46,7 @@ sprite console
 All TTY sessions are automatically detachable. Start a command, disconnect with `Ctrl+\`, and reattach later. Great for dev servers, long builds, or background processes.
 
 ```bash
-sprite exec -tty "npm run dev"   # start a TTY session
+sprite exec -tty npm run dev     # start a TTY session
 # Press Ctrl+\ to detach
 
 sprite sessions list             # list running sessions
@@ -79,7 +79,7 @@ Wake-up is fast:
 Use TTY sessions to keep things running without going `cold`. You can detach with `Ctrl+\` and reattach later to see all the output.
 
 ```bash
-sprite exec -tty "rails server"
+sprite exec -tty rails server
 # Press Ctrl+\ to detach, use `sprite sessions attach <id>` to reattach
 ```
 
@@ -151,9 +151,9 @@ Sprites run Ubuntu 24.04 LTS with common tools preinstalled:
 Install packages like you would locally:
 
 ```bash
-sprite exec "pip install pandas numpy"
-sprite exec "npm install -g typescript"
-sprite exec "cargo install ripgrep"
+sprite exec pip install pandas numpy
+sprite exec npm install -g typescript
+sprite exec cargo install ripgrep
 ```
 
 They persist across hibernation. No rebuilds needed.
@@ -162,7 +162,7 @@ They persist across hibernation. No rebuilds needed.
 **Storage space**: Each Sprite has 100 GB of persistent storage. Check usage with:
 
 ```bash
-sprite exec "df -h"
+sprite exec df -h
 ```
 </Callout>
 
@@ -175,7 +175,7 @@ sprite exec "df -h"
 ```bash
 sprite use my-sprite
 # Now all commands target this sprite
-sprite exec "echo hello"
+sprite exec echo "hello world"
 ```
 
 ### List and Filter
@@ -314,16 +314,16 @@ kill $(lsof -t -i:2000)
 - [Contact support](https://fly.io/dashboard/support) if persistent
 
 **Storage full:**
-- Clean up files: `sprite exec "du -sh /home/sprite/*"`
+- Clean up files: `sprite exec bash -c "du -sh /home/sprite/*"`
 - Delete old checkpoints
 - Create a new Sprite for additional workloads
 
 **Quick debugging:**
 
 ```bash
-sprite exec "ps aux"      # running processes
-sprite exec "df -h"       # disk space
-sprite exec "free -h"     # memory usage
+sprite exec ps aux      # running processes
+sprite exec df -h       # disk space
+sprite exec free -h     # memory usage
 ```
 
 ---

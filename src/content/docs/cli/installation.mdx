@@ -80,31 +80,6 @@ sprite use my-project-sprite
 
 This creates a `.sprite` file that the CLI reads automatically. Add `.sprite` to your `.gitignore` as it's user-specific.
 
-## Optional: Mount Helper Function
-
-Add this function to your shell configuration (`~/.zshrc` or `~/.bashrc`) to easily mount your Sprite's filesystem locally:
-
-```bash
-sc() {
-  local sprite_name="${1:-$(sprite use)}"
-  local mount_point="/tmp/sprite-${sprite_name}"
-  mkdir -p "$mount_point"
-  sshfs -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
-    "sprite@${sprite_name}.sprites.dev:" "$mount_point"
-  cd "$mount_point"
-}
-```
-
-Usage:
-
-```bash
-sc my-sprite  # Mount and cd to sprite's home directory
-```
-
-<Callout type="info">
-This requires `sshfs` to be installed. On macOS, install with `brew install macfuse sshfs`. On Linux, use your package manager: `apt install sshfs` or `yum install fuse-sshfs`.
-</Callout>
-
 ## Troubleshooting
 
 ### Permission Denied
