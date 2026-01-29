@@ -1,4 +1,14 @@
-# Sprites Documentation
+import type { APIRoute } from 'astro';
+import { getGroupedDocs } from './llms-full.txt';
+
+const skippedGroups = ['Getting Started'];
+
+export const GET: APIRoute = async () => {
+  const groups = (await getGroupedDocs()).filter(
+    ({ label }) => !skippedGroups.includes(label),
+  );
+
+  const body = `# Sprites Documentation
 
 > Sprites are persistent, hardware-isolated execution environments for arbitrary code. Unlike traditional serverless functions, Sprites are stateful Linux computers that maintain their filesystem and state between runs.
 
@@ -15,26 +25,16 @@ Sprites is a product by Fly.io that provides instant, secure sandboxes for AI ag
 
 ## Documentation Sections
 
-- Overview: https://docs.sprites.dev/
-- Quickstart: https://docs.sprites.dev/quickstart/
-- Concepts:
-  - Lifecycle: https://docs.sprites.dev/concepts/lifecycle/
-  - Services: https://docs.sprites.dev/concepts/services/
-  - Networking: https://docs.sprites.dev/concepts/networking/
-  - Checkpoints: https://docs.sprites.dev/concepts/checkpoints/
-- CLI:
-  - Installation: https://docs.sprites.dev/cli/installation/
-  - Authentication: https://docs.sprites.dev/cli/authentication/
-  - Commands: https://docs.sprites.dev/cli/commands/
-- SDKs:
-  - JavaScript: https://docs.sprites.dev/sdks/javascript/
-  - Go: https://docs.sprites.dev/sdks/go/
-- API:
-  - REST API: https://docs.sprites.dev/api/rest/
-- Reference:
-  - Base Images: https://docs.sprites.dev/reference/base-images/
-  - Configuration: https://docs.sprites.dev/reference/configuration/
-  - Billing: https://docs.sprites.dev/reference/billing/
+- Overview: https://docs.sprites.dev/index.md
+- Quickstart: https://docs.sprites.dev/quickstart.md
+${groups
+  .map(({ label, items }) => {
+    const lines = items.map(
+      ({ slug, name }) => `  - ${name}: https://docs.sprites.dev/${slug}.md`,
+    );
+    return `- ${label}:\n${lines.join('\n')}`;
+  })
+  .join('\n')}
 
 ## Use Cases
 
@@ -43,3 +43,7 @@ Sprites is a product by Fly.io that provides instant, secure sandboxes for AI ag
 - Development Environments: Build persistent dev environments that maintain state
 - Long-lived Services: Run services with automatic hibernation and wake-on-request
 - CI/CD Tasks: Test code against live git repositories with full environment access
+`;
+
+  return new Response(body);
+};
