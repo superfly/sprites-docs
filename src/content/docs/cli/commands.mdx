@@ -229,10 +229,10 @@ sprite list --prefix dev
 
 ### `sprite destroy`
 
-Destroy the current sprite
+Destroy a sprite
 
 ```bash
-sprite destroy [options]
+sprite destroy [options] [sprite-name]
 ```
 
 **Options:**
@@ -245,8 +245,9 @@ sprite destroy [options]
 
 **Examples:**
 ```bash
-sprite destroy
-sprite destroy -o myorg -s mysprite
+sprite destroy mysprite
+sprite destroy -o myorg mysprite
+sprite destroy -s mysprite
 sprite destroy --force
 ```
 
@@ -319,39 +320,63 @@ sprite console -o myorg -s mysprite
 
 ### `sprite checkpoint create`
 
-Error: sprite name required: use -s flag or create a .sprite file
+Create a new checkpoint
 
 ```bash
 sprite checkpoint create
 ```
 
+**Options:**
+- `-c, --comment <string>` - Optional comment to describe this checkpoint
+- `-h, --help` - Show help for this command
+
 ### `sprite checkpoint list`
 
-Error: sprite name required: use -s flag or create a .sprite file
+List all checkpoints
 
 ```bash
-sprite checkpoint list
+sprite checkpoint list [options]
 ```
 
 **Aliases:** `sprite checkpoint ls`, `sprite checkpoints ls`
 
+**Options:**
+- `-h, --help` - Show help for this command
+- `-h, --history <string>` - Filter by history version Include auto-generated checkpoints
+
 ### `sprite checkpoint info`
 
-Error: sprite name required: use -s flag or create a .sprite file
+Show information about a specific checkpoint
 
 ```bash
-sprite checkpoint info
+sprite checkpoint info <version-id>
+```
+
+**Options:**
+- `-h, --help` - Show help for this command
+
+**Examples:**
+```bash
+sprite checkpoint info v2
 ```
 
 ### `sprite checkpoint delete`
 
-Error: sprite name required: use -s flag or create a .sprite file
+Delete a checkpoint (soft delete)
 
 ```bash
-sprite checkpoint delete
+sprite checkpoint delete <version-id>
 ```
 
 **Aliases:** `sprite checkpoint rm`
+
+**Options:**
+- `-h, --help` - Show help for this command
+
+**Examples:**
+```bash
+sprite checkpoint delete v3
+```
 
 ### `sprite restore`
 
