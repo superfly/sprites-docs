@@ -59,7 +59,7 @@ import CodeSnippets from '@/components/CodeSnippets.astro';
   -H "Content-Type: application/json" \\
   -d '{"name": "my-sprite"}' \\
   "https://api.sprites.dev/v1/sprites"` },
-        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+        { language: 'javascript', code: `import { SpritesClient } from "@fly/sprites";
 
 const client = new SpritesClient(process.env.SPRITE_TOKEN);
 const spriteName = process.env.SPRITE_NAME;
@@ -147,7 +147,7 @@ IO.puts("Sprite '\#{sprite_name}' created")` }
       examples={[
         { language: 'curl', code: `curl -H "Authorization: Bearer $SPRITE_TOKEN" \\
   "https://api.sprites.dev/v1/sprites"` },
-        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+        { language: 'javascript', code: `import { SpritesClient } from "@fly/sprites";
 
 const client = new SpritesClient(process.env.SPRITE_TOKEN);
 
@@ -229,7 +229,7 @@ sprites |> Jason.encode!(pretty: true) |> IO.puts()` }
       examples={[
         { language: 'curl', code: `curl -H "Authorization: Bearer $SPRITE_TOKEN" \\
   "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` },
-        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+        { language: 'javascript', code: `import { SpritesClient } from "@fly/sprites";
 
 const client = new SpritesClient(process.env.SPRITE_TOKEN);
 const spriteName = process.env.SPRITE_NAME;
@@ -324,7 +324,7 @@ sprite |> Jason.encode!(pretty: true) |> IO.puts()` }
   -H "Content-Type: application/json" \\
   -d '{"url_settings": {"auth": "public"}}' \\
   "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` },
-        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+        { language: 'javascript', code: `import { SpritesClient } from "@fly/sprites";
 
 const client = new SpritesClient(process.env.SPRITE_TOKEN);
 const spriteName = process.env.SPRITE_NAME;
@@ -408,7 +408,7 @@ IO.puts("URL settings updated")` }
         { language: 'curl', code: `curl -X DELETE \\
   -H "Authorization: Bearer $SPRITE_TOKEN" \\
   "https://api.sprites.dev/v1/sprites/$SPRITE_NAME"` },
-        { language: 'javascript', code: `import { SpritesClient } from "@anthropic-ai/sprites";
+        { language: 'javascript', code: `import { SpritesClient } from "@fly/sprites";
 
 const client = new SpritesClient(process.env.SPRITE_TOKEN);
 const spriteName = process.env.SPRITE_NAME;
