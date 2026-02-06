@@ -586,8 +586,9 @@ nav.sidebar {
   padding: 0.5rem 1rem;
   text-align: left;
   vertical-align: middle;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--foreground);
+  background-color: var(--muted);
 }
 
 .sl-markdown-content [data-slot="table-cell"] {
