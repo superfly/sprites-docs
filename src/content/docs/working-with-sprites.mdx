@@ -67,7 +67,7 @@ When activity stops, Sprites immediately become `warm`. Over time they may trans
 <StatusIcon type="x" client:load>**RAM doesn't persist**: Running processes stop, in-memory data is lost</StatusIcon>
 <StatusIcon type="check" client:load>**Network config persists**: Open ports, URL settings, SSH access all remain configured</StatusIcon>
 
-This means you can install dependencies once and they're there forever. But if you're running a web server, it'll need to restart when the Sprite wakes up—that's what TTY sessions are for.
+This means you can install dependencies once and they're there forever. But if you're running a web server, it'll need to restart when the Sprite wakes up.
 
 ### Wake-up Behavior
 
@@ -76,20 +76,22 @@ Wake-up is fast:
 - ~100–500ms for normal wakes
 - 1–2s on cold starts
 
-Use TTY sessions to keep things running without going `cold`. You can detach with `Ctrl+\` and reattach later to see all the output.
+When a request hits your Sprite's URL, it wakes automatically. To make sure your web server is ready to handle that request, use **Services** — processes that auto-restart whenever your Sprite wakes up:
 
 ```bash
-sprite exec -tty rails server
-# Press Ctrl+\ to detach, use `sprite sessions attach <id>` to reattach
+sprite-env services create my-server --cmd node --args server.js
 ```
+
+Services survive hibernation. TTY sessions don't — they're great for interactive work and debugging, but any process started with `sprite exec` or `sprite console` stops when the Sprite sleeps.
 
 ### Idle Detection
 
-If something's running, your Sprite stays awake. Otherwise, it sleeps. That includes:
+Your Sprite stays awake while there's activity, and sleeps when there isn't. Activity includes:
 
 - Active exec/console commands
 - Open TCP connections (like your app's URL)
 - Running TTY sessions
+- Active Services with open connections
 
 ---
 
@@ -106,7 +108,7 @@ sprite url update --auth default # make private again
 ```
 
 - Routes to port 8080 by default (or first HTTP port opened)
-- Wakes the Sprite on request
+- Wakes the Sprite on request — pair with a [Service](#wake-up-behavior) so your server is ready to handle it
 - Private by default (auth token required)
 
 <Callout type="warning">
