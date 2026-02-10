@@ -118,10 +118,10 @@ export const sidebarConfig: SidebarGroup[] = [
       { label: 'Commands', slug: 'cli/commands' },
     ],
   },
-  {
-    label: 'API Reference',
-    // Items are auto-generated from API schema by scripts/generate-api-docs.ts
-    // Links are dynamically rewritten by Sidebar.astro based on current URL version
-    items: apiSidebarConfig,
-  },
+  // {
+  //   label: 'API Reference',
+  //   // Items are auto-generated from API schema by scripts/generate-api-docs.ts
+  //   // Links are dynamically rewritten by Sidebar.astro based on current URL version
+  //   items: apiSidebarConfig,
+  // },
 ];
