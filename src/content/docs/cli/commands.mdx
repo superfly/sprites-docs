@@ -24,18 +24,16 @@ These options work with any command:
 
 ### `sprite login`
 
-Authenticate with Fly.io
+sprite login - Authenticate with Fly.io
 
 ```bash
-sprite login [api-url] [-o <org>]
+sprite login [api-url] [options]
 ```
 
 **Options:**
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help Show` - this help message
 
 **Examples:**
 ```bash
@@ -46,14 +44,14 @@ sprite login https://custom-api.sprites.dev
 
 ### `sprite logout`
 
-Remove Sprites configuration
+sprite logout - Remove Sprites configuration
 
 ```bash
 sprite logout [options]
 ```
 
 **Options:**
-- `-h, --help` - Show help for this command
+- `-h, --help Show` - this help message
 
 **Examples:**
 ```bash
@@ -147,18 +145,16 @@ sprite auth setup --token "org-slug/org-id/token-id/token-value"
 
 ### `sprite create`
 
-Create a new sprite
+sprite create - Create a new sprite
 
 ```bash
 sprite create [options] [sprite-name]
 ```
 
 **Options:**
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand) Exit after creating instead of connecting to console
-- `-s, --sprite <string>` - Sprite to use
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help Show` - this help message
 
 > Creates a new sprite with the specified name.
 > The sprite will be created in the selected organization.
@@ -173,19 +169,17 @@ sprite create
 
 ### `sprite use`
 
-Activate a sprite for the current directory
+sprite use - Activate a sprite for the current directory
 
 ```bash
 sprite use [options] [sprite-name]
 ```
 
 **Options:**
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
-- `-u, --unset` - Remove the .sprite file from the current directory
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `--unset Remove` - the .sprite file from current directory
+- `-h, --help Show` - this help message
 
 > Creates a .sprite file in the current directory to set the active sprite.
 > This file will be used by other commands when no sprite is explicitly specified.
@@ -201,7 +195,7 @@ sprite use
 
 ### `sprite list`
 
-List all sprites
+sprite list - List all sprites
 
 ```bash
 sprite list [options]
@@ -210,12 +204,10 @@ sprite list [options]
 **Aliases:** `sprite ls`
 
 **Options:**
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-p, --prefix <string>` - Filter sprites by name prefix
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `--prefix <prefix>` - Filter sprites by name prefix
+- `-h, --help Show` - this help message
 
 > Lists all sprites in the selected organization.
 > Use --prefix to filter sprites by name prefix.
@@ -229,19 +221,17 @@ sprite list --prefix dev
 
 ### `sprite destroy`
 
-Destroy a sprite
+sprite destroy - Destroy a sprite
 
 ```bash
 sprite destroy [options] [sprite-name]
 ```
 
 **Options:**
-- `-f, --force` - Skip confirmation prompt
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `--force Skip` - confirmation prompt
+- `-h, --help Show` - this help message
 
 **Examples:**
 ```bash
@@ -255,7 +245,7 @@ sprite destroy --force
 
 ### `sprite exec`
 
-Execute a command in the sprite environment
+sprite exec - Execute a command in the sprite environment
 
 ```bash
 sprite exec [options] <command> [args...]
@@ -264,15 +254,9 @@ sprite exec [options] <command> [args...]
 **Aliases:** `sprite x`
 
 **Options:**
-- `-d, --dir <string>` - Working directory for the command
-- `-e, --env <string>` - Environment variables (KEY=value,KEY2=value2)
-- `-f, --file <value>` - Upload file before exec (source:dest format, can be repeated)
-- `-h, --help` - Show help for this command Use HTTP/1.1 POST /exec instead of WebSockets (non-TTY only)
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
-- `-t, --tty` - Allocate a pseudo-TTY
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help Show` - this help message
 
 > When using -tty, terminal environment variables (TERM, COLORTERM, LANG, LC_ALL)
 > are automatically passed through from your local environment.
@@ -289,7 +273,7 @@ sprite exec -o myorg -s mysprite npm start
 
 ### `sprite console`
 
-Open an interactive shell in the sprite environment
+sprite console - Open an interactive shell in the sprite environment
 
 ```bash
 sprite console [options]
@@ -298,16 +282,14 @@ sprite console [options]
 **Aliases:** `sprite c`
 
 **Options:**
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help Show` - this help message
 
-> Opens an interactive shell with a TTY allocated
-> Uses shell environment variables to determine which shell to use
-> Supported shells: bash, zsh, fish, tcsh, ksh
-> Falls back to bash if shell detection fails
+> Opens an interactive shell with a TTY allocated.
+> Uses shell environment variables to determine which shell to use.
+> Supported shells: bash, zsh, fish, tcsh, ksh.
+> Falls back to bash if shell detection fails.
 > Sessions can be detached and reattached using sprite exec -id.
 
 **Examples:**
@@ -380,7 +362,7 @@ sprite checkpoint delete v3
 
 ### `sprite restore`
 
-Restore from a checkpoint version
+sprite restore - Restore from a checkpoint version
 
 ```bash
 sprite restore [options] <version-id>
@@ -389,38 +371,36 @@ sprite restore [options] <version-id>
 **Aliases:** `sprite checkpoint restore`
 
 **Options:**
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help Show` - this help message
 
 **Examples:**
 ```bash
 sprite restore v1
 sprite restore -o myorg -s mysprite v2
+See also:
+sprite checkpoint --help    Full checkpoint documentation
 ```
 
 ## Networking
 
 ### `sprite proxy`
 
-Forward local ports through the remote server proxy
+sprite proxy - Forward local ports through the remote server proxy
 
 ```bash
 sprite proxy [options] <port1> [port2] ... or <local1:remote1> [local2:remote2] ...
 ```
 
 **Options:**
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help Show` - this help message
 
-> Each port will be forwarded from localhost to the remote environment
-> Use LOCAL:REMOTE syntax to map different local and remote ports
-> Multiple ports can be specified to forward multiple services simultaneously
+> Each port will be forwarded from localhost to the remote environment.
+> Use LOCAL:REMOTE syntax to map different local and remote ports.
+> Multiple ports can be specified to forward multiple services simultaneously.
 
 **Examples:**
 ```bash
@@ -436,19 +416,21 @@ sprite proxy -o myorg -s mysprite 8080
 sprite url - Manage sprite URL settings
 
 ```bash
-sprite url                    Show sprite URL sprite url update [options]   Update URL authentication settings Subcommands: update                        Update URL authentication settings Options for update: --auth <type>                 Authentication type: 'public' or 'default'
+sprite url                    Show sprite URL and auth setting sprite url update [options]   Update URL authentication settings URL Format: https://<sprite-name>-<org>.sprites.dev/ Authentication Modes: sprite     Allows access via browser to Sprite org members, and via org tokens (default) public     No authentication - anyone with URL can access Subcommands: update     Update URL authentication settings Update options: --auth <type>    Authentication type: 'public' or 'sprite'
 ```
-
-> - The URL allows access to your sprite's web interface
-> - By default, URLs require authentication using your API token
-> - Setting auth to 'public' makes the URL accessible without authentication
-> - Setting auth to 'default' requires authentication (default behavior)
 
 **Examples:**
 ```bash
-sprite url                    # Show current URL
-sprite url update --auth public    # Make URL public
-sprite url update --auth default   # Require authentication
+sprite url                         # Show current URL and auth setting
+sprite url update --auth public    # Make URL publicly accessible
+sprite url update --auth sprite    # Require org membership (default)
+Accessing Authenticated URLs:
+Visit the URL in your browser and log in with Fly.io, or use an org token:
+curl -H "Authorization: Bearer $SPRITE_API_TOKEN" https://mysprite-myorg.sprites.dev/
+Security Notes:
+- Public URLs are accessible to anyone on the internet
+- Never expose secrets, env vars, or sensitive data via HTTP
+- Use 'public' only for demos, webhooks, or truly public services
 ```
 
 ### `sprite url update`
@@ -460,7 +442,7 @@ sprite url update [options]
 ```
 
 **Options:**
-- `-a, --auth <string>` - Authentication type: 'public' or 'default'
+- `-a, --auth <string>` - Authentication type: 'public' or 'sprite' (default)
 - `-h, --help` - Show help for this command
 - `-o, --o <string>` - Organization to use (shorthand)
 - `-o, --org <string>` - Organization to use
@@ -469,34 +451,32 @@ sprite url update [options]
 
 > Changes the authentication requirement for the sprite's URL.
 > Use 'public' to make the URL accessible without authentication.
-> Use 'default' to require authentication (default behavior).
+> Use 'sprite' to require org membership (default).
 
 **Examples:**
 ```bash
 sprite url update --auth public
-sprite url update --auth default
+sprite url update --auth sprite
 ```
 
 ## Utility Commands
 
 ### `sprite api`
 
-Make authenticated API calls with curl
+sprite api - Make authenticated API calls with curl
 
 ```bash
 sprite api [options] <path> [curl options]
 ```
 
 **Options:**
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help Show` - this help message
 
 > This command wraps curl to automatically add authentication headers.
-> If a sprite is specified with -s, the path is relative to /v1/sprites/`<sprite-name>`/
-> If no sprite is specified, the path is relative to /v1/
+> If a sprite is specified with -s, the path is relative to /v1/sprites/`<sprite-name>`/.
+> If no sprite is specified, the path is relative to /v1/.
 > Paths starting with /v1/sprites/ are always used as-is, ignoring any sprite context.
 > All arguments after the path are passed directly to curl.
 
@@ -510,18 +490,18 @@ sprite api -o myorg -s my-sprite /checkpoints
 
 ### `sprite upgrade`
 
-Upgrade the sprite client to the latest version
+sprite upgrade - Upgrade the sprite client to the latest version
 
 ```bash
 sprite upgrade [options]
 ```
 
 **Options:**
-- `-c, --channel <string>` - Release channel (release, rc, dev). Defaults to current channel.
-- `-c, --check` - Check for updates without installing
-- `-f, --force` - Force upgrade even if already up to date
-- `-h, --help` - Show help for this command
-- `-v, --version <string>` - Upgrade to a specific version
+- `--check Check` - for updates without installing
+- `--force Force` - upgrade even if already up to date
+- `--version <version>` - Upgrade to a specific version
+- `--channel <channel>` - Release channel (release, rc, dev)
+- `-h, --help Show` - this help message
 
 **Examples:**
 ```bash

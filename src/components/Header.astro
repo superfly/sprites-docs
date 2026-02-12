@@ -19,42 +19,8 @@ import Default from '@astrojs/starlight/components/Header.astro';
     }
   }
 
-  function applyGlassmorphism() {
-    const header = document.querySelector('header.header') as HTMLElement;
-    if (header) {
-      const isDark = document.documentElement.dataset.theme !== 'light';
-      if (isDark) {
-        header.style.backdropFilter = 'blur(16px) saturate(200%) brightness(1.05)';
-        header.style.setProperty('-webkit-backdrop-filter', 'blur(16px) saturate(200%) brightness(1.05)');
-        header.style.background = 'rgba(12, 10, 9, 0.4)';
-        header.style.borderBottom = '1px solid rgba(255, 255, 255, 0.15)';
-        header.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.2)';
-      } else {
-        header.style.backdropFilter = 'blur(24px) saturate(200%)';
-        header.style.setProperty('-webkit-backdrop-filter', 'blur(24px) saturate(200%)');
-        header.style.background = 'rgba(255, 255, 255, 0.25)';
-        header.style.borderBottom = '1px solid rgba(0, 0, 0, 0.08)';
-        header.style.boxShadow = '0 4px 30px rgba(0, 0, 0, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.5)';
-      }
-    }
-  }
-
-  // Watch for theme changes
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.attributeName === 'data-theme') {
-        applyGlassmorphism();
-      }
-    });
-  });
-  observer.observe(document.documentElement, { attributes: true });
-
   addDashboardLink();
-  applyGlassmorphism();
-  document.addEventListener('astro:page-load', () => {
-    addDashboardLink();
-    applyGlassmorphism();
-  });
+  document.addEventListener('astro:page-load', addDashboardLink);
 </script>
 
 <style is:global>

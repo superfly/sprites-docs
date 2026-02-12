@@ -1,6 +1,11 @@
 /* Sprites Docs - Custom Starlight Theme with shadcn/ui */
 /* Dark-first theme with OKLCH colors - Teal accent */
 
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 150ms;
+}
+
 /* Fricolage Grotesque - brand font from sprites.dev */
 @font-face {
   font-family: 'Fricolage Grotesque';
@@ -511,7 +516,19 @@ pre[data-bash-prompt] > code {
 }
 
 header.header {
-  border-bottom-color: var(--sl-color-hairline);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px) saturate(200%) brightness(1.05);
+  -webkit-backdrop-filter: blur(16px) saturate(200%) brightness(1.05);
+  background: rgba(12, 10, 9, 0.4);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='light'] header.header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
 /* Separator between social icons and theme select */
