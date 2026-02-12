@@ -1,6 +1,11 @@
 /* Sprites Docs - Custom Starlight Theme with shadcn/ui */
 /* Dark-first theme with OKLCH colors - Teal accent */
 
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 150ms;
+}
+
 /* Fricolage Grotesque - brand font from sprites.dev */
 @font-face {
   font-family: 'Fricolage Grotesque';
