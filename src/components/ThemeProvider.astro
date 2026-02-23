@@ -19,6 +19,16 @@
 			theme = storedTheme;
 		}
 		document.documentElement.dataset.theme = theme === 'light' ? 'light' : 'dark';
+
+		// Preserve theme across client-side navigations
+		document.addEventListener('astro:before-swap', (ev) => {
+			const current = document.documentElement.dataset.theme;
+
+			if (current) {
+				ev.newDocument.documentElement.dataset.theme = current;
+			}
+		});
+
 		return {
 			updatePickers(theme = storedTheme || 'auto') {
 				document.querySelectorAll('starlight-theme-select').forEach((picker) => {
