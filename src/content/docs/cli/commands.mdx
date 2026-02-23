@@ -24,89 +24,45 @@ These options work with any command:
 
 ### `sprite login`
 
-sprite login - Authenticate with Fly.io
+Usage of login:
 
-```bash
-sprite login [api-url] [options]
-```
-
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
-
-**Examples:**
 ```bash
 sprite login
-sprite login -o my-org
-sprite login https://custom-api.sprites.dev
 ```
 
 ### `sprite logout`
 
-sprite logout - Remove Sprites configuration
+Usage of logout:
 
-```bash
-sprite logout [options]
-```
-
-**Options:**
-- `-h, --help Show` - this help message
-
-**Examples:**
 ```bash
 sprite logout
 ```
 
 ### `sprite org auth`
 
-Add an API token
+Usage of org auth:
 
 ```bash
-sprite org auth [api-url|alias] [-o <api>:<org>]
+sprite org auth
 ```
 
 **Aliases:** `sprite orgs`, `sprite organizations`, `sprite o`
 
-**Options:**
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
-
-**Examples:**
-```bash
-sprite org auth
-sprite org auth https://custom-api.sprites.dev
-sprite org auth prod
-sprite org auth -o prod:my-org
-sprite org auth -o staging:test-org
-sprite org auth https://staging-api.sprites.dev -o staging:test-org
-```
-
 ### `sprite org list`
 
-Show configured tokens
+Usage of org list:
 
 ```bash
-sprite org list [api-url|alias]
+sprite org list
 ```
-
-**Options:**
-- `-h, --help` - Show help for this command
 
 ### `sprite org logout`
 
-Remove all tokens
+Usage of org logout:
 
 ```bash
-sprite org logout [options]
+sprite org logout
 ```
-
-**Options:**
-- `-f, --force` - Skip confirmation prompt
-- `-h, --help` - Show help for this command
 
 ### `sprite org keyring disable`
 
@@ -126,289 +82,126 @@ sprite org keyring enable
 
 ### `sprite auth setup`
 
-Set up authentication using a pre-generated token.
+Usage of auth setup:
 
 ```bash
-sprite auth setup --token <token>
-```
-
-**Options:**
-- `-h, --help` - Show help for this command
-- `-t, --token <string>` - Token in format: org-slug/org-id/token-id/token-value
-
-**Examples:**
-```bash
-sprite auth setup --token "org-slug/org-id/token-id/token-value"
+sprite auth setup
 ```
 
 ## Sprite Management
 
 ### `sprite create`
 
-sprite create - Create a new sprite
+Usage of create:
 
 ```bash
-sprite create [options] [sprite-name]
-```
-
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
-
-> Creates a new sprite with the specified name.
-> The sprite will be created in the selected organization.
-> If sprite name is not provided, you will be prompted.
-
-**Examples:**
-```bash
-sprite create my-sprite
-sprite create -o myorg development-sprite
 sprite create
 ```
 
 ### `sprite use`
 
-sprite use - Activate a sprite for the current directory
+Usage of use:
 
 ```bash
-sprite use [options] [sprite-name]
-```
-
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `--unset Remove` - the .sprite file from current directory
-- `-h, --help Show` - this help message
-
-> Creates a .sprite file in the current directory to set the active sprite.
-> This file will be used by other commands when no sprite is explicitly specified.
-> Similar to 'nvm use' or 'asdf local' for version management.
-> If no sprite name is provided, shows an interactive list to choose from.
-
-**Examples:**
-```bash
-sprite use my-sprite
-sprite use -o myorg dev-sprite
 sprite use
 ```
 
 ### `sprite list`
 
-sprite list - List all sprites
+Usage of list:
 
 ```bash
-sprite list [options]
+sprite list
 ```
 
 **Aliases:** `sprite ls`
 
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `--prefix <prefix>` - Filter sprites by name prefix
-- `-h, --help Show` - this help message
-
-> Lists all sprites in the selected organization.
-> Use --prefix to filter sprites by name prefix.
-
-**Examples:**
-```bash
-sprite list
-sprite list -o myorg
-sprite list --prefix dev
-```
-
 ### `sprite destroy`
 
-sprite destroy - Destroy a sprite
+Usage of destroy:
 
 ```bash
-sprite destroy [options] [sprite-name]
-```
-
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `--force Skip` - confirmation prompt
-- `-h, --help Show` - this help message
-
-**Examples:**
-```bash
-sprite destroy mysprite
-sprite destroy -o myorg mysprite
-sprite destroy -s mysprite
-sprite destroy --force
+sprite destroy
 ```
 
 ## Command Execution
 
 ### `sprite exec`
 
-sprite exec - Execute a command in the sprite environment
+Usage of exec:
 
 ```bash
-sprite exec [options] <command> [args...]
+sprite exec
 ```
 
 **Aliases:** `sprite x`
 
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
-
-> When using -tty, terminal environment variables (TERM, COLORTERM, LANG, LC_ALL)
-> are automatically passed through from your local environment.
-> Use 'sprite sessions' to list, attach to, or kill running sessions.
-
-**Examples:**
-```bash
-sprite exec ls -la
-sprite exec -dir /app echo hello world
-sprite exec -env KEY=value,FOO=bar env
-sprite exec -tty /bin/bash
-sprite exec -o myorg -s mysprite npm start
-```
-
 ### `sprite console`
 
-sprite console - Open an interactive shell in the sprite environment
+Usage of console:
 
 ```bash
-sprite console [options]
+sprite console
 ```
 
 **Aliases:** `sprite c`
-
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
-
-> Opens an interactive shell with a TTY allocated.
-> Uses shell environment variables to determine which shell to use.
-> Supported shells: bash, zsh, fish, tcsh, ksh.
-> Falls back to bash if shell detection fails.
-> Sessions can be detached and reattached using sprite exec -id.
-
-**Examples:**
-```bash
-sprite console
-sprite console -o myorg -s mysprite
-```
 
 ## Checkpoints
 
 ### `sprite checkpoint create`
 
-Create a new checkpoint
+Usage of checkpoint create:
 
 ```bash
 sprite checkpoint create
 ```
 
-**Options:**
-- `-c, --comment <string>` - Optional comment to describe this checkpoint
-- `-h, --help` - Show help for this command
-
 ### `sprite checkpoint list`
 
-List all checkpoints
+Usage of checkpoint list:
 
 ```bash
-sprite checkpoint list [options]
+sprite checkpoint list
 ```
 
 **Aliases:** `sprite checkpoint ls`, `sprite checkpoints ls`
 
-**Options:**
-- `-h, --help` - Show help for this command
-- `-h, --history <string>` - Filter by history version Include auto-generated checkpoints
-
 ### `sprite checkpoint info`
 
-Show information about a specific checkpoint
+Usage of checkpoint info:
 
 ```bash
-sprite checkpoint info <version-id>
-```
-
-**Options:**
-- `-h, --help` - Show help for this command
-
-**Examples:**
-```bash
-sprite checkpoint info v2
+sprite checkpoint info
 ```
 
 ### `sprite checkpoint delete`
 
-Delete a checkpoint (soft delete)
+Usage of checkpoint delete:
 
 ```bash
-sprite checkpoint delete <version-id>
+sprite checkpoint delete
 ```
 
 **Aliases:** `sprite checkpoint rm`
 
-**Options:**
-- `-h, --help` - Show help for this command
-
-**Examples:**
-```bash
-sprite checkpoint delete v3
-```
-
 ### `sprite restore`
 
-sprite restore - Restore from a checkpoint version
+Usage of restore:
 
 ```bash
-sprite restore [options] <version-id>
+sprite restore
 ```
 
 **Aliases:** `sprite checkpoint restore`
-
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
-
-**Examples:**
-```bash
-sprite restore v1
-sprite restore -o myorg -s mysprite v2
-See also:
-sprite checkpoint --help    Full checkpoint documentation
-```
 
 ## Networking
 
 ### `sprite proxy`
 
-sprite proxy - Forward local ports through the remote server proxy
+Usage of proxy:
 
 ```bash
-sprite proxy [options] <port1> [port2] ... or <local1:remote1> [local2:remote2] ...
-```
-
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
-
-> Each port will be forwarded from localhost to the remote environment.
-> Use LOCAL:REMOTE syntax to map different local and remote ports.
-> Multiple ports can be specified to forward multiple services simultaneously.
-
-**Examples:**
-```bash
-sprite proxy 8080
-sprite proxy 3000 8080
-sprite proxy 4005:4000
-sprite proxy 3001:3000 8081:8080
-sprite proxy -o myorg -s mysprite 8080
+sprite proxy
 ```
 
 ### `sprite url`
@@ -416,14 +209,21 @@ sprite proxy -o myorg -s mysprite 8080
 sprite url - Manage sprite URL settings
 
 ```bash
-sprite url                    Show sprite URL and auth setting sprite url update [options]   Update URL authentication settings URL Format: https://<sprite-name>-<org>.sprites.dev/ Authentication Modes: sprite     Allows access via browser to Sprite org members, and via org tokens (default) public     No authentication - anyone with URL can access Subcommands: update     Update URL authentication settings Update options: --auth <type>    Authentication type: 'public' or 'sprite'
+sprite url                    Show sprite URL and auth setting sprite url update [options]   Update URL authentication settings URL Format: https://<sprite-name>-<org>.sprites.dev/ Authentication Modes: sprite     Allows access via browser to Sprite org members, and via org tokens (default) public     No authentication - anyone with URL can access Subcommands: update     Update URL authentication settings
 ```
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help Show` - this help message
+- `--auth <type>` - Authentication type: 'public' or 'sprite'
 
 **Examples:**
 ```bash
 sprite url                         # Show current URL and auth setting
 sprite url update --auth public    # Make URL publicly accessible
 sprite url update --auth sprite    # Require org membership (default)
+sprite url -o myorg -s mysprite    # Show URL for specific sprite
 Accessing Authenticated URLs:
 Visit the URL in your browser and log in with Fly.io, or use an org token:
 curl -H "Authorization: Bearer $SPRITE_API_TOKEN" https://mysprite-myorg.sprites.dev/
@@ -435,81 +235,28 @@ Security Notes:
 
 ### `sprite url update`
 
-Update URL authentication settings
+Usage of url update:
 
 ```bash
-sprite url update [options]
-```
-
-**Options:**
-- `-a, --auth <string>` - Authentication type: 'public' or 'sprite' (default)
-- `-h, --help` - Show help for this command
-- `-o, --o <string>` - Organization to use (shorthand)
-- `-o, --org <string>` - Organization to use
-- `-s, --s <string>` - Sprite to use (shorthand)
-- `-s, --sprite <string>` - Sprite to use
-
-> Changes the authentication requirement for the sprite's URL.
-> Use 'public' to make the URL accessible without authentication.
-> Use 'sprite' to require org membership (default).
-
-**Examples:**
-```bash
-sprite url update --auth public
-sprite url update --auth sprite
+sprite url update
 ```
 
 ## Utility Commands
 
 ### `sprite api`
 
-sprite api - Make authenticated API calls with curl
+Usage of api:
 
 ```bash
-sprite api [options] <path> [curl options]
-```
-
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
-
-> This command wraps curl to automatically add authentication headers.
-> If a sprite is specified with -s, the path is relative to /v1/sprites/`<sprite-name>`/.
-> If no sprite is specified, the path is relative to /v1/.
-> Paths starting with /v1/sprites/ are always used as-is, ignoring any sprite context.
-> All arguments after the path are passed directly to curl.
-
-**Examples:**
-```bash
-sprite api -o myorg /sprites
-sprite api -o myorg -s my-sprite /upgrade -X POST
-sprite api -o myorg -s my-sprite /exec -X GET
-sprite api -o myorg -s my-sprite /checkpoints
+sprite api
 ```
 
 ### `sprite upgrade`
 
-sprite upgrade - Upgrade the sprite client to the latest version
+Usage of upgrade:
 
 ```bash
-sprite upgrade [options]
-```
-
-**Options:**
-- `--check Check` - for updates without installing
-- `--force Force` - upgrade even if already up to date
-- `--version <version>` - Upgrade to a specific version
-- `--channel <channel>` - Release channel (release, rc, dev)
-- `-h, --help Show` - this help message
-
-**Examples:**
-```bash
-sprite upgrade                  # Upgrade to the latest version
-sprite upgrade --check          # Check for available updates
-sprite upgrade --force          # Force upgrade even if up to date
-sprite upgrade --channel dev    # Switch to the dev channel
-sprite upgrade --channel rc     # Switch to the rc channel
+sprite upgrade
 ```
 
 
