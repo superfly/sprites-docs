@@ -22,26 +22,6 @@ const PLATFORMS = [
   { platform: 'Windows', arch: 'ARM64', key: 'windows-arm64' },
 ] as const;
 
-function findLatestVersion(xml: string): string {
-  const versionPattern = /<Key>client\/(v0\.0\.1-rc(\d+))\//g;
-  let maxRcNumber = 0;
-  let latestVersion = '';
-
-  for (const match of xml.matchAll(versionPattern)) {
-    const rcNumber = parseInt(match[2], 10);
-    if (rcNumber > maxRcNumber) {
-      maxRcNumber = rcNumber;
-      latestVersion = match[1];
-    }
-  }
-
-  if (!latestVersion) {
-    throw new Error('No RC versions found in bucket listing');
-  }
-
-  return latestVersion;
-}
-
 function buildBinaries(version: string): CliBinary[] {
   return PLATFORMS.map(({ platform, arch, key }) => {
     const ext = key.startsWith('windows') ? 'zip' : 'tar.gz';
@@ -58,11 +38,8 @@ function buildBinaries(version: string): CliBinary[] {
 }
 
 export async function getLatestRcRelease(): Promise<CliRelease> {
-  const response = await fetch(
-    `${BINARIES_BASE_URL}/?list-type=2&prefix=client/v0.0.1-rc`,
-  );
-  const xml = await response.text();
-  const version = findLatestVersion(xml);
+  const response = await fetch(`${BINARIES_BASE_URL}/client/rc.txt`);
+  const version = await response.text();
 
   return {
     version,
