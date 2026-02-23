@@ -134,7 +134,7 @@ Run a web server and access it via the Sprite URL:
 
 ```bash
 # Start a simple HTTP server
-sprite exec -detachable "python -m http.server 8080"
+sprite exec python -m http.server 8080
 
 # Get the URL
 sprite url
@@ -155,7 +155,7 @@ Let's say you've got a frontend or backend dev server that watches files and hot
 
 ```bash
 # Start dev server in detachable session
-sprite exec -detachable "cd /home/sprite/app && npm run dev"
+sprite exec bash -c "cd /home/sprite/app && npm run dev"
 
 # Forward the port locally
 sprite proxy 3000
@@ -171,7 +171,7 @@ Running a database inside a Sprite is weirdly nice. You can spin up Postgres, fo
 
 ```bash
 # Start PostgreSQL (if installed)
-sprite exec -detachable "pg_ctl start"
+sprite exec pg_ctl start
 
 # Forward port locally
 sprite proxy 5432
@@ -186,9 +186,9 @@ Sprites can run multiple processes. You can forward all the ports you care about
 
 ```bash
 # Start multiple services
-sprite exec -detachable "cd /home/sprite/api && npm start"     # Port 3000
-sprite exec -detachable "cd /home/sprite/worker && npm start"  # Port 3001
-sprite exec -detachable "redis-server"                        # Port 6379
+sprite exec bash -c "cd /home/sprite/api && npm start"     # Port 3000
+sprite exec bash -c "cd /home/sprite/worker && npm start"  # Port 3001
+sprite exec redis-server                                   # Port 6379
 
 # Forward all ports
 sprite proxy 3000 3001 6379
@@ -206,7 +206,7 @@ The default environment includes common network tools, and you can install addit
 
 Example network tool installation:
 ```bash
-sprite exec "apt-get update && apt-get install -y nmap netcat"
+sprite exec bash -c "apt-get update && apt-get install -y nmap netcat"
 ```
 
 ## Troubleshooting
