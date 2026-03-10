@@ -28,7 +28,7 @@ sprite create my-sprite
 sprite exec python -c "print('hello')"
 
 # Stream output from long-running commands
-sprite exec "for i in {1..10}; do date +%T; sleep 0.5; done"
+sprite exec bash -c "for i in {1..10}; do date +%T; sleep 0.5; done"
 
 # Destroy when done
 sprite destroy -s my-sprite
