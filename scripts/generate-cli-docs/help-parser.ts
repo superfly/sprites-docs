@@ -44,7 +44,7 @@ export function parseHelpOutput(command: string, output: string): ParsedHelp {
       continue;
     }
 
-    if (trimmedLine === 'Options:' || trimmedLine.startsWith('Options:')) {
+    if (trimmedLine === 'Flags:' || trimmedLine.startsWith('Flags:')) {
       // Save any pending option
       if (currentOption?.long) {
         result.options.push(currentOption as ParsedOption);
