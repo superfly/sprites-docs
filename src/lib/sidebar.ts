@@ -108,6 +108,7 @@ export const sidebarConfig: SidebarGroup[] = [
       { label: 'Overview', slug: 'index' },
       { label: 'Quickstart', slug: 'quickstart' },
       { label: 'Working with Sprites', slug: 'working-with-sprites' },
+      { label: 'Sprite Maintenance', slug: 'sprite-maintenance' },
     ],
   },
   {
