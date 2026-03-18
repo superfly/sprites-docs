@@ -1,0 +1,44 @@
+---
+title: Sprite Maintenance
+description: Keeping your Sprites happy and healthy
+---
+
+import { Callout, StatusIcon } from '@/components/react';
+
+Sprites are persistent. Everything you leave is there when you come back, including the software. Long-living Sprites still need regular updates. This guide walks through some of the common tasks for maintaining the software environment in your Sprite.
+
+---
+
+## OS Upgrades
+
+New Sprites run on a fresh install of Ubuntu 25.10. Older Sprites created with Ubuntu 25.04 must upgrade to continue receiving security and feature updates.
+
+<Callout type="info">
+If you don't know what version of Ubuntu your Sprite currently runs, check with:
+
+```bash
+lsb_release -d
+```
+</Callout>
+
+Fortunately, Sprites are disposable. If your workload doesn't require the Sprite to live long-term, upgrading is easy: destroy the Sprite and create a new one! If you need to copy files over, try [mounting the filesystem locally](/working-with-sprites/#mounting-filesystem-locally).
+
+If creating a new Sprite is impractical, you can also upgrade Ubuntu in-place. Keep in mind that bundled software (such as agents and language toolchains) must be upgraded separately. Install the Ubuntu upgrader with:
+
+```bash
+sudo apt update
+sudo apt install ubuntu-release-upgrader-core
+```
+
+With the upgrader installed, follow the [official instructions](https://ubuntu.com/server/docs/how-to/software/upgrade-your-release/) from Ubuntu. In short:
+
+```bash
+# upgrade to the latest packages for the current release
+sudo apt upgrade
+
+# switch to the new release
+sudo do-release-upgrade
+
+# upgrade installed packages to the new release
+sudo apt upgrade
+```
