@@ -267,7 +267,7 @@ sudo dnf install fuse-sshfs
 
 ```bash
 sprite exec mkdir -p .ssh
-sprite exec bash -c "echo '$(cat ~/.ssh/id_*.pub)' >> .ssh/authorized_keys"
+cat ~/.ssh/id_*.pub | sprite exec tee -a .ssh/authorized_keys
 ```
 
 **Add this helper to your shell config:**
@@ -278,15 +278,9 @@ spritemount() {
   local sprite_name="$1"
   local mount_point="/tmp/sprite-mount"
   mkdir -p "$mount_point"
-  if pid=$(lsof -t -i :2000); then
-    read -rp "A Sprite is already mounted, unmount it? (y/n) " yn
-    [ "$yn" == "y" ] || return 1
-    kill $pid && umount "$mount_point"
-  fi
-  sprite proxy -s "$sprite_name" 2000:22 &
-  sleep 1  # wait for the proxy to start
   sshfs -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3 \
-    "sprite@localhost:" -p 2000 "$mount_point"
+    -o ProxyCommand="sprite proxy -s %h -W 22" "sprite@$sprite_name:" \
+    "$mount_point"
   cd "$mount_point" || return 1
 }
 
@@ -298,7 +292,6 @@ spritemount() {
 ```bash
 umount /tmp/sprite-mount
 # macOS may need: diskutil umount /tmp/sprite-mount
-kill $(lsof -t -i:2000)
 ```
 
 ### Common Error Scenarios
