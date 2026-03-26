@@ -580,7 +580,7 @@ Checkpoints capture environment state, not version history. They're not a replac
 
 ```bash
 # Good: Use both
-sprite exec "git commit -am 'Save progress'"
+sprite exec git commit -am 'Save progress'
 sprite checkpoint create
 
 # Bad: Only using checkpoints for code
