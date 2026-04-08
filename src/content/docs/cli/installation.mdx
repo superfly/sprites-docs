@@ -82,6 +82,51 @@ sprite use my-project-sprite
 
 This creates a `.sprite` file that the CLI reads automatically. Add `.sprite` to your `.gitignore` as it's user-specific.
 
+## Optional: Install Shell Completions
+
+The CLI provides completion scripts for various shells. Run `sprite help completion` for more information.
+
+### bash
+
+Install the bash completion script by adding it to your `.bashrc`:
+
+```bash
+echo 'eval "$(sprite completion bash)"' >> ~/.bashrc
+```
+
+### zsh
+
+If you haven't enabled completions in your `.zshrc` yet:
+
+```bash
+echo "autoload -U compinit; compinit -i" >> ~/.zshrc
+```
+
+Install the zsh completion script by adding it to your local functions:
+
+```bash
+sprite completion zsh > ~/.local/share/zsh/site-functions/_sprite
+
+# If the local functions directory isn't in your fpath
+echo "fpath=(\"$HOME/.local/share/zsh/site-functions\" \$fpath)" >> ~/.zshrc
+```
+
+### fish
+
+Install the fish completion script:
+
+```bash
+sprite completion fish > ~/.config/fish/completions/sprite.fish
+```
+
+### PowerShell
+
+Install the PowerShell completion script by appending it to your profile:
+
+```powershell
+Add-Content $PROFILE "`nsprite completion powershell | Out-String | Invoke-Expression"
+```
+
 ## Troubleshooting
 
 ### Permission Denied
