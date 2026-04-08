@@ -36,9 +36,12 @@ With the upgrader installed, follow the [official instructions](https://ubuntu.c
 # upgrade to the latest packages for the current release
 sudo apt upgrade
 
+# checkpoint the filesystem
+sprite-env checkpoints create --comment "Before Ubuntu upgrade"
+
 # switch to the new release
 sudo do-release-upgrade
 
 # upgrade installed packages to the new release
-sudo apt upgrade
+sudo apt full-upgrade
 ```
