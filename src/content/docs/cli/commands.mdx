@@ -157,6 +157,7 @@ sprite create [flags] [sprite-name]
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
 - `--skip-console Exit` - after creating instead of connecting to console
+- `--label <label>` - Label to apply to the sprite (can be repeated)
 - `-h, --help Show` - this help message
 
 > Creates a new sprite with the specified name.
@@ -505,29 +506,10 @@ sprite url update --auth public -s demo  # Make specific sprite public
 
 ### `sprite api`
 
-sprite api - Make authenticated API calls with curl
+Error: api requires a path argument
 
 ```bash
 sprite api [flags] <path> [curl options]
-```
-
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
-
-> This command wraps curl to automatically add authentication headers.
-> If a sprite is specified with -s, the path is relative to /v1/sprites/`<sprite-name>`/.
-> If no sprite is specified, the path is relative to /v1/.
-> Paths starting with /v1/sprites/ are always used as-is, ignoring any sprite context.
-> All arguments after the path are passed directly to curl.
-
-**Examples:**
-```bash
-sprite api -o myorg /sprites
-sprite api -o myorg -s my-sprite /upgrade -X POST
-sprite api -o myorg -s my-sprite /exec -X GET
-sprite api -o myorg -s my-sprite /checkpoints
 ```
 
 ### `sprite upgrade`
