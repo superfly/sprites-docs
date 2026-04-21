@@ -22,6 +22,18 @@ const PLATFORMS = [
   { platform: 'Windows', arch: 'ARM64', key: 'windows-arm64' },
 ] as const;
 
+async function fetchLatestVersion(): Promise<string> {
+  const response = await fetch(`${BINARIES_BASE_URL}/client/rc.txt`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch latest RC version: ${response.statusText}`);
+  }
+  const version = (await response.text()).trim();
+  if (!version) {
+    throw new Error('Empty version string from rc.txt');
+  }
+  return version;
+}
+
 function buildBinaries(version: string): CliBinary[] {
   return PLATFORMS.map(({ platform, arch, key }) => {
     const ext = key.startsWith('windows') ? 'zip' : 'tar.gz';
@@ -38,8 +50,7 @@ function buildBinaries(version: string): CliBinary[] {
 }
 
 export async function getLatestRcRelease(): Promise<CliRelease> {
-  const response = await fetch(`${BINARIES_BASE_URL}/client/rc.txt`);
-  const version = await response.text();
+  const version = await fetchLatestVersion();
 
   return {
     version,
