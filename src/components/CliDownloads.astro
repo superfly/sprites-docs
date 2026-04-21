@@ -16,12 +16,11 @@ const instructions = [
     steps: [
       {
         label: 'Download the binary',
-        code: `curl -LO ${darwinArm64.url}`,
+        code: `curl -LO \\\n  ${darwinArm64.url}`,
       },
       {
         label: 'Verify checksum (recommended)',
-        code: `curl -LO ${darwinArm64.checksumUrl}
-shasum -a 256 -c ${darwinArm64.filename}.sha256`,
+        code: `curl -sL ${darwinArm64.checksumUrl} \\\n  | awk '{print $1 "  ${darwinArm64.filename}"}' | shasum -a 256 -c`,
       },
       {
         label: 'Extract and install',
@@ -36,12 +35,11 @@ sudo mv sprite /usr/local/bin/`,
     steps: [
       {
         label: 'Download the binary',
-        code: `curl -LO ${linuxAmd64.url}`,
+        code: `curl -LO \\\n  ${linuxAmd64.url}`,
       },
       {
         label: 'Verify checksum (recommended)',
-        code: `curl -LO ${linuxAmd64.checksumUrl}
-sha256sum -c ${linuxAmd64.filename}.sha256`,
+        code: `curl -sL ${linuxAmd64.checksumUrl} \\\n  | awk '{print $1 "  ${linuxAmd64.filename}"}' | sha256sum -c`,
       },
       {
         label: 'Extract and install',
@@ -56,7 +54,7 @@ sudo mv sprite /usr/local/bin/`,
     steps: [
       {
         label: 'Download the binary',
-        code: `Invoke-WebRequest -Uri "${windowsAmd64.url}" -OutFile "${windowsAmd64.filename}"`,
+        code: `Invoke-WebRequest \`\n  -Uri "${windowsAmd64.url}" \`\n  -OutFile "${windowsAmd64.filename}"`,
       },
       {
         label: 'Extract to your bin directory',
