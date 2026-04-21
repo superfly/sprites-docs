@@ -25,7 +25,9 @@ const PLATFORMS = [
 async function fetchLatestVersion(): Promise<string> {
   const response = await fetch(`${BINARIES_BASE_URL}/client/rc.txt`);
   if (!response.ok) {
-    throw new Error(`Failed to fetch latest RC version: ${response.statusText}`);
+    throw new Error(
+      `Failed to fetch latest RC version: ${response.statusText}`,
+    );
   }
   const version = (await response.text()).trim();
   if (!version) {
