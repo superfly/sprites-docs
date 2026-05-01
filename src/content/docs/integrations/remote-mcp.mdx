@@ -1,0 +1,126 @@
+---
+title: Remote MCP Server
+description: Connect MCP clients to Sprites with the hosted remote MCP server
+---
+
+import { Callout } from '@/components/react';
+
+Sprites provides a hosted remote MCP server. Once connected, an MCP client can create and manage Sprites, run commands inside them, inspect checkpoints and services, and adjust network policy through standard MCP tools.
+
+Use it when you want an MCP client to work in isolated, persistent Linux environments without copying API tokens into prompts or running a local MCP bridge.
+
+## MCP server URL
+
+Use this URL when adding the connector:
+
+```text
+https://sprites.dev/mcp
+```
+
+The connector uses OAuth. During setup, you sign in with your Fly.io account, choose the organization the client should use, and approve the level of Sprites access for that connector.
+
+## Add the connector
+
+1. Open your MCP client's connector settings.
+2. Add a custom or remote MCP connector.
+3. Enter `https://sprites.dev/mcp`.
+4. Follow the browser authentication flow.
+5. Choose the Sprites organization the connector should use.
+6. Review the token restrictions on the consent screen and approve the connection.
+
+<Callout type="info">
+If your client asks for a connector name, use `Sprites`.
+</Callout>
+
+## Permissions
+
+By default, the OAuth consent flow creates a restricted Sprites token for the MCP connector. The default restriction allows the connector to create Sprites with the `mcp-` name prefix and limits the number of Sprites it can create.
+
+During consent, you can adjust the name prefix and maximum Sprite count. You can also choose full token access if you want the connector to operate on the organization without those MCP-specific restrictions.
+
+<Callout type="warning">
+Full access lets the connector manage any Sprite the selected organization token can access. Use restricted mode unless your workflow needs broader control.
+</Callout>
+
+## Available tools
+
+MCP clients see Sprites as tools. The hosted server exposes organization-level tools and Sprite-level tools.
+
+### Organization tools
+
+| Tool | Access | What it does |
+|------|--------|--------------|
+| `list_sprites` | Read-only | Lists Sprites visible to the authenticated organization and token policy. |
+| `create_sprite` | Destructive | Creates a Sprite in the selected organization. |
+| `destroy_sprite` | Destructive | Permanently destroys a Sprite. |
+
+### Sprite tools
+
+The Sprite-level tools are generated from the public Sprite environment API. The exact list may change as new Sprite environment versions ship, but commonly includes:
+
+| Category | Examples |
+|----------|----------|
+| Exec | Run a command, list exec sessions, kill a session |
+| Checkpoints | Create, list, inspect, and restore checkpoints |
+| Network policy | Read or update outbound network rules |
+| Services | List, create, start, stop, and inspect background services |
+| Service logs | Read recent service logs |
+
+Tools are annotated as either read-only or destructive. Your MCP client may ask for additional confirmation before using destructive tools, depending on its settings.
+
+## Safety model
+
+Sprites are isolated Linux environments. That isolation is useful for agent work, but MCP tools can still perform real actions in your organization.
+
+- `destroy_sprite` permanently deletes a Sprite and its data.
+- Command execution can modify files, install packages, start services, or use network access allowed by the Sprite policy.
+- Checkpoint restore changes a Sprite back to a previous filesystem state.
+- Network policy updates can allow or block outbound access from a Sprite.
+
+For safer workflows, use a restricted OAuth token, pick a clear name prefix such as `mcp-`, and create a fresh Sprite for experiments.
+
+## Example requests
+
+```text
+Create a Sprite named mcp-demo, run python --version, and tell me what runtime is installed.
+```
+
+```text
+Create a checkpoint on mcp-demo before making changes. Then install ripgrep and verify rg --version.
+```
+
+```text
+List my Sprites with the mcp- prefix and summarize which ones are running.
+```
+
+## Troubleshooting
+
+### The client cannot connect
+
+Check that the connector URL is exactly:
+
+```text
+https://sprites.dev/mcp
+```
+
+The MCP endpoint is not the REST API host. Do not use `https://api.sprites.dev`.
+
+### Authentication loops or fails
+
+Sign out of Fly.io in your browser, sign in again, and retry the connector flow. If you belong to multiple organizations, make sure you select the organization that should own Sprites created through MCP.
+
+### A Sprite is not found
+
+The Sprite may belong to a different organization, may be outside the token's allowed name prefix, or may have been destroyed. Call `list_sprites` and verify the exact Sprite name.
+
+### A parameter is missing
+
+Some tools require an existing Sprite name, service name, checkpoint ID, or exec session ID. List the relevant resource first, then retry the tool call with the exact identifier.
+
+### A Sprite is starting
+
+Cold Sprites can take a moment to wake. If the client receives a retry message, wait a few seconds and run the same tool again.
+
+## REST API reference
+
+The MCP server wraps the same Sprite capabilities documented in the [Sprites API reference](https://sprites.dev/api). Use the API reference when you want endpoint schemas, SDK examples, or direct REST access instead of MCP.
