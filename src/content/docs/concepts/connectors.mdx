@@ -30,7 +30,7 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 | Provider | Credential style | Notes |
 | --- | --- | --- |
 | Slack as User | OAuth (user token) | Acts as the user who authorized. |
-| Slack as Bot | OAuth (bot token) | Acts as the workspace's bot user. |
+| Slack as Bot | OAuth (bot token) | Acts as the bot user for that workspace. |
 | GitHub | OAuth | Personal or org-scoped depending on requested scopes. |
 | OpenRouter | API key (BYOK) **or** managed | Bring your own OpenRouter key, or use the managed OpenRouter connector — billed as part of your Sprites plan. |
 | Custom API | API key + base URL | Wraps any token-authenticated HTTP API. |
