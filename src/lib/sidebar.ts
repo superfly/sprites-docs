@@ -1,7 +1,6 @@
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import type { StarlightUserConfig } from '@astrojs/starlight/types';
-import { apiSidebarConfig } from './api-sidebar';
 
 type SidebarConfig = NonNullable<StarlightUserConfig['sidebar']>;
 type SidebarGroup = Extract<SidebarConfig[number], { items: unknown }>;
@@ -118,6 +117,10 @@ export const sidebarConfig: SidebarGroup[] = [
       { label: 'Authentication', slug: 'cli/authentication' },
       { label: 'Commands', slug: 'cli/commands' },
     ],
+  },
+  {
+    label: 'Integrations',
+    items: [{ label: 'Remote MCP Server', slug: 'integrations/remote-mcp' }],
   },
   // {
   //   label: 'API Reference',
