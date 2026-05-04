@@ -74,7 +74,7 @@ Sprites are isolated Linux environments. That isolation is useful for agent work
 
 - `destroy_sprite` permanently deletes a Sprite and its data. There is no undo.
 - Command execution can modify files, install packages, start services, or use network access allowed by the Sprite policy.
-- Checkpoint restore changes a Sprite back to a previous filesystem state.
+- Checkpoint restore rewinds a Sprite to a previous filesystem state. Any work done since that checkpoint is gone.
 - Network policy updates can allow or block outbound access from a Sprite.
 
 For safer workflows, use a restricted OAuth token, pick a clear name prefix such as `mcp-`, and create a fresh Sprite for experiments.
