@@ -1,0 +1,219 @@
+---
+title: Connectors
+description: Give Sprites access to external APIs without putting provider credentials inside the Sprite
+draft: true
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Callout } from '@/components/react';
+
+A Sprite that needs to talk to Slack, GitHub, OpenRouter, or another HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
+
+Connectors solve this by storing the credential once, in your organization, and routing API calls through the Sprites gateway. Sprites never see the token. You decide which Sprites can use a connector and which provider endpoints they can reach.
+
+<Callout type="info" title="Limited release">
+Connectors are currently behind the `connected_services` feature flag. If you don't see a **Connectors** section in your dashboard, this isn't enabled for your organization yet.
+</Callout>
+
+## How it works
+
+A connector has three pieces:
+
+1. **A credential** — an OAuth token, your own API key, or a managed provider that's part of your Sprites plan. Stored encrypted in your organization's database. The token itself is never returned by the API.
+2. **An access policy** — rules that decide which of your Sprites may use the connector, and which provider paths they may reach. **Deny-by-default**: a connector with no policy refuses every Sprite.
+3. **A gateway endpoint** — `https://api.sprites.dev/v1/gateway/<provider>/<connection_id>/<path>`. A Sprite calls this URL; Sprites authenticates the call using the requesting Sprite's identity, checks the policy, and forwards to the provider with the stored credential attached.
+
+The Sprite never holds the provider token. It only knows the connector ID and the gateway URL.
+
+## Providers
+
+| Provider | Credential style | Notes |
+| --- | --- | --- |
+| Slack as User | OAuth (user token) | Acts as the user who authorized. |
+| Slack as Bot | OAuth (bot token) | Acts as the workspace's bot user. |
+| GitHub | OAuth | Personal or org-scoped depending on requested scopes. |
+| OpenRouter | API key (BYOK) **or** managed | Bring your own OpenRouter key, or use the managed OpenRouter connector — billed as part of your Sprites plan. |
+| Custom API | API key + base URL | Wraps any token-authenticated HTTP API. |
+
+## Setting up a connector
+
+Most connector management happens in the dashboard. Open your organization, then **Connectors**. You'll see what's already configured, grouped into "Managed by Sprites" (provided by your plan) and "Your connections" (everything you've added yourself).
+
+![Connectors dashboard listing managed and self-added connectors](/images/connectors/list.png)
+
+Click **Add connection** to pick a provider:
+
+![Add connection dropdown showing the available providers](/images/connectors/add-menu.png)
+
+What happens next depends on the provider:
+
+- **Slack, GitHub** — you're sent through the provider's OAuth consent screen in a new tab. After you approve, the connector lands in **Your connections** with the scopes you granted.
+- **OpenRouter** — choose between bringing your own key (paste it in) or enabling the managed connector with one click.
+- **Custom API** — fill in the base URL, the token, where the token goes (header / query string / URL path), and an optional test request to verify it works before saving.
+
+Newly created connectors show up in the list immediately. Until you grant access to at least one Sprite, the connector is dormant — it exists, but no Sprite can use it.
+
+## Configuring access
+
+Click any connector to open its detail page. This is where you control which Sprites can use it and what they can do with it.
+
+![Connector detail page showing scopes, access configuration, and authorized sprites](/images/connectors/detail.png)
+
+The **Access Configuration** card has three switches:
+
+- **Name Prefix** — only Sprites whose name starts with the value you set (e.g., `prod-` matches `prod-1`, `prod-api`).
+- **Sprite Labels** — only Sprites that carry **all** the labels you list. Labels are set on the Sprite, not here.
+- **Allow all sprites** — every Sprite in the organization. Use sparingly; the dashboard flags it as a broad permission.
+
+You can combine name prefix and labels — both must match. Allow-all overrides the others.
+
+The **Authorized Sprites** list below the configuration updates live as you change the rules, so you can see exactly which Sprites would gain access before you save.
+
+For OAuth connectors, the **Scopes** section shows what the provider granted, and lets you start an "add scopes" flow if you need more permissions later — Sprites builds the right authorize URL with `add_scopes` set.
+
+The **Gateway Playground** at the bottom lets you fire a real request from any of your Sprites against the connector, without writing any code. Pick a Sprite, choose a method, fill in an endpoint, and hit **Send Request**. It's the fastest way to confirm the policy works end-to-end.
+
+## Calling a connector from a Sprite
+
+Once the policy grants access, a Sprite calls the connector by hitting the gateway URL:
+
+```
+https://api.sprites.dev/v1/gateway/<provider>/<connection_id>/<path>
+```
+
+No `Authorization` header — the gateway identifies the calling Sprite from Fly.io's request signature. Whatever path you append after the connector ID gets forwarded to the provider with the stored credential attached.
+
+For example, if you set up a Slack-as-Bot connector and granted access to Sprites with the `slack` label:
+
+```bash
+curl -X POST "https://api.sprites.dev/v1/gateway/slack_bot/conn_def456ghi789/chat.postMessage" \
+  -H "Content-Type: application/json" \
+  -d '{"channel": "#general", "text": "Hello from a Sprite"}'
+```
+
+The connector detail page shows the exact gateway URL for each connector — you don't need to construct it by hand.
+
+## Endpoint allow- and block-lists
+
+The Access Configuration card also lets you restrict which provider paths a Sprite can reach through the connector. This is useful when a connector has more permission than you want any single Sprite to use — for example, a Slack bot that can post messages should probably not be able to call admin endpoints.
+
+Patterns are exact paths or trailing-wildcard prefixes:
+
+- `/chat.postMessage` — exactly that path.
+- `/chat.*` — anything starting with `/chat.`.
+- `/*` — everything (use sparingly).
+
+Two lists work together:
+
+- **Allowed endpoints** — if set, only matching paths are allowed.
+- **Blocked endpoints** — matching paths are rejected. **Block rules are checked before allow rules.**
+
+<Callout type="warning" title="Block rules win">
+If a path matches both blocked and allowed rules, the request is denied. Use blocks for an explicit deny-list inside a broad allow rule (for example, allow `/*` but block `/admin.*`).
+</Callout>
+
+## Managed providers
+
+For some providers, Sprites offers a **managed connector** — you don't bring your own account or API key. Usage is included in your Sprites plan and billed alongside everything else, so there's no separate provider account to set up, no separate invoice, and no key to rotate.
+
+OpenRouter is currently available as a managed connector, giving Sprites in your organization access to the OpenRouter model catalog without you signing up for OpenRouter at all. More managed providers are planned.
+
+A managed connector behaves exactly like one you set up yourself — you still set an access policy, and the Gateway Playground still works against it.
+
+![Managed OpenRouter connector showing usage stats and authorized sprites](/images/connectors/managed.png)
+
+The detail page adds a **Usage** strip at the top showing your spend over the last 24 hours, 7 days, and 30 days. That spend rolls into your Sprites bill.
+
+## Using connectors with a coding agent
+
+Every Sprite ships with the **`sprite-api-gateway`** skill pre-installed for Claude Code, Cursor, Codex, and Gemini. When a coding agent running inside a Sprite needs to talk to an external API, the skill kicks in automatically — you don't have to teach it any of the URLs above.
+
+Ask in plain language:
+
+> "Post a message to #engineering on Slack saying the deploy finished."
+>
+> "Open a GitHub issue in my repo titled 'flaky test'."
+>
+> "List my last 10 OpenRouter completions."
+
+The agent discovers what's available by calling the gateway list endpoint:
+
+```bash
+curl -s https://api.sprites.dev/v1/gateway/list
+```
+
+The response tells the agent which providers are connected (with their `gateway_base_url` and `usage_snippet`) and which are available but not yet set up (with a `setup_url` to share with you). The agent picks the right connector, builds the call against the gateway, and never sees a raw token.
+
+If the connector exists but is missing scopes the agent needs, the skill points you at a `request_scopes_url` to grant the additional scopes. If no connector exists for the provider, it points you at a `setup_url` to create one.
+
+The practical effect: once an organization admin has set up a Slack or GitHub connector and granted access to the right Sprites, anyone using a coding agent inside one of those Sprites can use the integration in natural language — no API knowledge required.
+
+<Callout type="tip" title="Where the skill lives">
+The skill is loaded from `~/.claude/skills/sprite-api-gateway/`, `~/.cursor/skills/sprite-api-gateway/`, `~/.codex/skills/sprite-api-gateway/`, and `~/.gemini/skills/sprite-api-gateway/` inside every Sprite. It's part of the Sprite base image — nothing to install.
+</Callout>
+
+## Common errors
+
+**`403 forbidden — connection denies all sprites by default`**
+The connector has no access policy, or the policy doesn't grant access to the calling Sprite. Open the connector and grant access via labels, name prefix, or allow-all.
+
+**`403 forbidden — endpoint not allowed`**
+The path matches a blocked endpoint, or an allowed-endpoints list is set and this path doesn't match. Check both lists on the connector's detail page.
+
+**`401 unauthorized` from the gateway**
+The request didn't arrive with valid Fly.io identity headers. Gateway calls must originate from inside a running Sprite — not from your laptop or CI.
+
+**OAuth callback returns `failed to exchange authorization code`**
+The authorization code was already used or has expired. Restart the connection from the dashboard.
+
+## Automating with the API
+
+Everything in the dashboard is also available as a REST API. Useful when you want to provision connectors as part of an org-setup script, or rotate them programmatically.
+
+### Start an OAuth flow
+
+```bash
+curl -X GET "https://api.sprites.dev/v1/oauth/slack/authorize?scopes=chat:write,channels:read" \
+  -H "Authorization: Bearer $SPRITES_TOKEN"
+```
+
+Returns an `authorize_url` and a `state`. Send the user to the URL; on consent, Slack redirects back to the Sprites callback and the connector is created.
+
+### Create an API-key (BYOK) connector
+
+```bash
+curl -X POST "https://api.sprites.dev/v1/oauth/connections/api_key" \
+  -H "Authorization: Bearer $SPRITES_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "provider": "openrouter", "api_key": "sk-or-v1-...", "access_policy": { "allow_all": true } }'
+```
+
+### Enable a managed connector
+
+```bash
+curl -X POST "https://api.sprites.dev/v1/oauth/connections/provision" \
+  -H "Authorization: Bearer $SPRITES_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "provider": "openrouter" }'
+```
+
+### Update the access policy
+
+```bash
+curl -X PUT "https://api.sprites.dev/v1/oauth/connections/<id>" \
+  -H "Authorization: Bearer $SPRITES_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{ "access_policy": { "sprite_labels": ["slack"], "allowed_endpoints": ["/chat.*"] } }'
+```
+
+### List, inspect, delete
+
+| Operation | Endpoint |
+| --- | --- |
+| List | `GET /v1/oauth/connections` |
+| Get one | `GET /v1/oauth/connections/:id` |
+| Delete | `DELETE /v1/oauth/connections/:id` |
+
+Deleting a connector immediately revokes all Sprite access to it. The encrypted credential is destroyed and cannot be recovered — if the connector was OAuth, the user must re-authorize from the dashboard to recreate it.
+
+For the full request and response schemas, see the [API reference](https://sprites.dev/api/connectors).
