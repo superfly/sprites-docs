@@ -4,7 +4,6 @@ description: Give Sprites access to external APIs without putting provider crede
 draft: true
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
 import { Callout } from '@/components/react';
 
 A Sprite that needs to talk to Slack, GitHub, OpenRouter, or another HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
@@ -47,7 +46,7 @@ Click **Add connection** to pick a provider:
 
 What happens next depends on the provider:
 
-- **Slack, GitHub** — you're sent through the provider's OAuth consent screen in a new tab. After you approve, the connector lands in **Your connections** with the scopes you granted.
+- **Slack, GitHub** — you're sent through the provider's OAuth consent screen in a new tab. After you approve, the connector appears in **Your connections** with the scopes you granted.
 - **OpenRouter** — choose between bringing your own key (paste it in) or enabling the managed connector with one click.
 - **Custom API** — fill in the base URL, the token, where the token goes (header / query string / URL path), and an optional test request to verify it works before saving.
 
@@ -67,7 +66,7 @@ The **Access Configuration** card has three switches:
 
 You can combine name prefix and labels — both must match. Allow-all overrides the others.
 
-The **Authorized Sprites** list below the configuration updates live as you change the rules, so you can see exactly which Sprites would gain access before you save.
+The **Authorized Sprites** list below the configuration will update live as you change the rules, so you can see exactly which Sprites will gain access before you save.
 
 For OAuth connectors, the **Scopes** section shows what the provider granted, and lets you start an "add scopes" flow if you need more permissions later — Sprites builds the right authorize URL with `add_scopes` set.
 
@@ -95,7 +94,7 @@ The connector detail page shows the exact gateway URL for each connector — you
 
 ## Endpoint allow- and block-lists
 
-The Access Configuration card also lets you restrict which provider paths a Sprite can reach through the connector. This is useful when a connector has more permission than you want any single Sprite to use — for example, a Slack bot that can post messages should probably not be able to call admin endpoints.
+The Access Configuration card also lets you restrict which provider paths a Sprite can reach through the connector. This is useful when a connector has more permission than you want any single Sprite to use, for example, a Slack bot that can post messages should probably not be able to call admin endpoints.
 
 Patterns are exact paths or trailing-wildcard prefixes:
 
@@ -106,7 +105,7 @@ Patterns are exact paths or trailing-wildcard prefixes:
 Two lists work together:
 
 - **Allowed endpoints** — if set, only matching paths are allowed.
-- **Blocked endpoints** — matching paths are rejected. **Block rules are checked before allow rules.**
+- **Blocked endpoints** — matching paths are rejected. **Note: Block rules are checked before allow rules.**
 
 <Callout type="warning" title="Block rules win">
 If a path matches both blocked and allowed rules, the request is denied. Use blocks for an explicit deny-list inside a broad allow rule (for example, allow `/*` but block `/admin.*`).
@@ -126,7 +125,7 @@ The detail page adds a **Usage** strip at the top showing your spend over the la
 
 ## Using connectors with a coding agent
 
-Every Sprite ships with the **`sprite-api-gateway`** skill pre-installed for Claude Code, Cursor, Codex, and Gemini. When a coding agent running inside a Sprite needs to talk to an external API, the skill kicks in automatically — you don't have to teach it any of the URLs above.
+Every Sprite ships with the **`sprite-api-gateway`** skill pre-installed for Claude Code, Cursor, Codex, and Gemini. When a coding agent running inside a Sprite needs to talk to an external API, the skill kicks in automatically, so you don't have to teach it any of the URLs above.
 
 Ask in plain language:
 
@@ -146,10 +145,10 @@ The response tells the agent which providers are connected (with their `gateway_
 
 If the connector exists but is missing scopes the agent needs, the skill points you at a `request_scopes_url` to grant the additional scopes. If no connector exists for the provider, it points you at a `setup_url` to create one.
 
-The practical effect: once an organization admin has set up a Slack or GitHub connector and granted access to the right Sprites, anyone using a coding agent inside one of those Sprites can use the integration in natural language — no API knowledge required.
+The practical effect: once an organization admin has set up a Slack or GitHub connector and granted access to the right Sprites, anyone using a coding agent inside one of those Sprites can use the integration in natural language, with no API knowledge required.
 
 <Callout type="tip" title="Where the skill lives">
-The skill is loaded from `~/.claude/skills/sprite-api-gateway/`, `~/.cursor/skills/sprite-api-gateway/`, `~/.codex/skills/sprite-api-gateway/`, and `~/.gemini/skills/sprite-api-gateway/` inside every Sprite. It's part of the Sprite base image — nothing to install.
+The skill is loaded from `~/.claude/skills/sprite-api-gateway/`, `~/.cursor/skills/sprite-api-gateway/`, `~/.codex/skills/sprite-api-gateway/`, and `~/.gemini/skills/sprite-api-gateway/` inside every Sprite. It's part of the Sprite base image, so there's nothing to install.
 </Callout>
 
 ## Common errors
@@ -158,10 +157,10 @@ The skill is loaded from `~/.claude/skills/sprite-api-gateway/`, `~/.cursor/skil
 The connector has no access policy, or the policy doesn't grant access to the calling Sprite. Open the connector and grant access via labels, name prefix, or allow-all.
 
 **`403 forbidden — endpoint not allowed`**
-The path matches a blocked endpoint, or an allowed-endpoints list is set and this path doesn't match. Check both lists on the connector's detail page.
+Either the path matches a blocked endpoint, or an allowed-endpoints list is set and this path isn't on it. Check both lists on the connector's detail page.
 
 **`401 unauthorized` from the gateway**
-The request didn't arrive with valid Fly.io identity headers. Gateway calls must originate from inside a running Sprite — not from your laptop or CI.
+The request didn't arrive with valid Fly.io identity headers. Gateway calls must originate from inside a running Sprite, not from your laptop or CI.
 
 **OAuth callback returns `failed to exchange authorization code`**
 The authorization code was already used or has expired. Restart the connection from the dashboard.
