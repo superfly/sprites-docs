@@ -16,17 +16,17 @@ The model: a task is a hold on the current run. While at least one task is live,
 
 ## When to use it
 
-- AI coding agents (Claude Code, Codex) that should still be there for the next prompt
+- AI coding agents running in the background (Claude Code, Codex) that should still be there when you come back
 - Queue workers waiting on jobs from an external broker
 - Anything holding outbound connections: websockets, MQTT, replication streams
 
-If you only need a process to come *back* after a pause, use a [Service](/concepts/services) instead. A Service keeps running through a warm wake (the process is frozen, not terminated), and restarts automatically on a cold wake. Tasks keep the *current* run alive. They compose: a Service launches the agent, the agent registers a task while it's working.
+If you only need a process to come *back* after a pause, use a Service instead. A Service is a long-running process managed by the Sprite runtime: it auto-starts on boot, keeps running through a warm wake (the process is frozen, not terminated), and restarts automatically on a cold wake. Tasks keep the *current* run alive. They compose: a Service launches the agent, the agent registers a task while it's working.
 
 ## When not to use it
 
 - A web server with no other long-lived state. A Service plus the URL's wake-on-request handles that without paying for compute while the Sprite is idle.
 - A short script. Just run it and the Sprite stays up while it runs.
-- Anything you might forget to clean up. A single forgotten task expires on its own within an hour, but a heartbeat loop nobody stops keeps the Sprite billing until you notice.
+- Anything you might forget to clean up. A single forgotten task expires on its own, but a forgotten heartbeat loop keeps the Sprite billing until you notice.
 
 ## The basics
 
@@ -59,7 +59,7 @@ curl --unix-socket /.sprite/api.sock \
 
 ## The heartbeat pattern
 
-This has a short expiry, refreshes on a shorter interval, and deletes on exit. If the process crashes without cleaning up, the task expires on its own and the Sprite pauses.
+A single task expires after at most an hour, so anything that needs to run longer uses a heartbeat: a short expiry, refreshed on a shorter interval, deleted on exit. If the process crashes without cleaning up, the task expires on its own and the Sprite pauses.
 
 ```bash
 #!/usr/bin/env bash
