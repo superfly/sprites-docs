@@ -1,0 +1,142 @@
+---
+title: Keeping a Sprite Running
+description: Use the Tasks API to hold a Sprite open while an agent or other long-lived process is doing work
+---
+
+A Sprite pauses in two stages. It first goes `warm`: compute billing stops, the VM suspends, and the next inbound HTTP request wakes it in 100–500ms with process state preserved. If the Sprite stays idle long enough it transitions to `cold`. In-memory state is dropped and the next wake takes 1–2s.
+
+Either way, work-in-progress stalls:
+
+- **Open TCP connections drop on the pause, even on warm.** A websocket subscriber, a queue worker's broker connection, an agent's streaming API call: the remote end can't be held across the suspension.
+- **Process state pauses on warm, dies on cold.** A warm-paused agent loop resumes its work on wake; a cold one starts over.
+
+The Tasks API stops that pause. Register a task; the Sprite stays up. Delete it (or let it expire); the Sprite is free to pause again.
+
+The model: a task is a hold on the current run. While at least one task is live, the Sprite runs.
+
+## When to use it
+
+- AI coding agents (Claude Code, Codex) that should still be there for the next prompt
+- Queue workers waiting on jobs from an external broker
+- Anything holding outbound connections: websockets, MQTT, replication streams
+
+If you only need a process to come *back* after a pause, use a [Service](/concepts/services) instead. A Service keeps running through a warm wake (the process is frozen, not terminated), and restarts automatically on a cold wake. Tasks keep the *current* run alive. They compose: a Service launches the agent, the agent registers a task while it's working.
+
+## When not to use it
+
+- A web server with no other long-lived state. A Service plus the URL's wake-on-request handles that without paying for compute while the Sprite is idle.
+- A short script. Just run it and the Sprite stays up while it runs.
+- Anything you might forget to clean up. A single forgotten task expires on its own within an hour, but a heartbeat loop nobody stops keeps the Sprite billing until you notice.
+
+## The basics
+
+All Tasks API calls go to the management socket at `/.sprite/api.sock`. Plain HTTP, JSON body, virtual host `sprite`. Inside a Sprite, `sprite-env curl` is a shorthand that handles the socket and host. `sprite-env curl -X POST /v1/tasks -d '...'` is equivalent to the long form below; this guide uses the explicit `curl --unix-socket` form to keep the wire-level mechanics visible.
+
+Create a task. The Sprite is now held in an active state for an hour (the maximum lifetime per task):
+
+```bash
+curl --unix-socket /.sprite/api.sock \
+     -H "Content-Type: application/json" \
+     -X POST http://sprite/v1/tasks \
+     -d '{ "name": "agent", "expire": "1h" }'
+```
+
+Refresh it before it expires:
+
+```bash
+curl --unix-socket /.sprite/api.sock \
+     -H "Content-Type: application/json" \
+     -X PUT http://sprite/v1/tasks/agent \
+     -d '{ "expire": "1h" }'
+```
+
+Release the hold when done:
+
+```bash
+curl --unix-socket /.sprite/api.sock \
+     -X DELETE http://sprite/v1/tasks/agent
+```
+
+## The heartbeat pattern
+
+This has a short expiry, refreshes on a shorter interval, and deletes on exit. If the process crashes without cleaning up, the task expires on its own and the Sprite pauses.
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+api() {
+  curl -s --unix-socket /.sprite/api.sock \
+       -H "Content-Type: application/json" "$@"
+}
+
+trap 'api -X DELETE http://sprite/v1/tasks/agent' EXIT
+
+while true; do
+  api -X PUT http://sprite/v1/tasks/agent -d '{ "expire": "5m" }' >/dev/null
+  sleep 60
+done
+```
+
+A 5-minute expiry refreshed every minute is a reasonable default: four missed heartbeats of margin before the Sprite frees itself, and short enough that a forgotten task doesn't drag on.
+
+## Verifying
+
+```bash
+curl --unix-socket /.sprite/api.sock http://sprite/v1/tasks
+```
+
+You should see your task with a future `expires_at`. If the list is empty, the Sprite isn't held and will pause on the next idle window.
+
+## Tasks API reference
+
+HTTP/JSON over `/.sprite/api.sock`, virtual host `sprite`.
+
+### List
+
+```text
+GET /v1/tasks
+```
+
+```json
+{ "tasks": [ { "name": "agent", "started_at": "...", "expires_at": "..." } ] }
+```
+
+### Get
+
+```text
+GET /v1/tasks/:name
+```
+
+200 with the task, 404 if missing.
+
+### Create
+
+```text
+POST /v1/tasks
+{ "name": "my-task", "expire": "1h" }
+```
+
+`expire` is seconds (integer) or a duration string (`"30m"`, `"1h"`). Maximum is 1 hour; longer holds require refreshing (see Upsert below). 201 on success, 409 if the name is taken.
+
+### Upsert
+
+Either form works. Creates the task or refreshes its expiry. Returns 200.
+
+```text
+PUT /v1/tasks/:name
+{ "expire": "1h" }
+```
+
+```text
+PUT /v1/tasks
+{ "name": "my-task", "expire": "1h" }
+```
+
+### Delete
+
+```text
+DELETE /v1/tasks/:name
+```
+
+204 on success, 404 if missing.
