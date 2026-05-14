@@ -1,0 +1,4 @@
+onlyBuiltDependencies:
+  - cypress
+  - esbuild
+  - sharp
