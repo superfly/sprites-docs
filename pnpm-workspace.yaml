@@ -1,4 +1,4 @@
-onlyBuiltDependencies:
-  - cypress
-  - esbuild
-  - sharp
+allowBuilds:
+  cypress: true
+  esbuild: true
+  sharp: true
