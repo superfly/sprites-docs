@@ -9,10 +9,6 @@ A Sprite that needs to talk to Slack, GitHub, OpenRouter, or another HTTP API ru
 
 Connectors solve this by storing the credential once, in your organization, and routing API calls through the Sprites gateway. Sprites never see the token. You decide which Sprites can use a connector and which provider endpoints they can reach.
 
-<Callout type="info" title="Limited release">
-Connectors are currently behind the `connected_services` feature flag. If you don't see a **Connectors** section in your dashboard, this isn't enabled for your organization yet.
-</Callout>
-
 ## How it works
 
 A connector has three pieces:
