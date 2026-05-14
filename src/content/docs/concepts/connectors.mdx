@@ -1,7 +1,6 @@
 ---
 title: Connectors
 description: Give Sprites access to external APIs without putting provider credentials inside the Sprite
-draft: true
 ---
 
 import { Callout } from '@/components/react';
@@ -9,10 +8,6 @@ import { Callout } from '@/components/react';
 A Sprite that needs to talk to Slack, GitHub, OpenRouter, or another HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
 
 Connectors solve this by storing the credential once, in your organization, and routing API calls through the Sprites gateway. Sprites never see the token. You decide which Sprites can use a connector and which provider endpoints they can reach.
-
-<Callout type="info" title="Limited release">
-Connectors are currently behind the `connected_services` feature flag. If you don't see a **Connectors** section in your dashboard, this isn't enabled for your organization yet.
-</Callout>
 
 ## How it works
 
@@ -94,7 +89,11 @@ The connector detail page shows the exact gateway URL for each connector — you
 
 ## Endpoint allow- and block-lists
 
-The Access Configuration card also lets you restrict which provider paths a Sprite can reach through the connector. This is useful when a connector has more permission than you want any single Sprite to use, for example, a Slack bot that can post messages should probably not be able to call admin endpoints.
+The access policy can also restrict which provider paths a Sprite can reach through the connector. This is useful when a connector has more permission than you want any single Sprite to use, for example, a Slack bot that can post messages should probably not be able to call admin endpoints.
+
+<Callout type="info" title="API only for now">
+Endpoint allow- and block-lists aren't yet editable from the dashboard. Set them via the [Connectors API](https://sprites.dev/api/connectors).
+</Callout>
 
 Patterns are exact paths or trailing-wildcard prefixes:
 

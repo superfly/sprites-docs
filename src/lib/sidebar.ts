@@ -111,6 +111,10 @@ export const sidebarConfig: SidebarGroup[] = [
     ],
   },
   {
+    label: 'Concepts',
+    items: [{ label: 'Connectors', slug: 'concepts/connectors' }],
+  },
+  {
     label: 'CLI Reference',
     items: [
       { label: 'Installation', slug: 'cli/installation' },
