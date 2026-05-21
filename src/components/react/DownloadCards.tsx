@@ -47,14 +47,12 @@ interface DownloadCardsProps {
 }
 
 function groupByPlatform(binaries: Binary[]): Record<string, Binary[]> {
-  const grouped: Record<string, Binary[]> = {};
-  for (const binary of binaries) {
-    if (!grouped[binary.platform]) {
-      grouped[binary.platform] = [];
-    }
-    grouped[binary.platform].push(binary);
-  }
-  return grouped;
+  return binaries.reduce<Record<string, Binary[]>>((grouped, binary) => {
+    const list = grouped[binary.platform] ?? [];
+    list.push(binary);
+    grouped[binary.platform] = list;
+    return grouped;
+  }, {});
 }
 
 function DownloadCards({
