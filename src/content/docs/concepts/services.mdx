@@ -1,272 +1,223 @@
 ---
 title: Services
-description: Long-running processes that persist across Sprite reboots
-draft: true
+description: Processes the Sprite runtime starts at boot, restarts when they crash, and can wire to your Sprite's URL
 ---
 
-import { LinkCard, CardGrid } from '@/components/react';
+import { Callout, LinkCard, CardGrid } from '@/components/react';
 
-Services are long-running processes managed by the Sprite runtime that automatically restart when your Sprite boots. Unlike detachable sessions, services survive full Sprite restarts and are ideal for background daemons, development servers, and databases.
+A Sprite pauses when nothing is using it, and processes don't reliably survive the trip. A warm wake resumes them where they left off; a cold boot drops them entirely. Anything you started by hand in a shell, a dev server, a database, an agent, is gone after a cold wake unless something brings it back.
 
-## Overview
+That something is a service. A service is a process the Sprite runtime owns: it starts when the Sprite boots, restarts if it crashes, and can receive the HTTP traffic that hits your Sprite's URL. You define it once. The runtime keeps bringing it back.
 
-Services are managed through the internal API at `/.sprite/api.sock`. The `sprite-env` command provides a convenient wrapper:
+## Services and the Sprite lifecycle
 
-```bash
-# List all services
-sprite-env services list
+What happens to a service depends on how the Sprite went down and how it came back:
 
-# Get help and see all endpoints
-sprite-env services --help
-```
+- **Warm wake.** The VM was suspended with your process inside it. The process resumes mid-thought; it is not restarted. Wakes take 100–500ms.
+- **Cold boot.** Process state was dropped. The runtime starts every service fresh, in dependency order. Wakes take 1–2s.
+- **Crash.** A service process that exits on its own gets restarted by the runtime.
+- **Stop.** A service you stop explicitly stays stopped until you start it again.
 
-## Creating Services
+Services don't keep a Sprite from pausing. A Sprite with ten services defined still pauses when it goes idle; the services come back on the next wake. A service that's actively handling HTTP requests counts as activity, the same as any other traffic, but a quiet one doesn't hold the Sprite in an active state. If you need a Sprite to stay up while work finishes, that's a job for the [Tasks API](/keeping-sprites-running), not a service.
 
-Create a service with a PUT request:
+## Create a service
 
-```bash
-# Simple service
-sprite-env curl -X PUT /v1/services/myapp -d '{
-  "cmd": "/usr/bin/myapp",
-  "args": ["--port", "8080"]
-}'
-
-# Service with dependencies
-sprite-env curl -X PUT /v1/services/webapp -d '{
-  "cmd": "npm",
-  "args": ["run", "dev"],
-  "needs": ["database"]
-}'
-```
-
-### Service Configuration
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `cmd` | string | Path to executable (required) |
-| `args` | string[] | Command arguments |
-| `needs` | string[] | Services that must start first |
-
-### Streaming Logs on Creation
-
-When you create a service, the API streams logs in NDJSON format:
+The `sprite-env` CLI ships in every Sprite and talks to the runtime's management socket. Create a service with a name, a command, and its arguments:
 
 ```bash
-# Stream logs for 10 seconds after creation
-sprite-env curl -X PUT '/v1/services/myapp?duration=10s' -d '{
-  "cmd": "npm",
-  "args": ["run", "dev"]
-}'
+sprite-env services create web --cmd python3 --args "-m,http.server,3000" --http-port 3000
 ```
 
-The default streaming duration is 5 seconds. Set `duration=0` to return immediately without streaming.
+`--cmd` takes the binary only. Arguments go in `--args`, comma-separated.
 
-## Managing Services
-
-### List Services
-
-```bash
-sprite-env services list
-```
-
-Returns a JSON array of services with their current states:
+The command starts the service and streams its first few seconds of output as NDJSON, so a service that dies on startup fails in front of you instead of silently in the background:
 
 ```json
-[
-  {
-    "name": "webapp",
-    "cmd": "npm",
-    "args": ["run", "dev"],
-    "needs": [],
-    "state": {
-      "name": "webapp",
-      "status": "running",
-      "pid": 1234,
-      "started_at": "2024-01-15T10:30:00Z"
-    }
+{"type":"started","timestamp":1780420274555}
+{"type":"complete","log_files":{"combined":"/.sprite/logs/services/web.log","stderr":"/.sprite/logs/services/web.log","stdout":"/.sprite/logs/services/web.log"},"timestamp":1780420276551}
+```
+
+The stream watches for 5 seconds by default. Pass `--duration 30s` to watch longer, or `--no-stream` to return immediately.
+
+Confirm it's serving:
+
+```bash
+curl localhost:3000
+```
+
+### Create options
+
+| Flag | What it does |
+|------|--------------|
+| `--cmd <path>` | The executable to run. Required. Binary only, no arguments here. |
+| `--args <a,b,c>` | Comma-separated arguments: `--args "-m,http.server,3000"` |
+| `--env <K=v,...>` | Comma-separated environment variables: `--env "PORT=3000,DEBUG=1"` |
+| `--dir <path>` | Working directory for the process |
+| `--needs <svc,...>` | Services that must start before this one |
+| `--http-port <port>` | Route the Sprite's URL to this port and auto-start the service on incoming requests |
+| `--duration <time>` | How long to stream logs after starting (default: `5s`) |
+| `--no-stream` | Don't stream logs after creation |
+
+## Serving HTTP
+
+Every Sprite has a URL, and the Sprite's proxy routes incoming requests to port 8080 by default. A service created with `--http-port` changes that:
+
+- Requests to the Sprite's URL route to the service's port instead of 8080.
+- If the service isn't running when a request arrives, the proxy starts it first, then forwards the request.
+- Only one service can have an HTTP port. Creating a second one fails with `409: another service already has an HTTP port configured`.
+
+Combined with wake-on-request, this gives you a server that costs nothing while idle. A request to a cold Sprite wakes the VM (1–2s), the proxy starts your service, and the request gets served. No traffic, no compute bill.
+
+```bash
+sprite-env services create web --cmd python3 --args "-m,http.server,3000" --http-port 3000
+```
+
+The Sprite's URL requires authentication by default. See [Working with Sprites](/working-with-sprites#networking-urls-and-port-forwarding) for URL auth modes and testing from outside the Sprite.
+
+<Callout type="warning" title="HTTP services can become public">
+A Sprite URL can be switched to public access. Treat every HTTP service as potentially internet-facing: don't serve secrets, environment variables, or unrestricted filesystem access.
+</Callout>
+
+## Managing services
+
+```bash
+sprite-env services list             # all services and their state
+sprite-env services get web          # one service
+sprite-env services restart web      # stop, then start; streams logs
+sprite-env services stop web         # stop; stays stopped
+sprite-env services start web        # start a stopped service
+sprite-env services signal web HUP   # send any Unix signal
+sprite-env services delete web       # remove the service
+```
+
+`get` returns the definition plus live state:
+
+```json
+{
+  "name": "web",
+  "cmd": "python3",
+  "args": ["-m", "http.server", "3000"],
+  "http_port": 3000,
+  "state": {
+    "name": "web",
+    "status": "running",
+    "pid": 7353,
+    "started_at": "2026-06-02T17:11:14.555839485Z"
   }
-]
+}
 ```
 
-### Get Service State
+Three behaviors worth knowing:
+
+- **`stop` is sticky.** A stopped service stays stopped. The runtime won't restart it behind your back.
+- **Killing the process is not.** Send `TERM` or `KILL` via `signal`, or kill the PID directly, and the runtime treats it as a crash and restarts the service. The state's `restart_count` increments each time. This means `signal web TERM` is effectively a restart; for clarity, use `restart` instead.
+- **`delete` removes the definition, not the logs.** The log file stays in `/.sprite/logs/services/` after the service is gone.
+
+## Logs
+
+Everything a service writes to stdout or stderr lands in `/.sprite/logs/services/<name>.log`, timestamped and tagged with the stream it came from:
+
+```text
+2026-06-02T17:11:17.821Z [stderr] 127.0.0.1 - - [02/Jun/2026 17:11:17] "GET / HTTP/1.1" 200 -
+```
+
+Follow it like any other file:
 
 ```bash
-sprite-env services get webapp
+tail -f /.sprite/logs/services/web.log
 ```
 
-### Delete a Service
+To watch output live while a service starts, use `--duration` on `create`, `start`, or `restart`.
+
+There is no `journalctl` here. Sprites don't run systemd; the log files and the create/start streams are how you see service output.
+
+## Dependencies
+
+A service with `--needs` starts after the services it names. Use it when one process can't come up until another is ready:
 
 ```bash
-sprite-env services delete webapp
+# The database starts first
+sprite-env services create postgres \
+  --cmd /usr/lib/postgresql/16/bin/postgres \
+  --args "-D,/home/sprite/pgdata"
+
+# The app starts after postgres
+sprite-env services create app \
+  --cmd npm --args "start" \
+  --dir /home/sprite/myapp \
+  --needs postgres
 ```
 
-### Send Signals
+On a cold boot, the runtime starts `postgres` before `app`, every time.
 
-Send Unix signals to a service:
+## Services, sessions, or tasks?
 
-```bash
-# Graceful shutdown
-sprite-env curl -X POST /v1/services/signal -d '{
-  "name": "webapp",
-  "signal": "TERM"
-}'
+There are three ways to run something in a Sprite, and they solve different problems:
 
-# Force kill
-sprite-env curl -X POST /v1/services/signal -d '{
-  "name": "webapp",
-  "signal": "KILL"
-}'
+| | Service | Session (`sprite exec`) | Task |
+|---|---------|------------------------|------|
+| Survives a cold boot | Yes, restarts automatically | No | No, it's a hold, not a process |
+| Keeps the Sprite in an active state | Only while handling traffic | Yes, while producing output | Yes, until it expires |
+| Best for | Servers, databases, daemons | Interactive work, builds, debugging | Holding the Sprite up while an agent or worker finishes |
 
-# Reload configuration (for services that support it)
-sprite-env curl -X POST /v1/services/signal -d '{
-  "name": "nginx",
-  "signal": "HUP"
-}'
-```
-
-## Services vs Detachable Sessions
-
-Choose the right approach for your use case:
-
-| Feature | Services | Detachable Sessions |
-|---------|----------|---------------------|
-| Survives Sprite restart | Yes | No |
-| Auto-starts on boot | Yes | No |
-| Managed via | Internal API | External CLI/SDK |
-| Dependencies | Supported (`needs`) | Not supported |
-| Best for | Daemons, servers | One-off tasks, builds |
-
-### When to Use Services
-
-- **Development servers** that should always be running
-- **Databases** like PostgreSQL, Redis, or SQLite servers
-- **Background workers** processing queues
-- **Reverse proxies** or other infrastructure
-
-### When to Use Detachable Sessions
-
-- **Build processes** that run once
-- **Long-running scripts** you want to monitor
-- **Interactive sessions** you might reconnect to
-
-## Common Patterns
-
-### Development Server
-
-```bash
-# Create a Node.js dev server service
-sprite-env curl -X PUT /v1/services/devserver -d '{
-  "cmd": "npm",
-  "args": ["run", "dev"]
-}'
-```
-
-### Database with Dependent Service
-
-```bash
-# First, create the database service
-sprite-env curl -X PUT /v1/services/postgres -d '{
-  "cmd": "/usr/lib/postgresql/16/bin/postgres",
-  "args": ["-D", "/home/sprite/pgdata"]
-}'
-
-# Then create a service that depends on it
-sprite-env curl -X PUT /v1/services/webapp -d '{
-  "cmd": "npm",
-  "args": ["start"],
-  "needs": ["postgres"]
-}'
-```
-
-### Python Background Worker
-
-```bash
-sprite-env curl -X PUT /v1/services/worker -d '{
-  "cmd": "python",
-  "args": ["-m", "celery", "worker", "-A", "tasks"]
-}'
-```
-
-## LLM Integration
-
-AI coding agents can manage services through the internal API. Point your LLM at `/.sprite/llm.txt` for environment documentation, then it can:
-
-```bash
-# LLM creates a service for the project it's working on
-sprite-env curl -X PUT /v1/services/devserver -d '{
-  "cmd": "npm",
-  "args": ["run", "dev"],
-  "dir": "/home/sprite/project"
-}'
-
-# Check if it's running
-sprite-env services get devserver
-
-# Restart after making changes
-sprite-env curl -X POST /v1/services/signal -d '{"name": "devserver", "signal": "TERM"}'
-# Service auto-restarts
-```
+They compose. A common pattern for background agents: a service launches the agent at boot, the agent registers a task while it works, the task expires when the work is done, and the Sprite pauses until something needs it again. See [Keeping a Sprite Running](/keeping-sprites-running) for the task side of that pattern.
 
 ## Troubleshooting
 
-### Service Won't Start
+**The service died immediately.**
 
-1. Check the command path is correct and executable exists
-2. Verify working directory exists
-3. Check dependencies are running if using `needs`
+The create stream tells you, with an `exit` event:
 
-### Service Keeps Restarting
-
-The service manager will restart crashed services. If a service exits immediately:
-
-1. Check logs during creation with `duration=30s`
-2. Verify environment variables are set correctly
-3. Test the command manually first
-
-### Viewing Service Logs
-
-Stream logs when creating the service:
-
-```bash
-sprite-env curl -X PUT '/v1/services/myapp?duration=60s' -d '{...}'
+```json
+{"type":"started","timestamp":1780420024883}
+{"type":"exit","exit_code":1,"timestamp":1780420025035}
 ```
 
-Or check system logs:
+Check the log file for the reason:
 
 ```bash
-journalctl -f  # If available
-# or
-tail -f /var/log/syslog
+cat /.sprite/logs/services/web.log
 ```
 
-## Related Documentation
+A bad `--cmd` path looks like this:
+
+```text
+2026-06-02T17:07:38.805Z [stderr] executable file `/usr/bin/does-not-exist` not found: No such file or directory
+```
+
+**The service keeps restarting.**
+
+The runtime restarts crashing services, so a crash loop shows up as a climbing `restart_count` in `sprite-env services get <name>`. Read the log file to find out why it's crashing, and test the command by hand in a shell with the same `--dir` and `--env`.
+
+**Requests to the Sprite's URL aren't reaching the service.**
+
+Check that the service actually has the HTTP port: `sprite-env services list` and look for `http_port`. Without it, the proxy routes to port 8080, not to your service.
+
+## Managing services from outside the Sprite
+
+Everything on this page uses the in-Sprite CLI. The same operations are available from outside through the Sprites REST API at `/v1/sprites/{name}/services` and the SDKs, which is how you'd configure services as part of provisioning a fleet of Sprites. See the [Services API reference](https://sprites.dev/api/sprites/services) for endpoints and request schemas.
+
+## Related documentation
 
 <CardGrid client:load>
   <LinkCard
-    href="/concepts/lifecycle"
-    title="Lifecycle and Persistence"
-    description="Understanding sprite hibernation and state management"
+    href="/keeping-sprites-running"
+    title="Keeping a Sprite Running"
+    description="Use the Tasks API to hold a Sprite open while work finishes"
     icon="layers"
     client:load
   />
   <LinkCard
-    href="/concepts/checkpoints"
-    title="Checkpoints"
-    description="Save and restore sprite state with checkpoints"
-    icon="folder"
-    client:load
-  />
-  <LinkCard
-    href="/reference/base-images"
-    title="Base Images"
-    description="Pre-installed tools and available images"
+    href="/working-with-sprites"
+    title="Working with Sprites"
+    description="Lifecycle, networking, and URL authentication"
     icon="terminal"
     client:load
   />
   <LinkCard
     href="/cli/commands"
     title="CLI Commands"
-    description="Service management commands"
+    description="The full sprite CLI reference"
     icon="terminal"
     client:load
   />
