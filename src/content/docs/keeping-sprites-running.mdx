@@ -1,6 +1,7 @@
 ---
 title: Keeping a Sprite Running
 description: Use the Tasks API to hold a Sprite open while an agent or other long-lived process is doing work
+author: kcmartin
 ---
 
 A Sprite pauses in two stages. It first goes `warm`: compute billing stops, the VM suspends, and the next inbound HTTP request wakes it in 100–500ms with process state preserved. If the Sprite stays idle long enough it transitions to `cold`. In-memory state is dropped and the next wake takes 1–2s.

@@ -11,6 +11,9 @@ export const collections = {
         // badge prefers this over git history, so a rewritten older page can
         // be re-flagged as new. See src/lib/sidebar.ts.
         publishedDate: z.coerce.date().optional(),
+        // Author of the page (e.g. a GitHub username). Not displayed; recorded
+        // for attribution and available to components later.
+        author: z.string().optional(),
       }),
     }),
   }),
