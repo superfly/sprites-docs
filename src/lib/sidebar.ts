@@ -15,7 +15,7 @@ interface SidebarBadge {
 // Configuration for badge thresholds
 const BADGE_CONFIG = {
   // Show "New" badge for content published within this many days
-  newThresholdDays: 3,
+  newThresholdDays: 14,
   // Show "Updated" badge for content updated within this many days
   updatedThresholdDays: 0,
 };
