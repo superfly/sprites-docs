@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { StarlightUserConfig } from '@astrojs/starlight/types';
 
@@ -14,7 +15,7 @@ interface SidebarBadge {
 // Configuration for badge thresholds
 const BADGE_CONFIG = {
   // Show "New" badge for content published within this many days
-  newThresholdDays: 3,
+  newThresholdDays: 14,
   // Show "Updated" badge for content updated within this many days
   updatedThresholdDays: 0,
 };
@@ -37,6 +38,26 @@ function getGitDate(filePath: string, mode: 'first' | 'last'): Date | null {
 }
 
 /**
+ * Read the optional `publishedDate` frontmatter field from a doc. Lets an
+ * older file that was rewritten be re-flagged as new, since git only knows
+ * when the file first appeared, not when it was (re)published.
+ */
+function getPublishedDate(filePath: string): Date | null {
+  try {
+    const source = readFileSync(filePath, 'utf-8');
+    const frontmatter = source.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    if (!frontmatter) return null;
+    const field = frontmatter[1].match(/^publishedDate:\s*(.+)$/m);
+    if (!field) return null;
+    const value = field[1].trim().replace(/^['"]|['"]$/g, '');
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Compute the appropriate badge for a doc based on its git history
  */
 function computeBadge(slug: string): SidebarBadge | undefined {
@@ -44,7 +65,10 @@ function computeBadge(slug: string): SidebarBadge | undefined {
   const fileName = slug === 'index' ? 'index.mdx' : `${slug}.mdx`;
   const filePath = path.join(docsDir, fileName);
 
-  const publishDate = getGitDate(filePath, 'first');
+  // Prefer an explicit `publishedDate` from frontmatter; fall back to the date
+  // the file first landed in git.
+  const publishDate =
+    getPublishedDate(filePath) ?? getGitDate(filePath, 'first');
   if (!publishDate) return undefined;
 
   // "New" takes priority
