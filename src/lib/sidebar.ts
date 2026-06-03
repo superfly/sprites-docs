@@ -113,7 +113,10 @@ export const sidebarConfig: SidebarGroup[] = [
   },
   {
     label: 'Concepts',
-    items: [{ label: 'Connectors', slug: 'concepts/connectors' }],
+    items: [
+      { label: 'Connectors', slug: 'concepts/connectors' },
+      { label: 'Services', slug: 'concepts/services' },
+    ],
   },
   {
     label: 'CLI Reference',
