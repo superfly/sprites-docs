@@ -29,6 +29,8 @@ sprite exec --tty -- vim
 - Returns stdout/stderr
 - Use for automation or scripting
 
+If your command opens a listening port, `sprite exec` binds the same port on your laptop and forwards traffic to the sprite. Use `--no-port-forward` when you want to bind the port yourself with `sprite proxy`.
+
 ### `sprite console` – Interactive shell (like SSH)
 
 Opens a full terminal session so you can explore, debug, or run multiple commands.
@@ -129,11 +131,11 @@ Use for database access, dev tools, or private ports. Press `Ctrl+C` to stop for
 
 ### Port Conflicts
 
-If a local port is already in use, you'll get an error. Solutions:
+If a local port is already in use, `sprite proxy` reports which process is holding it. The most common cause is a `sprite exec` auto-forwarding the same port. Fixes:
 
-1. **Choose a different local port**: `sprite proxy 3001:3000` forwards local 3001 to remote 3000
-2. **Stop the conflicting process**: Find what's using the port with `lsof -i :3000` (macOS/Linux)
-3. **Kill the old proxy session**: If you have an old proxy still running, stop it first
+1. **Stop the conflicting `sprite exec`**, or restart it with `--no-port-forward`.
+2. **Map to a different local port**: `sprite proxy 3001:3000` forwards local 3001 to the sprite's 3000.
+3. **Kill an old proxy session**: if a previous `sprite proxy` is still running, stop it first.
 
 ---
 
