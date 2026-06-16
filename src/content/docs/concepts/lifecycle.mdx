@@ -67,16 +67,16 @@ A [checkpoint](/concepts/checkpoints) is a point-in-time snapshot of this filesy
 
 ## Resources
 
-Each Sprite runs with a fixed profile:
+Each Sprite runs with:
 
 - **8 vCPUs**
-- **Memory assigned per Sprite** by the platform
+- **Memory the platform manages for you**, sized per Sprite and able to scale up under pressure
 - **100 GB of storage**
 
-You can't resize a running Sprite. Compute is fixed so behavior stays predictable; if you need more headroom for a workload, that's a provisioning concern, not a runtime setting.
+You don't set or resize these yourself. The vCPU count and the storage ceiling are fixed; memory is handled automatically.
 
 <Callout type="info" title="Memory is not a fixed number to design around">
-A Sprite's memory is assigned by the platform rather than a single published figure, and what a Sprite reports from inside may not be the value to build hard limits against. Size memory-hungry workloads against headroom you've measured, not a constant.
+A Sprite doesn't run with one published RAM figure. Memory is assigned per Sprite, and the platform can autoscale it: when a workload comes under memory pressure, the runtime grows the Sprite's memory in response, so the amount available changes with demand rather than sitting at a constant. The figure a Sprite reports from inside is adjusted to reflect usable memory, so it isn't a ceiling to build hard limits against. Size memory-hungry workloads against headroom you've measured, not a fixed number.
 </Callout>
 
 ## Related documentation
