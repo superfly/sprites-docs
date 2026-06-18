@@ -9,7 +9,7 @@ import { Callout, LinkCard, CardGrid } from '@/components/react';
 
 A Sprite is not a server that runs until you turn it off. It runs while something is using it, pauses when nothing is, and wakes when work shows up again. Compute comes and goes. Your filesystem stays.
 
-This page is the mental model: when a Sprite is active, what happens when it pauses, what survives the pause, and how the storage underneath it works. The procedural details, the CLI commands, exact billing rates, the full activity list, live on the pages linked throughout.
+This page is the mental model: when a Sprite is active, what happens when it pauses, what survives the pause, and how the storage underneath it works. The procedural details, the CLI commands, the full activity list, live on the pages linked throughout.
 
 ## Active, warm, cold
 
@@ -59,11 +59,7 @@ Because the durable copy is always current, a pause doesn't move your data anywh
 
 Every Sprite starts with 100 GB of storage. It does not autoscale yet, so plan around that ceiling.
 
-Storage is TRIM-friendly: you pay for the bytes you actually write, not the full 100 GB, and deleting files lowers your bill. Compute is billed only while the Sprite is active, which is the whole point of pausing. For rates and worked examples, see [Billing](/reference/billing).
-
-### Checkpoints
-
-A [checkpoint](/concepts/checkpoints) is a point-in-time snapshot of this filesystem that you can restore later. Persistence keeps your data across pauses automatically; checkpoints let you roll back to a known-good state on purpose. They're different tools: one is the floor you always have, the other is a save point you create.
+Storage is TRIM-friendly: you pay for the bytes you actually write, not the full 100 GB, and deleting files lowers your bill. Compute is billed only while the Sprite is active, which is the whole point of pausing.
 
 ## Resources
 
@@ -104,17 +100,10 @@ A Sprite doesn't run with one published RAM figure. Memory is assigned per Sprit
     client:load
   />
   <LinkCard
-    href="/concepts/checkpoints"
-    title="Checkpoints"
-    description="Snapshot and restore the filesystem on purpose"
-    icon="folder"
-    client:load
-  />
-  <LinkCard
-    href="/reference/billing"
-    title="Billing"
-    description="Compute and storage rates, with worked examples"
-    icon="file-text"
+    href="/sprite-maintenance"
+    title="Sprite Maintenance"
+    description="Keep your Sprites healthy as they sleep, wake, and accumulate state"
+    icon="wrench"
     client:load
   />
 </CardGrid>
