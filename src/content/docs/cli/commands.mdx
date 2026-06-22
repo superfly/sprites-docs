@@ -157,6 +157,7 @@ sprite create [flags] [sprite-name]
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
 - `--skip-console Exit` - after creating instead of connecting to console
+- `--label <label>` - Label to apply to the sprite (can be repeated)
 - `-h, --help Show` - this help message
 
 > Creates a new sprite with the specified name.
@@ -263,7 +264,7 @@ sprite checkpoint --help   Save state before destroying
 sprite exec - Execute a command in the sprite environment
 
 ```bash
-sprite exec [flags] <command> [args...]
+sprite exec [flags] -- <command> [args...]
 ```
 
 **Aliases:** `sprite x`
@@ -275,6 +276,7 @@ sprite exec [flags] <command> [args...]
 - `--tty Allocate` - pseudo-TTY
 - `--env <vars>` - Environment variables (KEY=value,KEY2=value2)
 - `--http-post Use` - HTTP/1.1 POST instead of WebSockets (non-TTY only)
+- `--no-port-forward Disable` - automatic local port forwarding for ports opened by the command
 - `--file <source:dest>` - Upload file before exec (repeatable)
 - `-h, --help Show` - this help message
 
@@ -284,11 +286,11 @@ sprite exec [flags] <command> [args...]
 
 **Examples:**
 ```bash
-sprite exec ls -la
-sprite exec --dir /app echo hello world
-sprite exec --env KEY=value,FOO=bar env
-sprite exec --tty /bin/bash
-sprite exec -o myorg -s mysprite npm start
+sprite exec -- ls -la
+sprite exec --dir /app -- echo hello world
+sprite exec --env KEY=value,FOO=bar -- env
+sprite exec --tty -- /bin/bash
+sprite exec -o myorg -s mysprite -- npm start
 ```
 
 ### `sprite console`
@@ -304,6 +306,7 @@ sprite console [flags]
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
+- `--no-port-forward Disable` - automatic local port forwarding for ports opened by the console
 - `-h, --help Show` - this help message
 
 > Opens an interactive shell with a TTY allocated.
@@ -438,6 +441,8 @@ sprite proxy [flags] <port1> [port2] ... or <local1:remote1> [local2:remote2] ..
 > Each port will be forwarded from localhost to the remote environment.
 > Use LOCAL:REMOTE syntax to map different local and remote ports.
 > Multiple ports can be specified to forward multiple services simultaneously.
+> If a port was auto-forwarded by a running `sprite exec`, stop that command
+> or rerun it with `--no-port-forward` before using the same local port here.
 > Related Commands:
 > sprite url --help         Manage the sprite's always-on HTTP URL
 
@@ -505,29 +510,10 @@ sprite url update --auth public -s demo  # Make specific sprite public
 
 ### `sprite api`
 
-sprite api - Make authenticated API calls with curl
+Error: api requires a path argument
 
 ```bash
-sprite api [flags] <path> [curl options]
-```
-
-**Options:**
-- `-o, --org <name>` - Specify organization
-- `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
-
-> This command wraps curl to automatically add authentication headers.
-> If a sprite is specified with -s, the path is relative to /v1/sprites/`<sprite-name>`/.
-> If no sprite is specified, the path is relative to /v1/.
-> Paths starting with /v1/sprites/ are always used as-is, ignoring any sprite context.
-> All arguments after the path are passed directly to curl.
-
-**Examples:**
-```bash
-sprite api -o myorg /sprites
-sprite api -o myorg -s my-sprite /upgrade -X POST
-sprite api -o myorg -s my-sprite /exec -X GET
-sprite api -o myorg -s my-sprite /checkpoints
+sprite api [flags] <path> -- [curl options]
 ```
 
 ### `sprite upgrade`
