@@ -461,7 +461,7 @@ sprite proxy -o myorg -s mysprite 8080
 sprite url - Manage sprite URL settings
 
 ```bash
-sprite url                  Show sprite URL and auth setting sprite url update [flags]   Update URL authentication settings URL Format: https://<sprite-name>-<org>.sprites.dev/ Authentication Modes: sprite     Allows access via browser to Sprite org members, and via org tokens (default) public     No authentication - anyone with URL can access Subcommands: update     Update URL authentication settings
+sprite url                  Show sprite URL and auth setting sprite url update [flags]   Update URL authentication settings URL Format: https://<sprite-name>-<org>.sprites.app/ Authentication Modes: sprite     Allows access via browser to Sprite org members, and via org tokens (default) public     No authentication - anyone with URL can access Subcommands: update     Update URL authentication settings
 ```
 
 **Options:**
@@ -478,7 +478,7 @@ sprite url update --auth sprite    # Require org membership (default)
 sprite url -o myorg -s mysprite    # Show URL for specific sprite
 Accessing Authenticated URLs:
 Visit the URL in your browser and log in with Fly.io, or use an org token:
-curl -H "Authorization: Bearer $SPRITE_API_TOKEN" https://mysprite-myorg.sprites.dev/
+curl -H "Authorization: Bearer $SPRITE_API_TOKEN" https://mysprite-myorg.sprites.app/
 Security Notes:
 - Public URLs are accessible to anyone on the internet
 - Never expose secrets, env vars, or sensitive data via HTTP
