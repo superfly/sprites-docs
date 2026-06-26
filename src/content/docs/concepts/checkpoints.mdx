@@ -61,6 +61,18 @@ The last five checkpoints are mounted read-only at `/.sprite/checkpoints/` insid
 diff /.sprite/checkpoints/v34/etc/hosts /etc/hosts
 ```
 
+## Automatic checkpoints
+
+Alongside the checkpoints you take by hand, the platform creates its own in the background as you work. They're tagged automatic and given `auto-` IDs, so they stay separate from your `v0`, `v1`, `v2` series and never consume a version number.
+
+They're hidden by default. List them with `--include-auto`:
+
+```bash
+sprite checkpoint list --include-auto
+```
+
+You restore one exactly like any other checkpoint, by ID. Treat them as a safety net, not a plan: they carry no comment describing what they captured, and older ones are pruned over time. For anything you specifically want to be able to return to, take your own checkpoint with a comment.
+
 ## Checkpointing from inside the Sprite
 
 Agents and scripts running inside a Sprite can manage their own checkpoints, which is what makes them useful for unattended work: snapshot before a risky step, restore if it fails, all without anything outside the Sprite coordinating it.
