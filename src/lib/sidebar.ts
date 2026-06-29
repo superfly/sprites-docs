@@ -138,6 +138,7 @@ export const sidebarConfig: SidebarGroup[] = [
   {
     label: 'Concepts',
     items: [
+      { label: 'Checkpoints', slug: 'concepts/checkpoints' },
       { label: 'Connectors', slug: 'concepts/connectors' },
       { label: 'Lifecycle and Persistence', slug: 'concepts/lifecycle' },
       { label: 'Services', slug: 'concepts/services' },
