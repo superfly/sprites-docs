@@ -154,7 +154,13 @@ export const sidebarConfig: SidebarGroup[] = [
   },
   {
     label: 'Integrations',
-    items: [{ label: 'Remote MCP Server', slug: 'integrations/remote-mcp' }],
+    items: [
+      { label: 'Remote MCP Server', slug: 'integrations/remote-mcp' },
+      {
+        label: 'Claude Managed Agents',
+        slug: 'integrations/claude-managed-agents',
+      },
+    ],
   },
   // {
   //   label: 'API Reference',

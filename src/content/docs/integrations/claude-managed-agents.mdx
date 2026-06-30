@@ -1,0 +1,180 @@
+---
+title: Claude Managed Agents
+description: Run Anthropic Claude Managed Agents with tool execution inside your own Sprites
+---
+
+import { Callout } from '@/components/react';
+
+[Claude Managed Agents](https://platform.claude.com/docs/en/managed-agents/overview) let Anthropic run the agent loop and the model while the agent's tools — the filesystem it reads and writes, the commands it runs — execute in a sandbox you control. Point a Managed Agent at a [self-hosted environment](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) and you run each session inside a Sprite, so the agent's code and data never leave your infrastructure.
+
+## How it works
+
+A self-hosted environment is a work queue. When a session is assigned to it, Anthropic enqueues a work item. A worker you run claims the item and starts a per-session Sprite that runs Anthropic's tool runner. Tool inputs and outputs flow back to Anthropic so the model can see results; everything the tools touch stays in the Sprite.
+
+The runner authenticates with an **environment key** — the only credential it needs, for both the control plane and the per-session calls. Your organization API key never reaches the Sprite.
+
+<Callout type="info">
+A reference implementation (webhook and always-on poller, plus the in-Sprite runner) lives in [`anthropics/claude-cookbooks`](https://github.com/anthropics/claude-cookbooks/tree/main/managed_agents/self_hosted_sandboxes/sprites). The snippets below are the core of it.
+</Callout>
+
+## Before you begin
+
+You need:
+
+- A **Sprites API token** (`org/projectNumber/tokenId/secret`). Export it as `SPRITES_API_KEY`.
+- An **Anthropic agent**. Create one with the [Quickstart](https://platform.claude.com/docs/en/managed-agents/quickstart) and note its agent ID.
+- **Python 3.10+** with the `anthropic` and `httpx` packages on the worker host.
+
+## 1. Create a self-hosted environment
+
+```bash
+curl -sS https://api.anthropic.com/v1/environments \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "content-type: application/json" \
+  -d '{"name": "sprites", "config": {"type": "self_hosted"}}'
+```
+
+Note the returned environment ID (`env_…`).
+
+## 2. Generate an environment key
+
+In the [Console](https://platform.claude.com/workspaces/default/environments), open the environment and click **Generate environment key**. Export it alongside the environment ID on the worker host:
+
+```bash
+export ANTHROPIC_ENVIRONMENT_ID="env_..."
+export ANTHROPIC_ENVIRONMENT_KEY="sk-ant-oat01-..."
+```
+
+## 3. Spawn a Sprite per session
+
+The worker creates a Sprite, uploads Anthropic's provider-agnostic runner, installs the SDK, and starts the runner. Run the runner as a Sprite [service](/concepts/services), not a detached `nohup` process: a Sprite reaps an exec's process tree when the request connection closes, so a backgrounded process would not survive. A service is supervised and outlives the request, and it self-stops on exit so the one-shot worker is not restarted.
+
+The `ANTHROPIC_*` variables are written to a file the service sources, so the environment key never appears in process listings.
+
+```python
+# sprite_sandbox.py
+import os
+import httpx
+
+API = os.environ.get("SPRITES_API_URL", "https://api.sprites.dev")
+HEADERS = {"authorization": f"Bearer {os.environ['SPRITES_API_KEY']}"}
+RUNNER_PATH = "/root/sandbox_runner.py"
+
+# Anthropic's provider-agnostic runner. One call is the whole worker: it builds
+# the per-session tool context, downloads skills, runs the tool loop, and posts
+# results back. See the cookbook for the full file.
+RUNNER_SRC = '''import asyncio, os
+from anthropic import AsyncAnthropic
+
+async def main():
+    key = os.environ["ANTHROPIC_ENVIRONMENT_KEY"]
+    async with AsyncAnthropic(auth_token=key) as client:
+        await client.beta.environments.work.worker(
+            environment_key=key, workdir="/workspace", unrestricted_paths=True
+        ).handle_item()
+
+asyncio.run(main())
+'''
+
+
+def _sq(v: str) -> str:
+    return "'" + v.replace("'", "'\\''") + "'"
+
+
+def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
+    name = f"claude-agent-{session_id.lower().replace('_', '-')[:40]}"
+    c = httpx.Client(base_url=API, headers=HEADERS, timeout=300)
+
+    # 201 created, or 409 if it already exists (reuse it).
+    c.post("/v1/sprites", json={"name": name, "wait_for_capacity": True})
+    c.put(f"/v1/sprites/{name}/fs/write", params={"path": RUNNER_PATH},
+          content=RUNNER_SRC.encode())
+
+    # Install the SDK and create the workspace. Pre-bake these into a checkpoint
+    # for production to drop the cold-start install.
+    c.post(f"/v1/sprites/{name}/exec", params=[
+        ("cmd", "bash"), ("cmd", "-c"),
+        ("cmd", "mkdir -p /workspace && python3 -m pip install -q anthropic")])
+
+    # The env contract Anthropic's worker reads. The environment key is the
+    # runner's only credential.
+    env = {
+        "ANTHROPIC_BASE_URL": os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+        "ANTHROPIC_ENVIRONMENT_KEY": environment_key,
+        "ANTHROPIC_SESSION_ID": session_id,
+        "ANTHROPIC_ENVIRONMENT_ID": environment_id,
+        "ANTHROPIC_WORK_ID": work_id,
+    }
+    env_file = "".join(f"{k}={_sq(v)}\n" for k, v in env.items())
+    c.put(f"/v1/sprites/{name}/fs/write", params={"path": "/root/runner.env"},
+          content=env_file.encode())
+
+    # Service supervises the runner and self-stops when it exits.
+    cmd = (f"set -a; . /root/runner.env; set +a; python3 {RUNNER_PATH}; "
+           "sprite-env services stop agent-runner >/dev/null 2>&1 || true")
+    c.put(f"/v1/sprites/{name}/services/agent-runner",
+          json={"cmd": "bash", "args": ["-lc", cmd]})
+    return name
+```
+
+## 4. Run the worker
+
+The worker claims sessions from the queue and calls `spawn()` for each. Choose the always-on poller (only needs outbound HTTPS) or a webhook (no idle poller, needs a public endpoint).
+
+```python
+# sprites_poller.py — always-on
+import asyncio, os, anthropic
+from sprite_sandbox import spawn
+
+async def main():
+    env_id = os.environ["ANTHROPIC_ENVIRONMENT_ID"]
+    key = os.environ["ANTHROPIC_ENVIRONMENT_KEY"]
+    client = anthropic.AsyncAnthropic(auth_token=key)
+    async for work in client.beta.environments.work.poller(
+        environment_id=env_id, environment_key=key,
+        reclaim_older_than_ms=2000, auto_stop=False,
+    ):
+        if work.data.type == "session":
+            spawn(work.data.id, environment_id=env_id,
+                  work_id=work.id, environment_key=key)
+
+asyncio.run(main())
+```
+
+`auto_stop=False` because each item is handed to a Sprite that owns its own stop; the poller must not release the lease out from under it. For the webhook variant, verify the `session.status_run_started` delivery, then drain the queue with `poller(drain=True, auto_stop=False)` and call `spawn()` the same way.
+
+```bash
+pip install anthropic httpx
+python sprites_poller.py
+```
+
+## 5. Start a session
+
+Create a session targeting the environment, then send the agent a turn. The worker claims it, starts a Sprite, and the agent's tools run inside it.
+
+```python
+import anthropic
+client = anthropic.Anthropic()  # uses ANTHROPIC_API_KEY
+
+session = client.beta.sessions.create(
+    agent="agent_...", environment_id="env_...",
+)
+client.beta.sessions.events.send(session.id, events=[{
+    "type": "user.message",
+    "content": [{"type": "text", "text": "Create README.md describing this project."}],
+}])
+```
+
+The file the agent writes lands in `/workspace` inside the Sprite, which persists for the Sprite's lifetime.
+
+<Callout type="info">
+A Sprite proxies a single internal HTTP port to its public URL, has a durable filesystem, and supports [checkpoints](/concepts/checkpoints). Bake the SDK (and any tools your agent needs) into a checkpoint to remove per-session install time.
+</Callout>
+
+## See also
+
+- [Self-hosted sandboxes](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) — Anthropic's reference for the worker contract.
+- [Services](/concepts/services) — supervised long-running processes inside a Sprite.
+- [Checkpoints](/concepts/checkpoints) — snapshot a prepared Sprite to skip cold-start setup.
