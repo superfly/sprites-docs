@@ -914,6 +914,18 @@ main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .n
   color: oklch(0.7 0.2 285) !important;
 }
 
+/* External links (marked by rehype-external-links) - small up-right arrow */
+main .sl-markdown-content a[data-external] .external-icon {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-inline-start: 0.15em;
+  vertical-align: baseline;
+  transform: translateY(0.08em);
+  /* Keep the dotted underline off the icon itself */
+  text-decoration: none;
+}
+
 /* Starlight Tabs - shadcn style */
 starlight-tabs [role="tablist"] {
   display: inline-flex;
