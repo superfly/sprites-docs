@@ -108,21 +108,46 @@ def _sq(v: str) -> str:
     return "'" + v.replace("'", "'\\''") + "'"
 
 
+def _name(session_id) -> str:
+    return f"claude-agent-{session_id.lower().replace('_', '-')[:40]}"
+
+
+def find_live(session_id) -> str | None:
+    # Return the Sprite's name when one for this session already exists and is
+    # serving, so redelivered work is a no-op instead of re-provisioning it.
+    c = httpx.Client(base_url=API, headers=HEADERS, timeout=30)
+    name = _name(session_id)
+    resp = c.get(f"/v1/sprites/{name}")
+    if resp.status_code == 404:
+        return None
+    resp.raise_for_status()
+    return name if resp.json().get("status") in ("running", "warm") else None
+
+
 def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
-    name = f"claude-agent-{session_id.lower().replace('_', '-')[:40]}"
+    name = _name(session_id)
     c = httpx.Client(base_url=API, headers=HEADERS, timeout=300)
 
     # 201 created, or 409 if it already exists (reuse it).
-    c.post("/v1/sprites", json={"name": name, "wait_for_capacity": True})
+    created = c.post("/v1/sprites", json={"name": name, "wait_for_capacity": True})
+    if created.status_code not in (200, 201, 409):
+        created.raise_for_status()
     c.put(f"/v1/sprites/{name}/fs/write",
           params={"path": RUNNER_PATH, "workingDir": "/"},
-          content=RUNNER_SRC.encode())
+          content=RUNNER_SRC.encode()).raise_for_status()
 
-    # Install the SDK and create the workspace. Pre-bake these into a checkpoint
-    # for production to drop the cold-start install.
-    c.post(f"/v1/sprites/{name}/exec", params=[
+    # Install the SDK and create the workspace. This runs on every new Sprite;
+    # the checkpoint note at the end of the guide covers cutting the cost.
+    exec_resp = c.post(f"/v1/sprites/{name}/exec", params=[
         ("cmd", "bash"), ("cmd", "-c"),
         ("cmd", "mkdir -p /workspace && python3 -m pip install -q anthropic")])
+    exec_resp.raise_for_status()
+    # Exec streams framed output ending in an exit frame, 0x03 then the exit
+    # code; a nonzero code means the install failed (e.g. PyPI is blocked).
+    body = exec_resp.content
+    code = body[-1] if len(body) >= 2 and body[-2] == 0x03 else 0
+    if code != 0:
+        raise RuntimeError(f"sprite {name}: runner setup failed (exit {code})")
 
     # The env contract Anthropic's worker reads. The environment key is the
     # runner's only credential.
@@ -136,13 +161,13 @@ def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
     env_file = "".join(f"{k}={_sq(v)}\n" for k, v in env.items())
     c.put(f"/v1/sprites/{name}/fs/write",
           params={"path": "/root/runner.env", "workingDir": "/"},
-          content=env_file.encode())
+          content=env_file.encode()).raise_for_status()
 
     # Service supervises the runner and self-stops when it exits.
     cmd = (f"set -a; . /root/runner.env; set +a; python3 {RUNNER_PATH}; "
            "sprite-env services stop agent-runner >/dev/null 2>&1 || true")
     c.put(f"/v1/sprites/{name}/services/agent-runner",
-          json={"cmd": "bash", "args": ["-lc", cmd], "needs": []})
+          json={"cmd": "bash", "args": ["-lc", cmd], "needs": []}).raise_for_status()
     return name
 ```
 
@@ -153,7 +178,7 @@ The worker claims sessions from the queue and calls `spawn()` for each. Choose t
 ```python
 # sprites_poller.py (always-on)
 import asyncio, os, anthropic
-from sprite_sandbox import spawn
+from sprite_sandbox import find_live, spawn
 
 async def main():
     env_id = os.environ["ANTHROPIC_ENVIRONMENT_ID"]
@@ -166,8 +191,15 @@ async def main():
         # "session" is the discriminator on the work item's data (the only
         # work-data type today); each carries the session id to hand to a Sprite.
         if work.data.type == "session":
-            spawn(work.data.id, environment_id=env_id,
-                  work_id=work.id, environment_key=key)
+            try:
+                # Skip spawn when a live Sprite is already serving this session,
+                # so redelivered work doesn't re-provision it.
+                find_live(work.data.id) or spawn(
+                    work.data.id, environment_id=env_id,
+                    work_id=work.id, environment_key=key)
+            except Exception as e:
+                # One bad item must not kill the always-on worker.
+                print(f"[poller] failed work={work.id}: {type(e).__name__}", flush=True)
 
 asyncio.run(main())
 ```
@@ -196,10 +228,10 @@ client.beta.sessions.events.send(session.id, events=[{
 }])
 ```
 
-The file the agent writes lands in `/workspace` inside the Sprite, which persists for the Sprite's lifetime. `/workspace` is this guide's own convention; Anthropic's harness normally directs final deliverables to `/mnt/session/outputs`, and it's the runner's `unrestricted_paths=True` that lets the tools read and write `/workspace` here.
+The file the agent writes lands in `/workspace` inside the Sprite, which persists for the Sprite's lifetime. `/workspace` is Anthropic's system default working directory for tool execution, and the runner passes `workdir="/workspace"` to match it, so that workdir is what scopes and permits `/workspace` access. `unrestricted_paths=True` is what additionally lets the file tools reach paths outside the workdir, notably `/mnt/session/outputs`, where Anthropic's harness normally directs final deliverables (here just a directory on the Sprite's disk).
 
 <Callout type="info">
-A Sprite proxies a single internal HTTP port to its public URL, has a durable filesystem, and supports [checkpoints](/concepts/checkpoints). Bake the SDK (and any tools your agent needs) into a checkpoint to remove per-session install time.
+A Sprite proxies a single internal HTTP port to its public URL, has a durable filesystem, and supports [checkpoints](/concepts/checkpoints). Because this flow creates a fresh Sprite per session, the SDK install runs every time. To drop that cost, reuse a pool of prepared Sprites instead of creating one per session, and restore each Sprite's own checkpoint (with the SDK baked in) to reset it between sessions.
 </Callout>
 
 ## See also
