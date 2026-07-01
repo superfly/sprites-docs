@@ -4,6 +4,7 @@ import starlight from '@astrojs/starlight';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 import { sidebarConfig, withBadges } from './src/lib/sidebar';
+import rehypeExternalLinks from './src/plugins/rehype-external-links';
 import rehypeShadcnTable from './src/plugins/rehype-shadcn-table';
 
 // https://astro.build/config
@@ -128,7 +129,7 @@ export default defineConfig({
     sitemap(),
   ],
   markdown: {
-    rehypePlugins: [rehypeShadcnTable],
+    rehypePlugins: [rehypeShadcnTable, rehypeExternalLinks],
   },
   vite: {
     plugins: [tailwindcss()],
