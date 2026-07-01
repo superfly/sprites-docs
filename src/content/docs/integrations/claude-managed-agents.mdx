@@ -75,8 +75,8 @@ The worker creates a Sprite, uploads Anthropic's provider-agnostic runner, insta
 
 The `ANTHROPIC_*` variables are written to a file the service sources, so the environment key never appears in process listings.
 
-<Callout type="warning">
-A service is supervised, but it does not hold the Sprite in an active state. Once a session is underway the runner takes no inbound traffic, so the service counts as quiet and the [Sprite pauses](/concepts/lifecycle) after a short idle window (about 30 seconds today), which stalls a long session mid-turn until something wakes it. To keep the Sprite active for the length of a session, register a [Task](/keeping-sprites-running) while the runner works; a service and a task compose for exactly this.
+<Callout type="info">
+A service is supervised, but it does not hold the Sprite in an active state: once a session is underway the runner takes no inbound traffic, so a bare service counts as quiet and the [Sprite would pause](/concepts/lifecycle) after a short idle window, stalling a long session mid-turn. That is why the service command registers a [Task](/keeping-sprites-running) and heartbeats it while the runner works: the task holds the Sprite active for the length of the session, and its short expiry is the crash-safety net that lets the Sprite pause again if the runner dies without cleaning up.
 </Callout>
 
 ```python
@@ -167,9 +167,18 @@ def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
           params={"path": "/root/runner.env", "workingDir": "/"},
           content=env_file.encode()).raise_for_status()
 
-    # Service supervises the runner and self-stops when it exits.
-    cmd = (f"set -a; . /root/runner.env; set +a; python3 {RUNNER_PATH}; "
-           "sprite-env services stop agent-runner >/dev/null 2>&1 || true")
+    # The service registers a Task to hold the Sprite active for the session,
+    # heartbeats it (5m expiry refreshed every 60s) while the runner works, then
+    # drops it and self-stops when the runner exits. A crashed runner leaves the
+    # task to expire on its own, so the Sprite is never held open indefinitely.
+    cmd = (
+        "set -a; . /root/runner.env; set +a; "
+        "sprite-env curl -X POST /v1/tasks -d '{\"name\": \"agent-runner\", \"expire\": \"5m\"}' >/dev/null 2>&1; "
+        "( while true; do sprite-env curl -X PUT /v1/tasks/agent-runner -d '{\"expire\": \"5m\"}' >/dev/null 2>&1; sleep 60; done ) & heartbeat=$!; "
+        f"python3 {RUNNER_PATH}; "
+        "kill \"$heartbeat\" 2>/dev/null || true; "
+        "sprite-env curl -X DELETE /v1/tasks/agent-runner >/dev/null 2>&1 || true; "
+        "sprite-env services stop agent-runner >/dev/null 2>&1 || true")
     c.put(f"/v1/sprites/{name}/services/agent-runner",
           json={"cmd": "bash", "args": ["-lc", cmd], "needs": []}).raise_for_status()
     return name
