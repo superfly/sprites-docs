@@ -4,6 +4,7 @@ description: Run Anthropic Claude Managed Agents with tool execution inside your
 ---
 
 import { Callout } from '@/components/react';
+import SelfHostedDiagram from '@/components/SelfHostedDiagram.astro';
 
 <img
   src="/images/integrations/claude-managed-agents-dark.png"
@@ -22,6 +23,8 @@ import { Callout } from '@/components/react';
 
 A self-hosted environment is a work queue. When a session is assigned to it, Anthropic enqueues a work item. A worker you run claims the item and starts a per-session Sprite that runs Anthropic's tool runner. Tool inputs and outputs flow back to Anthropic so the model can see results; everything the tools touch stays in the Sprite.
 
+<SelfHostedDiagram />
+
 The runner authenticates with an **environment key** — the only credential it needs, for both the control plane and the per-session calls. Your organization API key never reaches the Sprite.
 
 <Callout type="info">
@@ -36,7 +39,9 @@ You need:
 - An **Anthropic agent**. Create one with the [Quickstart](https://platform.claude.com/docs/en/managed-agents/quickstart) and note its agent ID.
 - **Python 3.10+** with the `anthropic` and `httpx` packages on the worker host.
 
-## 1. Create a self-hosted environment
+## Set up the environment
+
+### Create a self-hosted environment
 
 ```bash
 curl -sS https://api.anthropic.com/v1/environments \
@@ -49,7 +54,7 @@ curl -sS https://api.anthropic.com/v1/environments \
 
 Note the returned environment ID (`env_…`).
 
-## 2. Generate an environment key
+### Generate an environment key
 
 In the [Console](https://platform.claude.com/workspaces/default/environments), open the environment and click **Generate environment key**. Export it alongside the environment ID on the worker host:
 
@@ -58,7 +63,9 @@ export ANTHROPIC_ENVIRONMENT_ID="env_..."
 export ANTHROPIC_ENVIRONMENT_KEY="sk-ant-oat01-..."
 ```
 
-## 3. Spawn a Sprite per session
+## Run the worker
+
+### Spawn a Sprite per session
 
 The worker creates a Sprite, uploads Anthropic's provider-agnostic runner, installs the SDK, and starts the runner. Run the runner as a Sprite [service](/concepts/services), not a detached `nohup` process: a Sprite reaps an exec's process tree when the request connection closes, so a backgrounded process would not survive. A service is supervised and outlives the request, and it self-stops on exit so the one-shot worker is not restarted.
 
@@ -130,7 +137,7 @@ def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
     return name
 ```
 
-## 4. Run the worker
+### Claim work items
 
 The worker claims sessions from the queue and calls `spawn()` for each. Choose the always-on poller (only needs outbound HTTPS) or a webhook (no idle poller, needs a public endpoint).
 
@@ -161,7 +168,7 @@ pip install anthropic httpx
 python sprites_poller.py
 ```
 
-## 5. Start a session
+## Start a session
 
 Create a session targeting the environment, then send the agent a turn. The worker claims it, starts a Sprite, and the agent's tools run inside it.
 
