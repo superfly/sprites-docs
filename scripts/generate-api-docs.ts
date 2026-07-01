@@ -1054,10 +1054,10 @@ Create a token at [sprites.dev/account](https://sprites.dev/account), or generat
 
 For a better developer experience, use our official SDKs:
 
-- [Go ↗](${SDK_REPOS.go})
-- [JavaScript ↗](${SDK_REPOS.javascript})
-- [Python ↗](${SDK_REPOS.python})
-- [Elixir ↗](${SDK_REPOS.elixir})
+- [Go](${SDK_REPOS.go})
+- [JavaScript](${SDK_REPOS.javascript})
+- [Python](${SDK_REPOS.python})
+- [Elixir](${SDK_REPOS.elixir})
 
 ## API Categories
 
