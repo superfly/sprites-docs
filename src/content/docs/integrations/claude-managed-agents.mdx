@@ -21,7 +21,7 @@ import SelfHostedDiagram from '@/components/SelfHostedDiagram.astro';
   height="491"
 />
 
-[Claude Managed Agents](https://platform.claude.com/docs/en/managed-agents/overview) let Anthropic run the agent loop and the model while the agent's tools (the filesystem it reads and writes, the commands it runs) execute in a sandbox you control. Point a Managed Agent at a [self-hosted environment](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) and you run each session inside a Sprite, so the agent's code and data never leave your infrastructure.
+[Claude Managed Agents](https://platform.claude.com/docs/en/managed-agents/overview) let Anthropic run the agent loop and the model while the agent's tools (the filesystem it reads and writes, the commands it runs) execute in a sandbox you control. Point a Managed Agent at a [self-hosted environment](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) and you run each session inside a Sprite, so the agent's code, filesystem, and network egress never leave your infrastructure.
 
 ## How it works
 
@@ -74,6 +74,10 @@ export ANTHROPIC_ENVIRONMENT_KEY="sk-ant-oat01-..."
 The worker creates a Sprite, uploads Anthropic's provider-agnostic runner, installs the SDK, and launches it as a Sprite [service](/concepts/services) rather than a detached `nohup` process. A service is supervised: the Sprite owns it, so it survives beyond the request that created it and is restored on wake, neither of which a process backgrounded inside a single request can be counted on to do. Because a service that exits is otherwise restarted, the one-shot worker stops itself on completion so it is not brought back up.
 
 The `ANTHROPIC_*` variables are written to a file the service sources, so the environment key never appears in process listings.
+
+<Callout type="warning">
+A service is supervised, but it does not hold the Sprite in an active state. Once a session is underway the runner takes no inbound traffic, so the service counts as quiet and the [Sprite pauses](/concepts/lifecycle) after a short idle window (about 30 seconds today), which stalls a long session mid-turn until something wakes it. To keep the Sprite active for the length of a session, register a [Task](/keeping-sprites-running) while the runner works; a service and a task compose for exactly this.
+</Callout>
 
 ```python
 # sprite_sandbox.py
@@ -128,7 +132,7 @@ def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
     name = _name(session_id)
     c = httpx.Client(base_url=API, headers=HEADERS, timeout=300)
 
-    # 201 created, or 409 if it already exists (reuse it).
+    # Tolerate the Sprite already existing (reuse it).
     created = c.post("/v1/sprites", json={"name": name, "wait_for_capacity": True})
     if created.status_code not in (200, 201, 409):
         created.raise_for_status()
@@ -188,8 +192,8 @@ async def main():
         environment_id=env_id, environment_key=key,
         reclaim_older_than_ms=2000, auto_stop=False,
     ):
-        # "session" is the discriminator on the work item's data (the only
-        # work-data type today); each carries the session id to hand to a Sprite.
+        # Filter to session work and skip other item types (for example platform
+        # health checks); each session item carries the id to hand to a Sprite.
         if work.data.type == "session":
             try:
                 # Skip spawn when a live Sprite is already serving this session,

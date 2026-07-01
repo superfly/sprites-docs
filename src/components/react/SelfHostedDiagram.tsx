@@ -163,7 +163,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
         className,
       )}
       role="img"
-      aria-label="Lifecycle loop: on Anthropic's side, the Claude Platform enqueues a work item; on your side, a worker claims it and launches a per-session Sprite, and tool calls round-trip between the Platform and the Sprite where all data stays"
+      aria-label="Lifecycle loop: on Anthropic's side, the Claude Platform enqueues a work item; on your side, a worker claims it and launches a per-session Sprite, and tool calls round-trip between the Platform and the Sprite where everything the tools touch stays"
       xmlns="http://www.w3.org/2000/svg"
     >
       <style>{`
@@ -281,7 +281,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
 
       {/* ---- Blocks (before connectors, so connectors sit on top) ---- */}
 
-      {/* 1 — Claude Platform (top left) */}
+      {/* 1: Claude Platform (top left) */}
       <Block
         x={COL[0].x}
         cx={COL[0].cx}
@@ -321,7 +321,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
         </g>
       </Block>
 
-      {/* 2 — Work queue (top right) */}
+      {/* 2: Work queue (top right) */}
       <Block
         x={COL[1].x}
         cx={COL[1].cx}
@@ -370,7 +370,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
         })}
       </Block>
 
-      {/* 3 — Worker (bottom right) */}
+      {/* 3: Worker (bottom right) */}
       <Block
         x={COL[1].x}
         cx={COL[1].cx}
@@ -404,7 +404,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
         </g>
       </Block>
 
-      {/* 4 — Sprite (bottom left, stateful sandbox) */}
+      {/* 4: Sprite (bottom left, stateful sandbox) */}
       <Block
         x={COL[0].x}
         cx={COL[0].cx}
@@ -466,7 +466,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.6 }}
       >
-        {/* ① enqueues — top gap, left to right */}
+        {/* ① enqueues: top gap, left to right */}
         <path
           d={ENQUEUES}
           fill="none"
@@ -487,7 +487,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
           enqueues
         </text>
 
-        {/* ② claims — right column, crosses the trust boundary */}
+        {/* ② claims: right column, crosses the trust boundary */}
         <path
           d={CLAIMS}
           fill="none"
@@ -508,7 +508,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
           claims
         </text>
 
-        {/* ③ launches — bottom gap, right to left */}
+        {/* ③ launches: bottom gap, right to left */}
         <path
           d={LAUNCHES}
           fill="none"
@@ -529,7 +529,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
           launches
         </text>
 
-        {/* ④ tool calls & results — left column round trip across the boundary */}
+        {/* ④ tool calls & results: left column round trip across the boundary */}
         <path
           d={CALL_DOWN}
           fill="none"
