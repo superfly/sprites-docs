@@ -17,7 +17,7 @@ import SelfHostedDiagram from '@/components/SelfHostedDiagram.astro';
   class="light-only"
 />
 
-[Claude Managed Agents](https://platform.claude.com/docs/en/managed-agents/overview) let Anthropic run the agent loop and the model while the agent's tools — the filesystem it reads and writes, the commands it runs — execute in a sandbox you control. Point a Managed Agent at a [self-hosted environment](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) and you run each session inside a Sprite, so the agent's code and data never leave your infrastructure.
+[Claude Managed Agents](https://platform.claude.com/docs/en/managed-agents/overview) let Anthropic run the agent loop and the model while the agent's tools (the filesystem it reads and writes, the commands it runs) execute in a sandbox you control. Point a Managed Agent at a [self-hosted environment](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) and you run each session inside a Sprite, so the agent's code and data never leave your infrastructure.
 
 ## How it works
 
@@ -25,7 +25,7 @@ A self-hosted environment is a work queue. When a session is assigned to it, Ant
 
 <SelfHostedDiagram />
 
-The runner authenticates with an **environment key** — the only credential it needs, for both the control plane and the per-session calls. Your organization API key never reaches the Sprite.
+The runner authenticates with an **environment key**, the only credential it needs for both the control plane and the per-session calls. Your organization API key never reaches the Sprite.
 
 <Callout type="info">
 A reference implementation (webhook and always-on poller, plus the in-Sprite runner) lives in [`anthropics/claude-cookbooks`](https://github.com/anthropics/claude-cookbooks/tree/main/managed_agents/self_hosted_sandboxes/sprites). The snippets below are the core of it.
@@ -67,7 +67,7 @@ export ANTHROPIC_ENVIRONMENT_KEY="sk-ant-oat01-..."
 
 ### Spawn a Sprite per session
 
-The worker creates a Sprite, uploads Anthropic's provider-agnostic runner, installs the SDK, and launches it as a Sprite [service](/concepts/services) rather than a detached `nohup` process. A service is supervised: the Sprite owns it, so it survives beyond the request that created it and is restored on wake — which a process backgrounded inside a single request can't be counted on to do. Because a service that exits is otherwise restarted, the one-shot worker stops itself on completion so it is not brought back up.
+The worker creates a Sprite, uploads Anthropic's provider-agnostic runner, installs the SDK, and launches it as a Sprite [service](/concepts/services) rather than a detached `nohup` process. A service is supervised: the Sprite owns it, so it survives beyond the request that created it and is restored on wake, neither of which a process backgrounded inside a single request can be counted on to do. Because a service that exits is otherwise restarted, the one-shot worker stops itself on completion so it is not brought back up.
 
 The `ANTHROPIC_*` variables are written to a file the service sources, so the environment key never appears in process listings.
 
@@ -147,7 +147,7 @@ def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
 The worker claims sessions from the queue and calls `spawn()` for each. Choose the always-on poller (only needs outbound HTTPS) or a webhook (no idle poller, needs a public endpoint).
 
 ```python
-# sprites_poller.py — always-on
+# sprites_poller.py (always-on)
 import asyncio, os, anthropic
 from sprite_sandbox import spawn
 
@@ -200,6 +200,6 @@ A Sprite proxies a single internal HTTP port to its public URL, has a durable fi
 
 ## See also
 
-- [Self-hosted sandboxes](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) — Anthropic's reference for the worker contract.
-- [Services](/concepts/services) — supervised long-running processes inside a Sprite.
-- [Checkpoints](/concepts/checkpoints) — snapshot a prepared Sprite to skip cold-start setup.
+- [Self-hosted sandboxes](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes): Anthropic's reference for the worker contract.
+- [Services](/concepts/services): supervised long-running processes inside a Sprite.
+- [Checkpoints](/concepts/checkpoints): snapshot a prepared Sprite to skip cold-start setup.
