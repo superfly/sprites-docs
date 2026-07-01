@@ -247,7 +247,7 @@ client.beta.sessions.events.send(session.id, events=[{
 }])
 ```
 
-The file the agent writes lands in `/workspace` inside the Sprite, which persists for the Sprite's lifetime. `/workspace` is Anthropic's system default working directory for tool execution, and the runner passes `workdir="/workspace"` to match it, so that workdir is what scopes and permits `/workspace` access. `unrestricted_paths=True` is what additionally lets the file tools reach paths outside the workdir, notably `/mnt/session/outputs`, where Anthropic's harness normally directs final deliverables (here just a directory on the Sprite's disk).
+The file the agent writes lands on the Sprite's disk, where it persists for the Sprite's lifetime; relative paths resolve to `/workspace`, though an agent given no explicit path may write an absolute one elsewhere. `/workspace` is Anthropic's system default working directory for tool execution, and the runner passes `workdir="/workspace"` to match it, so that workdir is what scopes and permits `/workspace` access. `unrestricted_paths=True` is what additionally lets the file tools reach paths outside the workdir, notably `/mnt/session/outputs`, where Anthropic's harness normally directs final deliverables (here just a directory on the Sprite's disk).
 
 <Callout type="info">
 A Sprite proxies a single internal HTTP port to its public URL, has a durable filesystem, and supports [checkpoints](/concepts/checkpoints). Because this flow creates a fresh Sprite per session, the SDK install runs every time. To drop that cost, reuse a pool of prepared Sprites instead of creating one per session, and restore each Sprite's own checkpoint (with the SDK baked in) to reset it between sessions.
