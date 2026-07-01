@@ -39,6 +39,7 @@ A reference implementation (webhook and always-on poller, plus the in-Sprite run
 
 You need:
 
+- A **Claude API key** (`ANTHROPIC_API_KEY`) to create the environment and start sessions. It stays off the Sprite; the worker and runner use only the environment key.
 - A **Sprites API token** (`org-slug/org-id/token-id/token-value`). Export it as `SPRITE_TOKEN`.
 - An **Anthropic agent**. Create one with the [Quickstart](https://platform.claude.com/docs/en/managed-agents/quickstart) and note its agent ID.
 - **Python 3.10+** with the `anthropic` and `httpx` packages on the worker host.
@@ -73,7 +74,7 @@ export ANTHROPIC_ENVIRONMENT_KEY="sk-ant-oat01-..."
 
 The worker creates a Sprite, uploads Anthropic's provider-agnostic runner, installs the SDK, and launches it as a Sprite [service](/concepts/services) rather than a detached `nohup` process. A service is supervised: the Sprite owns it, so it survives beyond the request that created it and is restored on wake, neither of which a process backgrounded inside a single request can be counted on to do. Because a service that exits is otherwise restarted, the one-shot worker stops itself on completion so it is not brought back up.
 
-The `ANTHROPIC_*` variables are written to a file the service sources, so the environment key never appears in process listings.
+The `ANTHROPIC_*` variables are written to a file the service sources rather than passed as service arguments, so the environment key never appears in process listings. The service deletes the file right after sourcing it, so the key isn't left on the Sprite's disk.
 
 <Callout type="info">
 A service is supervised, but it does not hold the Sprite in an active state: once a session is underway the runner takes no inbound traffic, so a bare service counts as quiet and the [Sprite would pause](/concepts/lifecycle) after a short idle window, stalling a long session mid-turn. That is why the service command registers a [Task](/keeping-sprites-running) and heartbeats it while the runner works: the task holds the Sprite active for the length of the session, and its short expiry is the crash-safety net that lets the Sprite pause again if the runner dies without cleaning up.
@@ -91,8 +92,13 @@ RUNNER_PATH = "/root/sandbox_runner.py"
 # Anthropic's provider-agnostic runner. One call is the whole worker: it builds
 # the per-session tool context, downloads skills, runs the tool loop, and posts
 # results back. See the cookbook for the full file.
-RUNNER_SRC = '''import asyncio, os
+RUNNER_SRC = '''import asyncio, logging, os, sys
 from anthropic import AsyncAnthropic
+
+# The worker reports its lifecycle only through stdlib logging; send it to
+# stdout so failures surface in the service log
+# (/.sprite/logs/services/agent-runner.log).
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
 async def main():
     key = os.environ["ANTHROPIC_ENVIRONMENT_KEY"]
@@ -172,7 +178,7 @@ def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
     # drops it and self-stops when the runner exits. A crashed runner leaves the
     # task to expire on its own, so the Sprite is never held open indefinitely.
     cmd = (
-        "set -a; . /root/runner.env; set +a; "
+        "set -a; . /root/runner.env; set +a; rm -f /root/runner.env; "
         "sprite-env curl -X POST /v1/tasks -d '{\"name\": \"agent-runner\", \"expire\": \"5m\"}' >/dev/null 2>&1; "
         "( while true; do sprite-env curl -X PUT /v1/tasks/agent-runner -d '{\"expire\": \"5m\"}' >/dev/null 2>&1; sleep 60; done ) & heartbeat=$!; "
         f"python3 {RUNNER_PATH}; "
@@ -246,6 +252,10 @@ The file the agent writes lands in `/workspace` inside the Sprite, which persist
 <Callout type="info">
 A Sprite proxies a single internal HTTP port to its public URL, has a durable filesystem, and supports [checkpoints](/concepts/checkpoints). Because this flow creates a fresh Sprite per session, the SDK install runs every time. To drop that cost, reuse a pool of prepared Sprites instead of creating one per session, and restore each Sprite's own checkpoint (with the SDK baked in) to reset it between sessions.
 </Callout>
+
+## Clean up
+
+Each session gets its own `claude-agent-*` Sprite, and those Sprites outlive the session. An idle Sprite [pauses](/concepts/lifecycle), which stops compute billing, but its filesystem persists and keeps accruing storage cost until you delete it, so a busy environment builds up a fleet of paused Sprites. Reap each one once its session finishes, on the session-end webhook or with a periodic sweep, by calling [`DELETE /v1/sprites/{name}`](/api/dev-latest/sprites#delete-sprite); copy anything you need out of `/workspace` first (for example via the filesystem API), because deleting a Sprite deletes its checkpoints too.
 
 ## See also
 
