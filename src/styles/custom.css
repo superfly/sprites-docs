@@ -1750,3 +1750,9 @@ h2.method-title {
     font-size: var(--sl-text-sm) !important;
   }
 }
+
+/* Theme-conditional images (e.g. header art with light/dark variants). */
+[data-theme='light'] .dark-only,
+[data-theme='dark'] .light-only {
+  display: none;
+}

@@ -5,6 +5,17 @@ description: Run Anthropic Claude Managed Agents with tool execution inside your
 
 import { Callout } from '@/components/react';
 
+<img
+  src="/images/integrations/claude-managed-agents-dark.png"
+  alt="A Claude Managed Agent handing tool work to an isolated Sprite sandbox"
+  class="dark-only"
+/>
+<img
+  src="/images/integrations/claude-managed-agents-light.png"
+  alt="A Claude Managed Agent handing tool work to an isolated Sprite sandbox"
+  class="light-only"
+/>
+
 [Claude Managed Agents](https://platform.claude.com/docs/en/managed-agents/overview) let Anthropic run the agent loop and the model while the agent's tools — the filesystem it reads and writes, the commands it runs — execute in a sandbox you control. Point a Managed Agent at a [self-hosted environment](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) and you run each session inside a Sprite, so the agent's code and data never leave your infrastructure.
 
 ## How it works
