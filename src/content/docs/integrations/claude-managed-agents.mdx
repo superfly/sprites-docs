@@ -35,7 +35,7 @@ A reference implementation (webhook and always-on poller, plus the in-Sprite run
 
 You need:
 
-- A **Sprites API token** (`org/projectNumber/tokenId/secret`). Export it as `SPRITES_API_KEY`.
+- A **Sprites API token** (`org-slug/org-id/token-id/token-value`). Export it as `SPRITE_TOKEN`.
 - An **Anthropic agent**. Create one with the [Quickstart](https://platform.claude.com/docs/en/managed-agents/quickstart) and note its agent ID.
 - **Python 3.10+** with the `anthropic` and `httpx` packages on the worker host.
 
@@ -67,7 +67,7 @@ export ANTHROPIC_ENVIRONMENT_KEY="sk-ant-oat01-..."
 
 ### Spawn a Sprite per session
 
-The worker creates a Sprite, uploads Anthropic's provider-agnostic runner, installs the SDK, and starts the runner. Run the runner as a Sprite [service](/concepts/services), not a detached `nohup` process: a Sprite reaps an exec's process tree when the request connection closes, so a backgrounded process would not survive. A service is supervised and outlives the request, and it self-stops on exit so the one-shot worker is not restarted.
+The worker creates a Sprite, uploads Anthropic's provider-agnostic runner, installs the SDK, and launches it as a Sprite [service](/concepts/services) rather than a detached `nohup` process. A service is supervised: the Sprite owns it, so it survives beyond the request that created it and is restored on wake — which a process backgrounded inside a single request can't be counted on to do. Because a service that exits is otherwise restarted, the one-shot worker stops itself on completion so it is not brought back up.
 
 The `ANTHROPIC_*` variables are written to a file the service sources, so the environment key never appears in process listings.
 
@@ -77,7 +77,7 @@ import os
 import httpx
 
 API = os.environ.get("SPRITES_API_URL", "https://api.sprites.dev")
-HEADERS = {"authorization": f"Bearer {os.environ['SPRITES_API_KEY']}"}
+HEADERS = {"authorization": f"Bearer {os.environ['SPRITE_TOKEN']}"}
 RUNNER_PATH = "/root/sandbox_runner.py"
 
 # Anthropic's provider-agnostic runner. One call is the whole worker: it builds
@@ -89,6 +89,9 @@ from anthropic import AsyncAnthropic
 async def main():
     key = os.environ["ANTHROPIC_ENVIRONMENT_KEY"]
     async with AsyncAnthropic(auth_token=key) as client:
+        # handle_item() services the single already-claimed item, reading
+        # ANTHROPIC_WORK_ID / ANTHROPIC_SESSION_ID / ANTHROPIC_ENVIRONMENT_ID /
+        # ANTHROPIC_ENVIRONMENT_KEY from the env (written to runner.env below).
         await client.beta.environments.work.worker(
             environment_key=key, workdir="/workspace", unrestricted_paths=True
         ).handle_item()
@@ -107,7 +110,8 @@ def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
 
     # 201 created, or 409 if it already exists (reuse it).
     c.post("/v1/sprites", json={"name": name, "wait_for_capacity": True})
-    c.put(f"/v1/sprites/{name}/fs/write", params={"path": RUNNER_PATH},
+    c.put(f"/v1/sprites/{name}/fs/write",
+          params={"path": RUNNER_PATH, "workingDir": "/"},
           content=RUNNER_SRC.encode())
 
     # Install the SDK and create the workspace. Pre-bake these into a checkpoint
@@ -126,14 +130,15 @@ def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
         "ANTHROPIC_WORK_ID": work_id,
     }
     env_file = "".join(f"{k}={_sq(v)}\n" for k, v in env.items())
-    c.put(f"/v1/sprites/{name}/fs/write", params={"path": "/root/runner.env"},
+    c.put(f"/v1/sprites/{name}/fs/write",
+          params={"path": "/root/runner.env", "workingDir": "/"},
           content=env_file.encode())
 
     # Service supervises the runner and self-stops when it exits.
     cmd = (f"set -a; . /root/runner.env; set +a; python3 {RUNNER_PATH}; "
            "sprite-env services stop agent-runner >/dev/null 2>&1 || true")
     c.put(f"/v1/sprites/{name}/services/agent-runner",
-          json={"cmd": "bash", "args": ["-lc", cmd]})
+          json={"cmd": "bash", "args": ["-lc", cmd], "needs": []})
     return name
 ```
 
@@ -154,6 +159,8 @@ async def main():
         environment_id=env_id, environment_key=key,
         reclaim_older_than_ms=2000, auto_stop=False,
     ):
+        # "session" is the discriminator on the work item's data (the only
+        # work-data type today); each carries the session id to hand to a Sprite.
         if work.data.type == "session":
             spawn(work.data.id, environment_id=env_id,
                   work_id=work.id, environment_key=key)
@@ -185,7 +192,7 @@ client.beta.sessions.events.send(session.id, events=[{
 }])
 ```
 
-The file the agent writes lands in `/workspace` inside the Sprite, which persists for the Sprite's lifetime.
+The file the agent writes lands in `/workspace` inside the Sprite, which persists for the Sprite's lifetime. `/workspace` is this guide's own convention; Anthropic's harness normally directs final deliverables to `/mnt/session/outputs`, and it's the runner's `unrestricted_paths=True` that lets the tools read and write `/workspace` here.
 
 <Callout type="info">
 A Sprite proxies a single internal HTTP port to its public URL, has a durable filesystem, and supports [checkpoints](/concepts/checkpoints). Bake the SDK (and any tools your agent needs) into a checkpoint to remove per-session install time.
