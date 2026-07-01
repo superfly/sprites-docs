@@ -1,0 +1,218 @@
+---
+// Desktop "On this page" table of contents.
+//
+// Overrides Starlight's default TableOfContents so we can own the scroll-spy:
+// Starlight's built-in observer leaves the last section(s) un-highlighted at the
+// bottom of the page and ignores the URL hash, which made the sliding thumb stick
+// on the wrong heading. This version drives both the active-link highlight and the
+// thumb from a single scroll-spy that handles bottom-of-page and honors
+// clicked/hash targets. The mobile ToC keeps using Starlight's component.
+
+const { toc } = Astro.locals.starlightRoute;
+const label = Astro.locals.t('tableOfContents.onThisPage');
+
+// Flatten the heading tree into a single list, keeping depth for indentation.
+type FlatItem = { slug: string; text: string; depth: number };
+function flatten(items: any[], depth = 0, out: FlatItem[] = []): FlatItem[] {
+  for (const item of items) {
+    out.push({ slug: item.slug, text: item.text, depth });
+    if (item.children?.length) flatten(item.children, depth + 1, out);
+  }
+  return out;
+}
+const items = toc ? flatten(toc.items) : [];
+---
+
+{
+  toc && (
+    <div class="sl-toc">
+      <nav aria-labelledby="starlight__on-this-page">
+        <h2 id="starlight__on-this-page">{label}</h2>
+        <ul class="sl-toc-list">
+          {items.map((item) => (
+            <li>
+              <a href={`#${item.slug}`} style={`--depth:${item.depth}`}>
+                {item.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+        <div class="sl-toc-thumb" aria-hidden="true" />
+      </nav>
+    </div>
+  )
+}
+
+<script>
+  let cleanup: Array<() => void> = [];
+
+  function teardown() {
+    cleanup.forEach((fn) => fn());
+    cleanup = [];
+  }
+
+  function initTOC() {
+    teardown();
+
+    const root = document.querySelector('.sl-toc');
+    if (!root) return;
+    const nav = root.querySelector('nav');
+    const list = root.querySelector<HTMLElement>('.sl-toc-list');
+    const thumb = root.querySelector<HTMLElement>('.sl-toc-thumb');
+    if (!nav || !list || !thumb) return;
+
+    const links = Array.from(list.querySelectorAll('a'));
+    if (!links.length) return;
+
+    // Resolve each link to its heading element (null for `#_top` / missing).
+    const headings = links.map((a) => {
+      const id = decodeURIComponent((a.getAttribute('href') || '').slice(1));
+      return id ? document.getElementById(id) : null;
+    });
+
+    // Switch the active heading a little below the sticky header.
+    let offset = 0;
+    const measure = () => {
+      const header = document.querySelector('header');
+      offset = (header ? header.getBoundingClientRect().height : 64) + 24;
+    };
+    measure();
+
+    // Viewport-top of a heading; missing headings (e.g. `#_top`) sit at doc top.
+    const topOf = (el: HTMLElement | null) =>
+      el ? el.getBoundingClientRect().top : -window.scrollY;
+
+    const activeIndex = () => {
+      const de = document.documentElement;
+      // At the bottom of the page, highlight the last heading.
+      if (window.innerHeight + window.scrollY >= de.scrollHeight - 4) {
+        return links.length - 1;
+      }
+      let idx = 0;
+      for (let i = 0; i < headings.length; i++) {
+        if (topOf(headings[i]) <= offset + 1) idx = i;
+        else break;
+      }
+      return idx;
+    };
+
+    const positionThumb = (link: HTMLElement | undefined) => {
+      if (!link) {
+        thumb.style.opacity = '0';
+        return;
+      }
+      const navRect = nav.getBoundingClientRect();
+      const listRect = list.getBoundingClientRect();
+      const r = link.getBoundingClientRect();
+      thumb.style.opacity = '1';
+      thumb.style.left = listRect.left - navRect.left + 'px';
+      thumb.style.height = r.height + 'px';
+      thumb.style.transform = `translateY(${r.top - navRect.top}px)`;
+    };
+
+    let currentIndex = -1;
+    const setActive = (idx: number) => {
+      if (idx !== currentIndex) {
+        links.forEach((a, i) =>
+          i === idx
+            ? a.setAttribute('aria-current', 'true')
+            : a.removeAttribute('aria-current')
+        );
+        currentIndex = idx;
+      }
+      positionThumb(links[idx]);
+    };
+
+    const indexForHash = () => {
+      const h = location.hash;
+      if (!h) return null;
+      const i = links.findIndex((a) => a.getAttribute('href') === h);
+      return i >= 0 ? i : null;
+    };
+
+    // `pinned` holds an explicitly navigated target (click / hash) until the user
+    // scrolls, so the thumb lands on the heading the reader asked for even when
+    // the page can't scroll far enough for scroll-spy to reach it.
+    let pinned: number | null = null;
+
+    const sync = () => {
+      if (pinned != null) positionThumb(links[pinned]);
+      else setActive(activeIndex());
+    };
+
+    // Initial position — suppress the slide-in animation on first paint.
+    thumb.classList.add('sl-toc-thumb--init');
+    const startPin = indexForHash();
+    if (startPin != null) {
+      pinned = startPin;
+      setActive(startPin);
+    } else {
+      setActive(activeIndex());
+    }
+    requestAnimationFrame(() => thumb.classList.remove('sl-toc-thumb--init'));
+
+    // Scroll — rAF-throttled.
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        sync();
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    cleanup.push(() => window.removeEventListener('scroll', onScroll));
+
+    const onResize = () => {
+      measure();
+      sync();
+    };
+    window.addEventListener('resize', onResize);
+    cleanup.push(() => window.removeEventListener('resize', onResize));
+
+    // Clicking a link pins it (instant, before the scroll settles).
+    links.forEach((a, i) => {
+      const fn = () => {
+        pinned = i;
+        setActive(i);
+      };
+      a.addEventListener('click', fn);
+      cleanup.push(() => a.removeEventListener('click', fn));
+    });
+
+    // Hash navigation (back/forward, in-page links) pins the target.
+    const onHash = () => {
+      const i = indexForHash();
+      if (i != null) {
+        pinned = i;
+        setActive(i);
+      }
+    };
+    window.addEventListener('hashchange', onHash);
+    cleanup.push(() => window.removeEventListener('hashchange', onHash));
+
+    // A real user scroll releases the pin so scroll-spy resumes.
+    const releaseKeys = new Set([
+      'ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ', 'Spacebar',
+    ]);
+    const release = (e: Event) => {
+      if (e.type === 'keydown' && !releaseKeys.has((e as KeyboardEvent).key)) return;
+      if (pinned != null) {
+        pinned = null;
+        sync();
+      }
+    };
+    ['wheel', 'touchmove', 'keydown'].forEach((ev) => {
+      window.addEventListener(ev, release, { passive: true });
+      cleanup.push(() => window.removeEventListener(ev, release));
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTOC);
+  } else {
+    initTOC();
+  }
+  document.addEventListener('astro:page-load', initTOC);
+</script>

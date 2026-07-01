@@ -849,14 +849,95 @@ h1, h2, h3, h4, h5, h6 {
   color: oklch(0.2 0.02 285);
 }
 
-/* Table of contents in light mode - dark readable text */
-[data-theme='light'] starlight-toc a {
-  color: oklch(0.3 0.02 285) !important;
+/* ─────────────────────────────────────────────────────────────
+   Table of contents ("On this page") — Fumadocs-style rail with a
+   sliding accent thumb. Markup + scroll-spy live in the overridden
+   TableOfContents.astro component; the thumb is positioned in JS.
+   ───────────────────────────────────────────────────────────── */
+
+/* Per-theme colors live in variables so theme overrides never compete with
+   the hover/active state selectors (equal-specificity source-order bugs). */
+.sl-toc {
+  --toc-text: var(--sl-color-gray-3);
+  --toc-text-hover: var(--sl-color-white);
+  --toc-text-active: var(--sl-color-accent);
+  --toc-rail: var(--sl-color-hairline);
+  --toc-thumb: var(--sl-color-accent);
 }
 
-[data-theme='light'] starlight-toc a:hover,
-[data-theme='light'] starlight-toc a[aria-current="true"] {
-  color: oklch(0.45 0.22 285) !important;
+[data-theme='light'] .sl-toc {
+  /* Darker inactive links for readability on white */
+  --toc-text: oklch(0.42 0.015 285);
+}
+
+.sl-toc nav {
+  position: relative;
+}
+
+/* Section label — compact mono terminal-style header */
+.sl-toc nav > h2 {
+  font-family: var(--sl-font-system-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-2);
+  margin-block-end: 0.75rem;
+}
+
+/* The rail — a faint vertical line running the length of the list */
+.sl-toc-list {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-inline-start: 2px solid var(--toc-rail);
+}
+
+/* Links — muted by default, brighten on hover, accent when active.
+   Indentation scales with heading depth (--depth set per item). */
+.sl-toc-list a {
+  --toc-indent: calc(var(--depth, 0) * 0.75rem);
+  display: block;
+  padding-block: 0.3rem;
+  padding-inline: calc(0.875rem + var(--toc-indent)) 0.5rem;
+  line-height: 1.4;
+  font-size: 0.8125rem;
+  color: var(--toc-text);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.sl-toc-list a:hover {
+  color: var(--toc-text-hover);
+}
+
+.sl-toc-list a[aria-current="true"] {
+  color: var(--toc-text-active);
+  font-weight: 500;
+}
+
+/* The sliding thumb — a bright accent segment layered over the rail,
+   moved/resized to the active heading in JS. */
+.sl-toc-thumb {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--toc-thumb);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, height;
+  transition:
+    transform 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    height 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.15s ease;
+}
+
+/* Suppress the slide-in animation on first paint / page load */
+.sl-toc-thumb--init {
+  transition: none;
 }
 
 /* Header links in light mode */
@@ -1550,8 +1631,8 @@ h2.method-title {
    Full-Width Pages - API Documentation Layout
    ============================================================================ */
 
-/* Hide right sidebar when ToC is disabled (no starlight-toc content) */
-.right-sidebar-container:not(:has(starlight-toc nav)) {
+/* Hide right sidebar when ToC is disabled (no ToC content) */
+.right-sidebar-container:not(:has(.sl-toc nav)) {
   display: none;
 }
 
