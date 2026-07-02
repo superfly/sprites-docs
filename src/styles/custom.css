@@ -1849,20 +1849,3 @@ h2.method-title {
   }
 }
 
-/* Theme-conditional images (e.g. header art with light/dark variants). */
-[data-theme='light'] .dark-only,
-[data-theme='dark'] .light-only {
-  display: none;
-}
-
-/* Blend the flat backgrounds of hero art into the page background so no
-   rectangular seam shows. The dark variant sits on true black, which screen
-   maps exactly onto the page. The light variant sits on near-white (#fefefe),
-   so a hair of brightness clips it to pure white before multiply erases it. */
-.hero-art.dark-only {
-  mix-blend-mode: screen;
-}
-.hero-art.light-only {
-  mix-blend-mode: multiply;
-  filter: brightness(1.03);
-}
