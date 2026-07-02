@@ -10,19 +10,19 @@ function initBackground() {
 
   const bg = document.createElement('div');
   bg.id = 'sprites-bg';
-  bg.style.cssText = 'position: fixed; inset: 0; z-index: -10; pointer-events: none; background-color: #000;';
+  bg.style.cssText = 'position: fixed; inset: 0; z-index: -10; pointer-events: none; background-color: #17141f;';
   bg.setAttribute('aria-hidden', 'true');
 
   bg.innerHTML = `
     <div
       id="bg-top"
-      style="position: absolute; inset: 0; top: -10vh; height: 100vh; background-color: #16a34a; mask-image: linear-gradient(15deg, rgb(0 0 0 / 0) 75%, rgb(0 0 0 / 1));"
+      style="position: absolute; inset: 0; top: -10vh; height: 100vh; background-color: #7c3aed; mask-image: linear-gradient(15deg, rgb(0 0 0 / 0) 75%, rgb(0 0 0 / 1));"
     >
       <div style="position: absolute; inset: 0; background-image: url('/images/bmxy.png'); background-size: cover; background-position: center;"></div>
     </div>
     <div
       id="bg-bottom"
-      style="position: absolute; inset: 0; bottom: -10vh; top: auto; height: 100vh; background-color: #16a34a; opacity: 0.15; mask-image: linear-gradient(40deg, rgb(0 0 0 / 1), rgb(0 0 0 / 0) 30%);"
+      style="position: absolute; inset: 0; bottom: -10vh; top: auto; height: 100vh; background-color: #7c3aed; opacity: 0.15; mask-image: linear-gradient(40deg, rgb(0 0 0 / 1), rgb(0 0 0 / 0) 30%);"
     >
       <div style="position: absolute; inset: 0; background-image: url('/images/bmxy.png'); background-size: cover; background-position: center bottom;"></div>
     </div>

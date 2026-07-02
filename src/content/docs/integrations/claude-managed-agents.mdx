@@ -250,6 +250,19 @@ A Sprite proxies a single internal HTTP port to its public URL, has a durable fi
 
 Each session gets its own `claude-agent-*` Sprite, and those Sprites outlive the session. An idle Sprite [pauses](/concepts/lifecycle), which stops compute billing, but its filesystem persists and keeps accruing storage cost until you delete it, so a busy environment builds up a fleet of paused Sprites. Reap each one once its session finishes, on the session-end webhook or with a periodic sweep, by calling [`DELETE /v1/sprites/{name}`](/api/dev-latest/sprites#delete-sprite); copy anything you need out of `/workspace` first (for example via the filesystem API), because deleting a Sprite deletes its checkpoints too.
 
+## Troubleshooting
+
+Most failures here surface either as a queue that never drains or as a Sprite service that exits early. Check the service log first; it usually tells you which side broke.
+
+| Symptom | Likely cause | Check / fix |
+|---|---|---|
+| Session created, but no Sprite ever appears | No worker is claiming the work item, either the poller isn't running or the webhook isn't registered, or the item is stuck from an earlier failed delivery | Check the queue with `GET /v1/environments/{id}/work/stats`, authenticated with the environment key. Starting the poller, or a fresh webhook delivery, drains a backlogged item. |
+| Sprite is created, but the session dies within seconds | `pip install anthropic` failed inside the Sprite, for example a network policy blocking PyPI, so `spawn()` raises `runner setup failed (exit N)`. Or the environment key is invalid, so the runner exits immediately. | Both surface in the service log; see the row below for where to look. |
+| Not sure where to look first | The runner logs to stdout | Read `/.sprite/logs/services/agent-runner.log` inside the Sprite, via `exec` or the filesystem API. |
+| Service shows `failed (exit 143)` or `stopped` right after a session finishes | Expected. That's the terminal state of the self-stop pattern the service command uses, not a failure. | Nothing to fix; the service is intentionally not restarted once it stops itself. |
+| A long session stalls mid-turn | The keep-alive task is missing or has expired, so the Sprite paused on its idle window | Inside the Sprite, `sprite-env curl -s /v1/tasks` should show the `agent-runner` task with a future `expires_at` while a session is active. If it's absent, the heartbeat loop died with the runner. |
+| The same work item is delivered or claimed twice | Expected during lease reclaim or webhook retries | `find_live()` makes redelivery a no-op for a session that's already live, so duplicate log lines are harmless. |
+
 ## See also
 
 - [Self-hosted sandboxes](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes): Anthropic's reference for the worker contract.

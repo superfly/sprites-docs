@@ -1,28 +1,65 @@
-/* Sprites Docs - Custom Starlight Theme with shadcn/ui */
-/* Dark-first theme with OKLCH colors - Teal accent */
+/* Sprites Docs - Fumadocs-style theme (fly.io/docs visual language) */
+/* Violet accent · Mackinac serif headings · Fricolage body · Fragment Mono code */
 
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 150ms;
 }
 
-/* Fricolage Grotesque - brand font from sprites.dev */
+/* ----------------------------------------------------------------------------
+ * Fonts — self-hosted from the Fly.io brand kit (same files fly.io/docs uses):
+ *   Fricolage Grotesque  → UI / body
+ *   Mackinac (serif)     → headings
+ *   Fragment Mono        → code
+ * ------------------------------------------------------------------------- */
 @font-face {
   font-family: 'Fricolage Grotesque';
   font-weight: 100 900;
   font-display: swap;
   src: url('/fonts/fricolage-grotesque.var.woff2') format('woff2');
 }
-
-/* Self-hosted fonts - eliminates external font requests */
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
-@import "@fontsource/inter/700.css";
-@import "@fontsource/jetbrains-mono/400.css";
-@import "@fontsource/jetbrains-mono/500.css";
-@import "@fontsource/jetbrains-mono/600.css";
-@import "@fontsource/jetbrains-mono/700.css";
+@font-face {
+  font-family: 'Mackinac';
+  src: url('/fonts/mackinac-medium.woff2') format('woff2');
+  font-weight: 400 550;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Mackinac';
+  src: url('/fonts/mackinac-medium-italic.woff2') format('woff2');
+  font-weight: 400 550;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Mackinac';
+  src: url('/fonts/mackinac-bold.woff2') format('woff2');
+  font-weight: 600 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Mackinac';
+  src: url('/fonts/mackinac-bold-italic.woff2') format('woff2');
+  font-weight: 600 800;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fragment Mono';
+  src: url('/fonts/fragment-mono-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fragment Mono';
+  src: url('/fonts/fragment-mono-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
 
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -56,76 +93,76 @@
   }
 }
 
-/* shadcn CSS Variables - Light Mode */
+/* shadcn CSS Variables - Light Mode (fly.io/docs violet palette) */
 :root {
   --radius: 0.5rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.15 0.01 285);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 285);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 285);
-  --primary: oklch(0.5 0.2 285);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.02 285);
-  --secondary-foreground: oklch(0.2 0.01 285);
-  --muted: oklch(0.95 0.01 285);
-  --muted-foreground: oklch(0.45 0.01 285);
-  --accent: oklch(0.95 0.05 285);
-  --accent-foreground: oklch(0.15 0.01 285);
+  --background: #ffffff;
+  --foreground: #4c4e67;
+  --card: #ffffff;
+  --card-foreground: #22183c;
+  --popover: #ffffff;
+  --popover-foreground: #22183c;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f4fb;
+  --secondary-foreground: #22183c;
+  --muted: #f5f4fb;
+  --muted-foreground: #6c6f86;
+  --accent: #ede9fe;
+  --accent-foreground: #6d28d9;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.85 0.01 285);
-  --input: oklch(0.85 0.01 285);
-  --ring: oklch(0.5 0.2 285);
-  --chart-1: oklch(0.6 0.2 285);
-  --chart-2: oklch(0.5 0.2 285);
-  --chart-3: oklch(0.4 0.2 285);
-  --chart-4: oklch(0.55 0.15 285);
-  --chart-5: oklch(0.45 0.15 285);
-  --sidebar: oklch(0.97 0.003 285);
-  --sidebar-foreground: oklch(0.15 0.01 285);
-  --sidebar-primary: oklch(0.5 0.2 285);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.95 0.05 285);
-  --sidebar-accent-foreground: oklch(0.15 0.01 285);
-  --sidebar-border: oklch(0.85 0.01 285);
-  --sidebar-ring: oklch(0.5 0.2 285);
+  --border: #e1e4ef;
+  --input: #e1e4ef;
+  --ring: #7c3aed;
+  --chart-1: #7c3aed;
+  --chart-2: #8b5cf6;
+  --chart-3: #6d28d9;
+  --chart-4: #a78bfa;
+  --chart-5: #5b21b6;
+  --sidebar: #faf9fe;
+  --sidebar-foreground: #22183c;
+  --sidebar-primary: #7c3aed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ede9fe;
+  --sidebar-accent-foreground: #6d28d9;
+  --sidebar-border: #e1e4ef;
+  --sidebar-ring: #7c3aed;
 }
 
-/* shadcn CSS Variables - Dark Mode */
+/* shadcn CSS Variables - Dark Mode (fly.io/docs violet palette) */
 .dark,
 [data-theme='dark'] {
-  --background: oklch(0.147 0.004 49.25);
-  --foreground: oklch(0.985 0.001 106.423);
-  --card: var(--sl-color-gray-6);
-  --card-foreground: oklch(0.985 0.001 106.423);
-  --popover: oklch(0.216 0.006 56.043);
-  --popover-foreground: oklch(0.985 0.001 106.423);
-  --primary: oklch(0.723 0.191 145.579);
-  --primary-foreground: oklch(0.986 0.031 120.757);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.268 0.007 34.298);
-  --muted-foreground: oklch(0.709 0.01 56.259);
-  --accent: oklch(0.25 0.05 145.579);
-  --accent-foreground: oklch(0.95 0.01 145.579);
+  --background: #17141f;
+  --foreground: #cdc9da;
+  --card: #201b2c;
+  --card-foreground: #f3f1fb;
+  --popover: #1c1827;
+  --popover-foreground: #f3f1fb;
+  --primary: #b69bff;
+  --primary-foreground: #1a1226;
+  --secondary: #211c2e;
+  --secondary-foreground: #f3f1fb;
+  --muted: #211c2e;
+  --muted-foreground: #9a93ad;
+  --accent: #2a2440;
+  --accent-foreground: #d8ccff;
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.723 0.191 145.579);
-  --chart-1: oklch(0.871 0.15 154.449);
-  --chart-2: oklch(0.723 0.219 149.579);
-  --chart-3: oklch(0.627 0.194 149.214);
-  --chart-4: oklch(0.527 0.154 150.069);
-  --chart-5: oklch(0.448 0.119 151.328);
-  --sidebar: oklch(0.216 0.006 56.043);
-  --sidebar-foreground: oklch(0.985 0.001 106.423);
-  --sidebar-primary: oklch(0.723 0.191 145.579);
-  --sidebar-primary-foreground: oklch(0.986 0.031 120.757);
-  --sidebar-accent: oklch(0.25 0.05 145.579);
-  --sidebar-accent-foreground: oklch(0.95 0.01 145.579);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.723 0.191 145.579);
+  --border: #332c4a;
+  --input: #3a3250;
+  --ring: #8b5cf6;
+  --chart-1: #c4b5fd;
+  --chart-2: #b69bff;
+  --chart-3: #a78bfa;
+  --chart-4: #8b5cf6;
+  --chart-5: #7c3aed;
+  --sidebar: #1c1827;
+  --sidebar-foreground: #cdc9da;
+  --sidebar-primary: #b69bff;
+  --sidebar-primary-foreground: #1a1226;
+  --sidebar-accent: #2a2440;
+  --sidebar-accent-foreground: #d8ccff;
+  --sidebar-border: #332c4a;
+  --sidebar-ring: #8b5cf6;
 }
 
 /* Tailwind v4 theme inline */
@@ -169,82 +206,87 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Starlight CSS Custom Properties */
+/* Starlight CSS Custom Properties — dark-first; light overrides below */
 :root,
 [data-theme='dark'] {
-  /* Primary accent color - Sprites Green (#22c55e) */
-  --sl-color-accent-low: oklch(0.3 0.1 145.579);
-  --sl-color-accent: oklch(0.723 0.191 145.579);
-  --sl-color-accent-high: oklch(0.8 0.15 145.579);
+  /* Primary accent — violet (fly.io/docs), light on dark surfaces */
+  --sl-color-accent-low: #2a2440;
+  --sl-color-accent: #b69bff;
+  --sl-color-accent-high: #d8ccff;
 
   /* Text colors */
-  --sl-color-white: oklch(0.985 0.001 106.423);
-  --sl-color-gray-1: oklch(0.9 0.005 106.423);
-  --sl-color-gray-2: oklch(0.75 0.01 56.259);
-  --sl-color-gray-3: oklch(0.553 0.013 58.071);
-  --sl-color-gray-4: oklch(0.35 0.01 56.043);
-  --sl-color-gray-5: oklch(0.268 0.007 34.298);
-  --sl-color-gray-6: oklch(0.216 0.006 56.043);
-  --sl-color-black: oklch(0.147 0.004 49.25);
+  --sl-color-white: #f3f1fb;
+  --sl-color-gray-1: #cdc9da;
+  --sl-color-gray-2: #9a93ad;
+  --sl-color-gray-3: #857e99;
+  --sl-color-gray-4: #5f5875;
+  --sl-color-gray-5: #332c4a;
+  --sl-color-gray-6: #201b2c;
+  --sl-color-black: #17141f;
 
   /* Background colors */
-  --sl-color-bg: oklch(0.147 0.004 49.25);
-  --sl-color-bg-nav: oklch(0.18 0.005 49.25);
-  --sl-color-bg-sidebar: oklch(0.147 0.004 49.25);
-  --sl-color-bg-inline-code: oklch(0.25 0.007 34.298);
+  --sl-color-bg: #17141f;
+  --sl-color-bg-nav: #1c1827;
+  --sl-color-bg-sidebar: #17141f;
+  --sl-color-bg-inline-code: #241d36;
 
   /* Border colors */
-  --sl-color-hairline: oklch(1 0 0 / 10%);
-  --sl-color-hairline-light: oklch(1 0 0 / 5%);
+  --sl-color-hairline: #332c4a;
+  --sl-color-hairline-light: oklch(1 0 0 / 6%);
   --sl-color-hairline-shade: oklch(0 0 0 / 25%);
 
-  /* Text on accent */
-  --sl-color-text-accent: oklch(0.986 0.031 120.757);
+  /* Accent-colored text (readable foreground) */
+  --sl-color-text-accent: #f3f1fb;
 
-  /* Font families */
-  --sl-font-system: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --sl-font-system-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  --sl-font-headings: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Font families — Fricolage body, Fragment Mono code, Mackinac serif headings */
+  --sl-font-system: 'Fricolage Grotesque', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --sl-font-system-mono: 'Fragment Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  --sl-font-headings: 'Mackinac', ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  --font-serif: 'Mackinac', ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+
+  /* Purple-tinted elevation, like fly.io/docs cards */
+  --shadow-fly: 0 1px 2px rgba(91, 33, 182, 0.10), 0 2px 8px rgba(91, 33, 182, 0.14);
 
   /* Rounded corners */
   --sl-border-radius: 0.5rem;
 }
 
-/* Light mode overrides for Starlight */
+/* Light mode overrides for Starlight — fly.io/docs light (violet on white) */
 [data-theme='light'] {
-  /* Violet accent for links */
-  --sl-color-accent-low: oklch(0.95 0.05 285);
-  --sl-color-accent: oklch(0.5 0.2 285);
-  --sl-color-accent-high: oklch(0.35 0.25 285);
+  --sl-color-accent-low: #ede9fe;
+  --sl-color-accent: #7c3aed;
+  --sl-color-accent-high: #5b21b6;
 
   /* Text colors - dark on light */
-  --sl-color-white: oklch(0.15 0.01 285);
-  --sl-color-gray-1: oklch(0.25 0.01 285);
-  --sl-color-gray-2: oklch(0.35 0.01 285);
-  --sl-color-gray-3: oklch(0.45 0.01 285);
-  --sl-color-gray-4: oklch(0.65 0.01 285);
-  --sl-color-gray-5: oklch(0.85 0.005 285);
-  --sl-color-gray-6: oklch(0.95 0.003 285);
-  --sl-color-black: oklch(1 0 0);
+  --sl-color-white: #22183c;
+  --sl-color-gray-1: #2c2544;
+  --sl-color-gray-2: #4c4e67;
+  --sl-color-gray-3: #6c6f86;
+  --sl-color-gray-4: #9a93ad;
+  --sl-color-gray-5: #d7d5e6;
+  --sl-color-gray-6: #f5f4fb;
+  --sl-color-black: #ffffff;
 
   /* Background colors */
-  --sl-color-bg: oklch(1 0 0);
-  --sl-color-bg-nav: oklch(0.98 0.002 285);
-  --sl-color-bg-sidebar: oklch(1 0 0);
-  --sl-color-bg-inline-code: oklch(0.93 0.01 285);
+  --sl-color-bg: #ffffff;
+  --sl-color-bg-nav: #faf9fe;
+  --sl-color-bg-sidebar: #ffffff;
+  --sl-color-bg-inline-code: #ede9fe;
 
   /* Border colors */
-  --sl-color-hairline: oklch(0.85 0.01 285);
-  --sl-color-hairline-light: oklch(0.92 0.005 285);
-  --sl-color-hairline-shade: oklch(0.78 0.01 285);
+  --sl-color-hairline: #e1e4ef;
+  --sl-color-hairline-light: #eeecf7;
+  --sl-color-hairline-shade: #d7d5e6;
 
-  /* Text on accent */
-  --sl-color-text-accent: oklch(1 0 0);
+  /* Accent-colored text (readable foreground) */
+  --sl-color-text-accent: #22183c;
+
+  --shadow-fly: 0 1px 2px rgba(91, 33, 182, 0.06), 0 2px 8px rgba(91, 33, 182, 0.08);
 }
 
 /* Code blocks */
 :root {
-  --sl-color-bg-code: oklch(0.22 0.006 56.043);
+  --sl-color-bg-code: #141019;
 }
 
 /* Bash prompt for single-line code blocks */
@@ -254,7 +296,7 @@ pre[data-bash-prompt] {
 
 pre[data-bash-prompt]::before {
   content: '$ ';
-  color: #22c55e;
+  color: var(--sl-color-accent);
   user-select: none;
   pointer-events: none;
   flex-shrink: 0;
@@ -301,7 +343,7 @@ pre[data-bash-prompt] > code {
   background: var(--sl-color-bg-sidebar);
 }
 
-/* Dark mode - transparent sidebar to show green background (desktop only) */
+/* Dark mode - transparent sidebar to show ambient background (desktop only) */
 @media (min-width: 50rem) {
   [data-theme='dark'] .sidebar-pane {
     background: transparent;
@@ -392,7 +434,7 @@ pre[data-bash-prompt] > code {
   }
 }
 
-/* Custom copy button with animated green check */
+/* Custom copy button with animated accent check */
 .expressive-code .copy button {
   position: relative;
 }
@@ -421,7 +463,7 @@ pre[data-bash-prompt] > code {
   inset: 0;
   opacity: 0;
   transform: scale(0.5);
-  color: oklch(0.723 0.191 145.579); /* Sprites green */
+  color: var(--sl-color-accent);
 }
 
 /* Copied state */
@@ -508,11 +550,18 @@ pre[data-bash-prompt] > code {
   opacity: 1 !important;
 }
 
+/* Inline code as a light-lavender chip, like fly.io/docs */
 :not(pre) > code {
   background: var(--sl-color-bg-inline-code);
-  padding: 0.2em 0.4em;
-  border-radius: 0.25rem;
-  font-size: 0.875em;
+  color: #191034;
+  padding: 0.1em 0.36em;
+  border-radius: 0.35rem;
+  font-size: 0.9em;
+  font-weight: 400;
+}
+
+[data-theme='dark'] :not(pre) > code {
+  color: #e7e2f7;
 }
 
 /*
@@ -618,9 +667,9 @@ nav.sidebar {
   vertical-align: middle;
 }
 
-/* Headings use JetBrains Mono with balanced typography */
+/* Headings use Mackinac serif, like fly.io/docs */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--sl-font-headings);
 }
 
 /* Content heading typography - balanced sizes */
@@ -656,6 +705,12 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
+}
+
+/* fly.io/docs serif headings: medium weight, high-contrast foreground */
+.sl-markdown-content :is(h1, h2, h3, h4, h5, h6) {
+  font-weight: 500;
+  color: var(--sl-color-white);
 }
 
 /* Body text line height for better readability */
@@ -741,7 +796,7 @@ h1, h2, h3, h4, h5, h6 {
   inset: 0;
   opacity: 0;
   transform: scale(0.5);
-  color: oklch(0.723 0.191 145.579);
+  color: var(--sl-color-accent);
 }
 
 .sl-anchor-link.copied .link-icon-wrapper {
@@ -974,25 +1029,17 @@ header.header .site-title img {
   color: oklch(0.75 0.01 56.259);
 }
 
-/* Link styling - dotted underline always visible, violet on hover */
+/* Link styling — underline-free, medium weight, violet on hover (fly.io/docs) */
 /* Exclude: badges, buttons, cards, edit link, pagination */
-main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .no-underline) {
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 3px;
-
-  /* Content links (not anchor links) inherit color, violet on hover */
-  &:not(.sl-anchor-link) {
-    color: inherit;
-
-    &:hover {
-      color: oklch(0.55 0.25 285) !important;
-    }
-  }
+main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .no-underline):not(.sl-anchor-link) {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
 }
 
-[data-theme='dark'] main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .no-underline):not(.sl-anchor-link):hover {
-  color: oklch(0.7 0.2 285) !important;
+main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .no-underline):not(.sl-anchor-link):hover {
+  color: var(--sl-color-accent);
+  text-decoration: none;
 }
 
 /* External links (marked by rehype-external-links) - small up-right arrow */
@@ -1090,17 +1137,17 @@ body.search-dialog-open .page {
   border-radius: 0.25rem;
 }
 
-/* "New" badge - green/teal accent */
+/* "New" badge - violet accent */
 .sidebar-content .sl-badge.success {
-  background: oklch(0.648 0.2 131.684 / 20%);
-  color: oklch(0.75 0.2 131.684);
-  border: 1px solid oklch(0.648 0.2 131.684 / 40%);
+  background: rgba(124, 58, 237, 0.20);
+  color: #c4b5fd;
+  border: 1px solid rgba(124, 58, 237, 0.40);
 }
 
 [data-theme='light'] .sidebar-content .sl-badge.success {
-  background: oklch(0.55 0.15 145 / 15%);
-  color: oklch(0.4 0.15 145);
-  border: 1px solid oklch(0.55 0.15 145 / 30%);
+  background: rgba(124, 58, 237, 0.12);
+  color: #6d28d9;
+  border: 1px solid rgba(124, 58, 237, 0.30);
 }
 
 /* "Updated" badge - muted neutral */
