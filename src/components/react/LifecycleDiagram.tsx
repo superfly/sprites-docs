@@ -171,7 +171,7 @@ export function LifecycleDiagram() {
           )}
           style={{
             background:
-              'radial-gradient(ellipse at 30% 50%, oklch(0.648 0.2 131.684 / 0.08) 0%, transparent 50%)',
+              'radial-gradient(ellipse at 30% 50%, oklch(0.55 0.22 292.7 / 0.10) 0%, transparent 50%)',
           }}
         />
         <div
