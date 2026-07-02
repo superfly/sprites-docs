@@ -1,0 +1,543 @@
+---
+title: Claude Managed Agents
+description: Run Anthropic Claude Managed Agents with tool execution inside your own Sprites
+---
+
+import { Callout } from '@/components/react';
+import SelfHostedDiagram from '@/components/SelfHostedDiagram.astro';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+<img
+  src="/images/integrations/claude-managed-agents.webp"
+  alt="A Claude Managed Agent handing tool work to an isolated Sprite sandbox"
+  width="1472"
+  height="507"
+  style="padding-inline: 3.5rem; margin-bottom: 2.5rem;"
+/>
+
+[Claude Managed Agents](https://platform.claude.com/docs/en/managed-agents/overview) let Anthropic run the agent loop and the model while the agent's tools (the filesystem it reads and writes, the commands it runs) execute in a sandbox you control. Point a Managed Agent at a [self-hosted environment](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes) and you run each session inside a Sprite, so the agent's code, filesystem, and network egress never leave your infrastructure.
+
+## How it works
+
+A self-hosted environment is a work queue. When a session is assigned to it, Anthropic enqueues a work item. A worker you run claims the item and starts a per-session Sprite that runs Anthropic's tool runner. Tool inputs and outputs flow back to Anthropic so the model can see results; everything the tools touch stays in the Sprite.
+
+<SelfHostedDiagram />
+
+The runner authenticates with an **environment key**, the only credential it needs for both the control plane and the per-session calls. Your organization API key never reaches the Sprite.
+
+<Callout type="info">
+A reference implementation (webhook and always-on poller, plus the in-Sprite runner) lives in [`anthropics/claude-cookbooks`](https://github.com/anthropics/claude-cookbooks/tree/main/managed_agents/self_hosted_sandboxes/sprites). The snippets below are the core of it.
+</Callout>
+
+## Before you begin
+
+You need:
+
+- A **Claude API key** (`ANTHROPIC_API_KEY`) to create the environment and start sessions. It stays off the Sprite; the worker and runner use only the environment key.
+- A **Sprites API token** (`org-slug/org-id/token-id/token-value`). Export it as `SPRITE_TOKEN`.
+- An **Anthropic agent**. Create one with the [Quickstart](https://platform.claude.com/docs/en/managed-agents/quickstart) and note its agent ID.
+- A **worker runtime** on the worker host: Python 3.10+ with the `anthropic` and `httpx` packages, or Node 22+ with `@anthropic-ai/sdk` and `tsx`.
+
+## Set up the environment
+
+### Create a self-hosted environment
+
+```bash
+curl -sS https://api.anthropic.com/v1/environments \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "anthropic-beta: managed-agents-2026-04-01" \
+  -H "content-type: application/json" \
+  -d '{"name": "sprites", "config": {"type": "self_hosted"}}'
+```
+
+Note the returned environment ID (`env_…`).
+
+### Generate an environment key
+
+In the [Console](https://platform.claude.com/workspaces/default/environments), open the environment and click **Generate environment key**. Export it alongside the environment ID on the worker host:
+
+```bash
+export ANTHROPIC_ENVIRONMENT_ID="env_..."
+export ANTHROPIC_ENVIRONMENT_KEY="sk-ant-oat01-..."
+```
+
+## Run the worker
+
+### Spawn a Sprite per session
+
+The worker creates a Sprite, uploads Anthropic's provider-agnostic runner, installs the SDK, and launches it as a Sprite [service](/concepts/services) rather than a detached `nohup` process. A service is supervised: the Sprite owns it, so it survives beyond the request that created it and is restored on wake, neither of which a process backgrounded inside a single request can be counted on to do. Because a service that exits is otherwise restarted, the one-shot worker stops itself on completion so it is not brought back up.
+
+The `ANTHROPIC_*` variables are written to a file the service sources rather than passed as service arguments, so the environment key never appears in process listings. The service deletes the file right after sourcing it, so the key isn't left on the Sprite's disk.
+
+<Callout type="info">
+A service is supervised, but it does not hold the Sprite in an active state: once a session is underway the runner takes no inbound traffic, so a bare service counts as quiet and the [Sprite would pause](/concepts/lifecycle) after a short idle window, stalling a long session mid-turn. That is why the service command registers a [Task](/keeping-sprites-running) and heartbeats it while the runner works: the task holds the Sprite active for the length of the session, and its short expiry is the crash-safety net that lets the Sprite pause again if the runner dies without cleaning up.
+</Callout>
+
+<Tabs syncKey="lang">
+<TabItem label="Python">
+```python
+# sprite_sandbox.py
+import os
+import httpx
+
+API = os.environ.get("SPRITES_API_URL", "https://api.sprites.dev")
+HEADERS = {"authorization": f"Bearer {os.environ['SPRITE_TOKEN']}"}
+RUNNER_PATH = "/root/sandbox_runner.py"
+
+# Anthropic's provider-agnostic runner. One call is the whole worker: it builds
+# the per-session tool context, downloads skills, runs the tool loop, and posts
+# results back. See the cookbook for the full file.
+RUNNER_SRC = '''import asyncio, logging, os, sys
+from anthropic import AsyncAnthropic
+
+# The worker reports its lifecycle only through stdlib logging; send it to
+# stdout so failures surface in the service log
+# (/.sprite/logs/services/agent-runner.log).
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+
+async def main():
+    key = os.environ["ANTHROPIC_ENVIRONMENT_KEY"]
+    async with AsyncAnthropic(auth_token=key) as client:
+        # handle_item() services the single already-claimed item, reading
+        # ANTHROPIC_WORK_ID / ANTHROPIC_SESSION_ID / ANTHROPIC_ENVIRONMENT_ID /
+        # ANTHROPIC_ENVIRONMENT_KEY from the env (written to runner.env below).
+        await client.beta.environments.work.worker(
+            environment_key=key, workdir="/workspace", unrestricted_paths=True
+        ).handle_item()
+
+asyncio.run(main())
+'''
+
+
+def _sq(v: str) -> str:
+    return "'" + v.replace("'", "'\\''") + "'"
+
+
+def _name(session_id) -> str:
+    return f"claude-agent-{session_id.lower().replace('_', '-')[:40]}"
+
+
+def find_live(session_id) -> str | None:
+    # Return the Sprite's name when one for this session already exists and is
+    # serving, so redelivered work is a no-op instead of re-provisioning it.
+    c = httpx.Client(base_url=API, headers=HEADERS, timeout=30)
+    name = _name(session_id)
+    resp = c.get(f"/v1/sprites/{name}")
+    if resp.status_code == 404:
+        return None
+    resp.raise_for_status()
+    return name if resp.json().get("status") in ("running", "warm") else None
+
+
+def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
+    name = _name(session_id)
+    c = httpx.Client(base_url=API, headers=HEADERS, timeout=300)
+
+    # Tolerate the Sprite already existing (reuse it).
+    created = c.post("/v1/sprites", json={"name": name, "wait_for_capacity": True})
+    if created.status_code not in (200, 201, 409):
+        created.raise_for_status()
+    c.put(f"/v1/sprites/{name}/fs/write",
+          params={"path": RUNNER_PATH, "workingDir": "/"},
+          content=RUNNER_SRC.encode()).raise_for_status()
+
+    # Install the SDK and create the workspace. This runs on every new Sprite;
+    # the checkpoint note at the end of the guide covers cutting the cost.
+    exec_resp = c.post(f"/v1/sprites/{name}/exec", params=[
+        ("cmd", "bash"), ("cmd", "-c"),
+        ("cmd", "mkdir -p /workspace && python3 -m pip install -q anthropic")])
+    exec_resp.raise_for_status()
+    # Exec streams framed output ending in an exit frame, 0x03 then the exit
+    # code; a nonzero code means the install failed (e.g. PyPI is blocked).
+    body = exec_resp.content
+    code = body[-1] if len(body) >= 2 and body[-2] == 0x03 else 0
+    if code != 0:
+        raise RuntimeError(f"sprite {name}: runner setup failed (exit {code})")
+
+    # The env contract Anthropic's worker reads. The environment key is the
+    # runner's only credential.
+    env = {
+        "ANTHROPIC_BASE_URL": os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
+        "ANTHROPIC_ENVIRONMENT_KEY": environment_key,
+        "ANTHROPIC_SESSION_ID": session_id,
+        "ANTHROPIC_ENVIRONMENT_ID": environment_id,
+        "ANTHROPIC_WORK_ID": work_id,
+    }
+    env_file = "".join(f"{k}={_sq(v)}\n" for k, v in env.items())
+    c.put(f"/v1/sprites/{name}/fs/write",
+          params={"path": "/root/runner.env", "workingDir": "/"},
+          content=env_file.encode()).raise_for_status()
+
+    # The service registers a Task to hold the Sprite active for the session,
+    # heartbeats it (5m expiry refreshed every 60s) while the runner works, then
+    # drops it and self-stops when the runner exits. A crashed runner leaves the
+    # task to expire on its own, so the Sprite is never held open indefinitely.
+    cmd = (
+        "set -a; . /root/runner.env; set +a; rm -f /root/runner.env; "
+        "sprite-env curl -X POST /v1/tasks -d '{\"name\": \"agent-runner\", \"expire\": \"5m\"}' >/dev/null 2>&1; "
+        "( while true; do sprite-env curl -X PUT /v1/tasks/agent-runner -d '{\"expire\": \"5m\"}' >/dev/null 2>&1; sleep 60; done ) & heartbeat=$!; "
+        f"python3 {RUNNER_PATH}; "
+        "kill \"$heartbeat\" 2>/dev/null || true; "
+        "sprite-env curl -X DELETE /v1/tasks/agent-runner >/dev/null 2>&1 || true; "
+        "sprite-env services stop agent-runner >/dev/null 2>&1 || true")
+    c.put(f"/v1/sprites/{name}/services/agent-runner",
+          json={"cmd": "bash", "args": ["-lc", cmd], "needs": []}).raise_for_status()
+    return name
+```
+</TabItem>
+<TabItem label="TypeScript">
+```typescript
+// sprite-sandbox.ts
+const API = process.env.SPRITES_API_URL ?? 'https://api.sprites.dev';
+const RUNNER_PATH = '/root/sandbox_runner.py';
+
+// Read a required env var, throwing a clear error (naming it) if unset.
+export function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) throw new Error(`missing required env var: ${name}`);
+  return value;
+}
+
+const HEADERS = { authorization: `Bearer ${requireEnv('SPRITE_TOKEN')}` };
+
+// Anthropic's provider-agnostic runner. One call is the whole worker: it builds
+// the per-session tool context, downloads skills, runs the tool loop, and posts
+// results back. This is the same Python runner the Python tab uploads; the
+// worker's own language is independent of it. See the cookbook for the full file.
+const RUNNER_SRC = `import asyncio, logging, os, sys
+from anthropic import AsyncAnthropic
+
+# The worker reports its lifecycle only through stdlib logging; send it to
+# stdout so failures surface in the service log
+# (/.sprite/logs/services/agent-runner.log).
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+
+async def main():
+    key = os.environ["ANTHROPIC_ENVIRONMENT_KEY"]
+    async with AsyncAnthropic(auth_token=key) as client:
+        # handle_item() services the single already-claimed item, reading
+        # ANTHROPIC_WORK_ID / ANTHROPIC_SESSION_ID / ANTHROPIC_ENVIRONMENT_ID /
+        # ANTHROPIC_ENVIRONMENT_KEY from the env (written to runner.env below).
+        await client.beta.environments.work.worker(
+            environment_key=key, workdir="/workspace", unrestricted_paths=True
+        ).handle_item()
+
+asyncio.run(main())
+`;
+
+// POSIX single-quote a value for a sourced env file or shell command.
+const shquote = (v: string) => `'${v.replace(/'/g, `'\\''`)}'`;
+
+// A DNS-label-safe Sprite name derived from the session id.
+const spriteName = (sessionId: string) =>
+  `claude-agent-${sessionId.toLowerCase().replace(/_/g, '-').slice(0, 40)}`;
+
+async function api(
+  method: string,
+  path: string,
+  init: RequestInit = {},
+  timeoutMs = 30_000,
+): Promise<Response> {
+  return fetch(`${API}${path}`, {
+    method,
+    ...init,
+    headers: { ...HEADERS, ...init.headers },
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+}
+
+// fetch doesn't throw on 4xx/5xx; this is the raise_for_status equivalent.
+async function ok(resp: Response, context: string): Promise<void> {
+  if (resp.ok) return;
+  const body = (await resp.text().catch(() => '')).slice(0, 300);
+  throw new Error(`${context}: HTTP ${resp.status}${body ? `: ${body}` : ''}`);
+}
+
+async function fsWrite(name: string, path: string, content: Uint8Array): Promise<void> {
+  // workingDir is required by the fs endpoints.
+  const qs = new URLSearchParams({ path, workingDir: '/' });
+  const reqPath = `/v1/sprites/${name}/fs/write?${qs}`;
+  const resp = await api('PUT', reqPath, {
+    body: content,
+    headers: { 'content-type': 'application/octet-stream' },
+  });
+  await ok(resp, `PUT ${reqPath}`);
+}
+
+// Run `bash -c <command>` in the Sprite and return its exit code. Sprites streams
+// exec output as frames ending in an exit frame, 0x03 then the code; the final
+// byte (when the byte before it is 0x03) is that exit code.
+async function exec(name: string, command: string): Promise<number> {
+  const qs = new URLSearchParams([['cmd', 'bash'], ['cmd', '-c'], ['cmd', command]]);
+  const path = `/v1/sprites/${name}/exec?${qs}`;
+  const resp = await api('POST', path, {}, 300_000);
+  await ok(resp, `POST ${path}`);
+  const body = new Uint8Array(await resp.arrayBuffer());
+  if (body.length < 2 || body[body.length - 2] !== 0x03) {
+    throw new Error(`exec ${name}: response missing exit frame`);
+  }
+  return body[body.length - 1]!;
+}
+
+// Return the Sprite name if one for this session already exists and is serving,
+// so redelivered work is a no-op instead of re-provisioning it.
+export async function findLive(sessionId: string): Promise<string | null> {
+  const name = spriteName(sessionId);
+  const path = `/v1/sprites/${name}`;
+  const resp = await api('GET', path);
+  if (resp.status === 404) return null;
+  await ok(resp, `GET ${path}`);
+  const { status } = (await resp.json()) as { status?: string };
+  return status === 'running' || status === 'warm' ? name : null;
+}
+
+// The service registers a Task to hold the Sprite active for the session,
+// heartbeats it (5m expiry refreshed every 60s) while the runner works, then
+// drops it and self-stops when the runner exits. A crashed runner leaves the
+// task to expire on its own, so the Sprite is never held open indefinitely.
+const SERVICE_CMD = [
+  'set -a; . /root/runner.env; set +a; rm -f /root/runner.env',
+  `sprite-env curl -X POST /v1/tasks -d '{"name": "agent-runner", "expire": "5m"}' >/dev/null 2>&1`,
+  `( while true; do sprite-env curl -X PUT /v1/tasks/agent-runner -d '{"expire": "5m"}' >/dev/null 2>&1; sleep 60; done ) & heartbeat=$!`,
+  `python3 ${RUNNER_PATH}`,
+  'kill "$heartbeat" 2>/dev/null || true',
+  'sprite-env curl -X DELETE /v1/tasks/agent-runner >/dev/null 2>&1 || true',
+  'sprite-env services stop agent-runner >/dev/null 2>&1 || true',
+].join('; ');
+
+export interface SpawnParams {
+  environmentId: string;
+  workId: string;
+  environmentKey: string;
+}
+
+export async function spawn(sessionId: string, opts: SpawnParams): Promise<string> {
+  const name = spriteName(sessionId);
+  const bytes = (s: string) => new TextEncoder().encode(s);
+
+  // Tolerate the Sprite already existing (reuse it): 200/201 created, 409 exists.
+  const created = await api('POST', '/v1/sprites', {
+    body: JSON.stringify({ name, wait_for_capacity: true }),
+    headers: { 'content-type': 'application/json' },
+  }, 300_000);
+  if (![200, 201, 409].includes(created.status)) {
+    await ok(created, 'POST /v1/sprites');
+  }
+  await fsWrite(name, RUNNER_PATH, bytes(RUNNER_SRC));
+
+  // Install the SDK and create the workspace. This runs on every new Sprite; the
+  // checkpoint note at the end of the guide covers cutting the cost. A nonzero
+  // exit means the install failed (e.g. PyPI is blocked).
+  const code = await exec(name, 'mkdir -p /workspace && python3 -m pip install -q anthropic');
+  if (code !== 0) throw new Error(`sprite ${name}: runner setup failed (exit ${code})`);
+
+  // The env contract Anthropic's worker reads. The environment key is the
+  // runner's only credential. Written to a file (not service args) so it never
+  // appears in process listings; the service deletes it right after sourcing.
+  const env: Record<string, string> = {
+    ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL ?? 'https://api.anthropic.com',
+    ANTHROPIC_ENVIRONMENT_KEY: opts.environmentKey,
+    ANTHROPIC_SESSION_ID: sessionId,
+    ANTHROPIC_ENVIRONMENT_ID: opts.environmentId,
+    ANTHROPIC_WORK_ID: opts.workId,
+  };
+  const envFile = Object.entries(env).map(([k, v]) => `${k}=${shquote(v)}`).join('\n') + '\n';
+  await fsWrite(name, '/root/runner.env', bytes(envFile));
+
+  const svcPath = `/v1/sprites/${name}/services/agent-runner`;
+  const svc = await api('PUT', svcPath, {
+    body: JSON.stringify({ cmd: 'bash', args: ['-lc', SERVICE_CMD], needs: [] }),
+    headers: { 'content-type': 'application/json' },
+  });
+  await ok(svc, `PUT ${svcPath}`);
+  return name;
+}
+```
+</TabItem>
+</Tabs>
+
+### Claim work items
+
+The worker claims sessions from the queue and calls `spawn()` for each. Choose the always-on poller (only needs outbound HTTPS) or a webhook (no idle poller, needs a public endpoint).
+
+<Tabs syncKey="lang">
+<TabItem label="Python">
+```python
+# sprites_poller.py (always-on)
+import asyncio, os, anthropic
+from sprite_sandbox import find_live, spawn
+
+async def main():
+    env_id = os.environ["ANTHROPIC_ENVIRONMENT_ID"]
+    key = os.environ["ANTHROPIC_ENVIRONMENT_KEY"]
+    client = anthropic.AsyncAnthropic(auth_token=key)
+    async for work in client.beta.environments.work.poller(
+        environment_id=env_id, environment_key=key,
+        reclaim_older_than_ms=2000, auto_stop=False,
+    ):
+        # Filter to session work and skip other item types (for example platform
+        # health checks); each session item carries the id to hand to a Sprite.
+        if work.data.type == "session":
+            try:
+                # Skip spawn when a live Sprite is already serving this session,
+                # so redelivered work doesn't re-provision it.
+                find_live(work.data.id) or spawn(
+                    work.data.id, environment_id=env_id,
+                    work_id=work.id, environment_key=key)
+            except Exception as e:
+                # One bad item must not kill the always-on worker.
+                print(f"[poller] failed work={work.id}: {type(e).__name__}", flush=True)
+
+asyncio.run(main())
+```
+</TabItem>
+<TabItem label="TypeScript">
+```typescript
+// sprites-poller.ts (always-on)
+import Anthropic from '@anthropic-ai/sdk';
+import { findLive, spawn, requireEnv } from './sprite-sandbox.ts';
+
+async function main(): Promise<void> {
+  const environmentId = requireEnv('ANTHROPIC_ENVIRONMENT_ID');
+  const environmentKey = requireEnv('ANTHROPIC_ENVIRONMENT_KEY');
+  const client = new Anthropic({ authToken: environmentKey });
+
+  // Stop the loop cleanly on Ctrl-C / SIGTERM: a flag checked at the top of each
+  // iteration, plus an AbortController to unblock the poller while it waits on
+  // the next item. That abort surfaces as an AbortError, expected here and
+  // swallowed below so shutdown reads as a clean exit, not a crash.
+  let stopRequested = false;
+  const controller = new AbortController();
+  for (const sig of ['SIGINT', 'SIGTERM'] as const) {
+    process.on(sig, () => {
+      stopRequested = true;
+      controller.abort();
+    });
+  }
+
+  try {
+    for await (const work of client.beta.environments.work.poller({
+      environmentId,
+      environmentKey,
+      reclaimOlderThanMs: 2000,
+      autoStop: false, // drain omitted -> block for new work indefinitely
+      signal: controller.signal,
+    })) {
+      if (stopRequested) break;
+      // Filter to session work and skip other item types (for example platform
+      // health checks); each session item carries the id to hand to a Sprite.
+      if (work.data.type !== 'session') continue;
+      try {
+        // Skip spawn when a live Sprite is already serving this session, so
+        // redelivered work doesn't re-provision it.
+        (await findLive(work.data.id)) ??
+          (await spawn(work.data.id, {
+            environmentId,
+            workId: work.id,
+            environmentKey,
+          }));
+      } catch (e) {
+        // One bad item must not kill the always-on worker.
+        console.log(`[poller] failed work=${work.id}: ${e instanceof Error ? e.message : e}`);
+      }
+    }
+  } catch (e) {
+    // The abort from a clean shutdown is expected; anything else is real.
+    if (!(stopRequested && e instanceof Error && e.name === 'AbortError')) throw e;
+  }
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
+```
+</TabItem>
+</Tabs>
+
+`auto_stop=False` because each item is handed to a Sprite that owns its own stop; the poller must not release the lease out from under it. For the webhook variant, verify the `session.status_run_started` delivery, then drain the queue with `poller(drain=True, auto_stop=False)` and call `spawn()` the same way.
+
+<Tabs syncKey="lang">
+<TabItem label="Python">
+```bash
+pip install anthropic httpx
+python sprites_poller.py
+```
+</TabItem>
+<TabItem label="TypeScript">
+```bash
+npm install @anthropic-ai/sdk tsx
+npx tsx sprites-poller.ts
+```
+</TabItem>
+</Tabs>
+
+## Start a session
+
+Create a session targeting the environment, then send the agent a turn. The worker claims it, starts a Sprite, and the agent's tools run inside it.
+
+<Tabs syncKey="lang">
+<TabItem label="Python">
+```python
+import anthropic
+client = anthropic.Anthropic()  # uses ANTHROPIC_API_KEY
+
+session = client.beta.sessions.create(
+    agent="agent_...", environment_id="env_...",
+)
+client.beta.sessions.events.send(session.id, events=[{
+    "type": "user.message",
+    "content": [{"type": "text", "text": "Create README.md describing this project."}],
+}])
+```
+</TabItem>
+<TabItem label="TypeScript">
+```typescript
+import Anthropic from '@anthropic-ai/sdk';
+const client = new Anthropic(); // uses ANTHROPIC_API_KEY
+
+const session = await client.beta.sessions.create({
+  agent: 'agent_...',
+  environment_id: 'env_...',
+});
+await client.beta.sessions.events.send(session.id, {
+  events: [
+    {
+      type: 'user.message',
+      content: [{ type: 'text', text: 'Create README.md describing this project.' }],
+    },
+  ],
+});
+```
+</TabItem>
+</Tabs>
+
+The file the agent writes lands on the Sprite's disk, where it persists for the Sprite's lifetime; relative paths resolve to `/workspace`, though an agent given no explicit path may write an absolute one elsewhere. `/workspace` is Anthropic's system default working directory for tool execution, and the runner passes `workdir="/workspace"` to match it, so that workdir is what scopes and permits `/workspace` access. `unrestricted_paths=True` is what additionally lets the file tools reach paths outside the workdir, notably `/mnt/session/outputs`, where Anthropic's harness normally directs final deliverables (here just a directory on the Sprite's disk).
+
+<Callout type="info">
+A Sprite proxies a single internal HTTP port to its public URL, has a durable filesystem, and supports [checkpoints](/concepts/checkpoints). Because this flow creates a fresh Sprite per session, the SDK install runs every time. To drop that cost, reuse a pool of prepared Sprites instead of creating one per session, and restore each Sprite's own checkpoint (with the SDK baked in) to reset it between sessions. On the TypeScript worker, the in-Sprite runner can instead be a bundled Node script (the TS SDK's `EnvironmentWorker` has full parity with the Python worker), which removes the pip install and roughly halves cold start, about 10s versus 16s send-to-first-tool in our tests. The cookbook will carry that bundled-runner variant.
+</Callout>
+
+## Clean up
+
+Each session gets its own `claude-agent-*` Sprite, and those Sprites outlive the session. An idle Sprite [pauses](/concepts/lifecycle), which stops compute billing, but its filesystem persists and keeps accruing storage cost until you delete it, so a busy environment builds up a fleet of paused Sprites. Reap each one once its session finishes, on the session-end webhook or with a periodic sweep, by calling [`DELETE /v1/sprites/{name}`](/api/dev-latest/sprites#delete-sprite); copy anything you need out of `/workspace` first (for example via the filesystem API), because deleting a Sprite deletes its checkpoints too.
+
+## Troubleshooting
+
+Most failures here surface either as a queue that never drains or as a Sprite service that exits early. Check the service log first; it usually tells you which side broke.
+
+| Symptom | Likely cause | Check / fix |
+|---|---|---|
+| Session created, but no Sprite ever appears | No worker is claiming the work item, either the poller isn't running or the webhook isn't registered, or the item is stuck from an earlier failed delivery | Check the queue with `GET /v1/environments/{id}/work/stats`, authenticated with the environment key. Starting the poller, or a fresh webhook delivery, drains a backlogged item. |
+| Sprite is created, but the session dies within seconds | The SDK install failed inside the Sprite (for example `pip install anthropic` blocked by a network policy on PyPI), so `spawn()` raises `runner setup failed (exit N)`. Or the environment key is invalid, so the runner exits immediately. | Both surface in the service log; see the row below for where to look. |
+| Not sure where to look first | The runner logs to stdout | Read `/.sprite/logs/services/agent-runner.log` inside the Sprite, via `exec` or the filesystem API. |
+| Service shows `failed (exit 143)` or `stopped` right after a session finishes | Expected. That's the terminal state of the self-stop pattern the service command uses, not a failure. | Nothing to fix; the service is intentionally not restarted once it stops itself. |
+| A long session stalls mid-turn | The keep-alive task is missing or has expired, so the Sprite paused on its idle window | Inside the Sprite, `sprite-env curl -s /v1/tasks` should show the `agent-runner` task with a future `expires_at` while a session is active. If it's absent, the heartbeat loop died with the runner. |
+| The same work item is delivered or claimed twice | Expected during lease reclaim or webhook retries | `find_live()` makes redelivery a no-op for a session that's already live, so duplicate log lines are harmless. |
+
+## See also
+
+- [Self-hosted sandboxes](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes): Anthropic's reference for the worker contract.
+- [Services](/concepts/services): supervised long-running processes inside a Sprite.
+- [Checkpoints](/concepts/checkpoints): snapshot a prepared Sprite to skip cold-start setup.
