@@ -1848,3 +1848,15 @@ h2.method-title {
     font-size: var(--sl-text-sm) !important;
   }
 }
+
+/* Starlight's .main-pane sets isolation: isolate, which traps mix-blend-mode
+   elements inside the pane: their backdrop is the isolated group (transparent),
+   not the page background — the body background and the fixed dark-mode
+   #sprites-bg art paint outside the group, so blending silently no-ops.
+   On pages with hero art (.hero-art images use blend modes to merge their
+   flat black/white backgrounds into the page), lift the isolation so the
+   blend reaches the real backdrop. Scoped via :has() so every other page
+   keeps Starlight's default stacking behavior. */
+.main-pane:has(.hero-art) {
+  isolation: auto;
+}
