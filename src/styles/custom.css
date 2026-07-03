@@ -96,6 +96,8 @@
 /* shadcn CSS Variables - Light Mode (fly.io/docs violet palette) */
 :root {
   --radius: 0.5rem;
+  /* Content-link underline — emerald green from sprites.dev (both themes) */
+  --link-underline: #34d399;
   --background: #ffffff;
   --foreground: #4c4e67;
   --card: #ffffff;
@@ -289,21 +291,27 @@
   --sl-color-bg-code: #141019;
 }
 
-/* Bash prompt for single-line code blocks */
-pre[data-bash-prompt] {
-  display: flex;
-}
-
-pre[data-bash-prompt]::before {
+/* Emerald "$" prompt before single-line CLI commands — like fly.io/docs.
+   - .frame.is-terminal → it's a shell/CLI block
+   - .ec-line:only-child → only one line (single-line commands only)
+   - data-language allowlist → $-prompt shells only (excludes e.g. powershell)
+   It's a pseudo-element with user-select:none, so it's never selected or copied. */
+.expressive-code
+  .frame.is-terminal
+  pre:is(
+    [data-language='bash'],
+    [data-language='sh'],
+    [data-language='shell'],
+    [data-language='zsh'],
+    [data-language='console']
+  )
+  code
+  > .ec-line:only-child
+  > .code::before {
   content: '$ ';
-  color: var(--sl-color-accent);
+  color: #34d399;
   user-select: none;
   pointer-events: none;
-  flex-shrink: 0;
-}
-
-pre[data-bash-prompt] > code {
-  flex: 1;
 }
 
 /* Lifecycle diagram animations */
@@ -362,11 +370,24 @@ pre[data-bash-prompt] > code {
 
 .expressive-code {
   --ec-brdRad: 0.5rem;
-  --ec-brdCol: var(--sl-color-hairline);
+  /* Code blocks are always dark. Use a faint edge instead of a light hairline
+     halo, and a soft neutral card shadow (matching tables) instead of EC's
+     small offset navy shadow — looks clean in light mode too. */
+  --ec-brdCol: rgba(255, 255, 255, 0.08);
+  --ec-frm-frameBoxShdCssVal: 0 1px 2px rgba(0, 0, 0, 0.2),
+    0 10px 26px -14px rgba(0, 0, 0, 0.5);
 }
 
+[data-theme='light'] .expressive-code {
+  --ec-frm-frameBoxShdCssVal: 0 2px 4px rgba(0, 0, 0, 0.06),
+    0 14px 30px -14px rgba(0, 0, 0, 0.22);
+}
+
+/* Single code theme (starlight-dark / Night Owl) in BOTH modes — force the same
+   near-black surface regardless of light/dark so code blocks are identical. */
+.expressive-code,
 :root[data-theme='dark'],
-:root[data-theme='dark'] .expressive-code {
+:root[data-theme='light'] {
   --ec-codeBg: oklch(0.14 0 0);
   --ec-frm-edBg: oklch(0.14 0 0);
   --ec-frm-trmBg: oklch(0.14 0 0);
@@ -463,7 +484,7 @@ pre[data-bash-prompt] > code {
   inset: 0;
   opacity: 0;
   transform: scale(0.5);
-  color: var(--sl-color-accent);
+  color: #34d399; /* emerald check on copy, matching the $ prompt and links */
 }
 
 /* Copied state */
@@ -519,15 +540,7 @@ pre[data-bash-prompt] > code {
   background: oklch(0.18 0 0) !important;
 }
 
-[data-theme='light'] .expressive-code.is-output-block figure pre {
-  border-top-color: oklch(0.75 0 0);
-  background: oklch(0.94 0 0) !important;
-}
-
-[data-theme='light'] .expressive-code.is-output-block .ec-line {
-  color: oklch(0.35 0 0);
-}
-
+/* Output blocks use the same dark treatment in both modes (single code theme) */
 .expressive-code.is-output-block .ec-line {
   opacity: 0.7;
 }
@@ -625,6 +638,17 @@ nav.sidebar {
   position: relative;
   width: 100%;
   overflow-x: auto;
+  margin-block: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    0 10px 26px -12px rgba(0, 0, 0, 0.5);
+}
+[data-theme='light'] .sl-markdown-content [data-slot="table-container"] {
+  box-shadow:
+    0 1px 2px rgba(91, 33, 182, 0.05),
+    0 12px 28px -14px rgba(91, 33, 182, 0.16);
 }
 
 .sl-markdown-content [data-slot="table"] {
@@ -645,26 +669,27 @@ nav.sidebar {
 
 .sl-markdown-content [data-slot="table-row"] {
   border-bottom: 1px solid var(--border);
-  transition: background-color 0.15s ease;
 }
 
-.sl-markdown-content [data-slot="table-row"]:hover {
+/* fly.io/docs-style zebra striping (no hover) */
+.sl-markdown-content
+  [data-slot="table-body"]
+  [data-slot="table-row"]:nth-child(odd) {
   background-color: var(--muted);
 }
 
 .sl-markdown-content [data-slot="table-head"] {
-  height: 2.75rem;
-  padding: 0.5rem 1rem;
+  padding: 0.625rem 0.875rem;
   text-align: left;
-  vertical-align: middle;
-  font-weight: 700;
-  color: var(--foreground);
-  background-color: var(--muted);
+  vertical-align: bottom;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--sl-color-white);
 }
 
 .sl-markdown-content [data-slot="table-cell"] {
-  padding: 0.75rem 1rem;
-  vertical-align: middle;
+  padding: 0.75rem 0.875rem;
+  vertical-align: top;
 }
 
 /* Headings use Mackinac serif, like fly.io/docs */
@@ -825,13 +850,10 @@ h1, h2, h3, h4, h5, h6 {
   --tw-prose-headings: inherit;
 }
 
-/* Link styling - violet in light mode */
-[data-theme='light'] main a:not(.sl-badge):not([class*="button"]):not([class*="btn"]) {
-  color: oklch(0.45 0.22 285);
-}
-
-[data-theme='light'] main a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):hover {
-  color: oklch(0.35 0.25 285);
+/* Content links keep normal text colour (green underline handled globally below);
+   only the hover state goes violet — so no per-theme colour override here. */
+[data-theme='light'] main a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.sl-anchor-link):hover {
+  color: var(--sl-color-accent);
 }
 
 /* Sidebar navigation in light mode - dark readable text */
@@ -1029,17 +1051,23 @@ header.header .site-title img {
   color: oklch(0.75 0.01 56.259);
 }
 
-/* Link styling — underline-free, medium weight, violet on hover (fly.io/docs) */
+/* Link styling — normal text colour + green underline; violet text on hover (sprites.dev) */
 /* Exclude: badges, buttons, cards, edit link, pagination */
 main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .no-underline):not(.sl-anchor-link) {
   color: inherit;
   font-weight: 500;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: var(--link-underline);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+  transition:
+    color 0.15s ease,
+    text-decoration-color 0.15s ease;
 }
 
 main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .no-underline):not(.sl-anchor-link):hover {
   color: var(--sl-color-accent);
-  text-decoration: none;
+  text-decoration-color: var(--link-underline);
 }
 
 /* External links (marked by rehype-external-links) - small up-right arrow */
@@ -1896,3 +1924,213 @@ h2.method-title {
   }
 }
 
+/* ============================================================================
+   Callouts — <Callout> component (.sprite-callout), verbatim fly.io/docs port
+   Gradient card + 1px ring + soft violet shadow; fly's exact filled icon in the
+   gutter; inline bold label (authored **Label:** in the body) in text-dark.
+   Type -> hue: info=violet note, tip=violet, warning=amber, danger=blue important.
+   ============================================================================ */
+
+.sprite-callout {
+  position: relative;
+  margin: 2.5rem 0 1.5rem;
+  padding: 1rem 1.5rem 1rem 3.5rem;
+  border: none;
+  border-radius: 0.625rem;
+  font-size: 0.9375rem;
+  line-height: 1.625;
+  color: var(--co-text);
+  background-image: linear-gradient(
+    to bottom right,
+    var(--co-from),
+    var(--co-to)
+  );
+  box-shadow:
+    0 10px 15px -3px var(--co-shadow),
+    0 4px 6px -4px var(--co-shadow),
+    0 0 0 1px var(--co-ring);
+  --co-shadow: rgba(0, 0, 0, 0.28);
+}
+
+.sprite-callout__icon {
+  position: absolute;
+  left: 20px;
+  top: 18px;
+  width: 16px;
+  height: 16px;
+  color: var(--co-text-dark);
+}
+
+.sprite-callout__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sprite-callout__content > :first-child {
+  margin-top: 0;
+}
+
+.sprite-callout__content > :last-child {
+  margin-bottom: 0;
+}
+
+.sprite-callout__content > * + * {
+  margin-top: 0.75rem;
+}
+
+.sprite-callout__title {
+  margin: 0 0 0.5rem;
+  font-family: var(--sl-font-system), sans-serif;
+  font-weight: 500;
+  font-stretch: 98%;
+  letter-spacing: -0.005em;
+  color: var(--co-text-dark);
+}
+
+.sprite-callout__content strong {
+  font-weight: 500;
+  font-stretch: 98%;
+  letter-spacing: -0.005em;
+  color: var(--co-text-dark);
+}
+
+.sprite-callout__content a {
+  color: var(--co-text-dark);
+  font-weight: 450;
+  letter-spacing: -0.015em;
+  text-decoration: underline;
+  text-decoration-color: var(--co-decoration);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: color 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    text-decoration-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sprite-callout__content a:hover {
+  color: var(--co-link-hover);
+  text-decoration-color: var(--co-decoration-hover);
+}
+
+.sprite-callout__content :not(pre) > code {
+  background-color: var(--co-code-bg);
+  color: var(--co-code);
+  padding: 0.1em 0.36em;
+  border-radius: 0.35rem;
+  font-size: 0.9em;
+  font-family: var(--sl-font-system-mono, ui-monospace, monospace);
+}
+
+
+/* ---- Dark variant tokens (default) ---- */
+
+.sprite-callout[data-variant="info"] {
+  --co-from: #211d30;
+  --co-to: #1c1928;
+  --co-ring: rgba(139,92,246,.16);
+  --co-text: #b3adc4;
+  --co-text-dark: #d8d1ea;
+  --co-code: #c4b5fd;
+  --co-code-bg: rgba(139,92,246,.15);
+  --co-decoration: rgba(216,209,234,.35);
+  --co-decoration-hover: rgba(182,155,255,.65);
+  --co-link-hover: #b69bff;
+}
+
+.sprite-callout[data-variant="tip"] {
+  --co-from: #241d38;
+  --co-to: #1f1a2f;
+  --co-ring: rgba(139,92,246,.28);
+  --co-text: #b8b1cd;
+  --co-text-dark: #ddd3f8;
+  --co-code: #c4b5fd;
+  --co-code-bg: rgba(139,92,246,.2);
+  --co-decoration: rgba(221,211,248,.35);
+  --co-decoration-hover: rgba(182,155,255,.65);
+  --co-link-hover: #b69bff;
+}
+
+.sprite-callout[data-variant="warning"] {
+  --co-from: #2b2112;
+  --co-to: #241b10;
+  --co-ring: rgba(245,158,11,.32);
+  --co-text: #d6c39c;
+  --co-text-dark: #fbbf24;
+  --co-code: #fcd34d;
+  --co-code-bg: rgba(245,158,11,.16);
+  --co-decoration: rgba(251,191,36,.4);
+  --co-decoration-hover: rgba(251,191,36,.7);
+  --co-link-hover: #fcd34d;
+}
+
+.sprite-callout[data-variant="danger"] {
+  --co-from: #172440;
+  --co-to: #131d33;
+  --co-ring: rgba(59,130,246,.35);
+  --co-text: #aec1de;
+  --co-text-dark: #93c5fd;
+  --co-code: #93c5fd;
+  --co-code-bg: rgba(59,130,246,.16);
+  --co-decoration: rgba(147,197,253,.4);
+  --co-decoration-hover: rgba(147,197,253,.7);
+  --co-link-hover: #bfdbfe;
+}
+
+
+/* ---- Light overrides (fly.io/docs exact palette) ---- */
+
+[data-theme='light'] .sprite-callout {
+  --co-shadow: rgba(91, 33, 182, 0.075);
+}
+
+[data-theme='light'] .sprite-callout[data-variant="info"] {
+  --co-from: #fcfcff;
+  --co-to: #faf9ff;
+  --co-ring: rgba(91,33,182,.075);
+  --co-text: #564b80;
+  --co-text-dark: #2a1863;
+  --co-code: #7c3aed;
+  --co-code-bg: #ede9febf;
+  --co-decoration: #2a186366;
+  --co-decoration-hover: #7c3aed66;
+  --co-link-hover: #7c3aed;
+}
+
+[data-theme='light'] .sprite-callout[data-variant="tip"] {
+  --co-from: #f5f3ff;
+  --co-to: #eef2ff;
+  --co-ring: #8b5cf633;
+  --co-text: #564b80;
+  --co-text-dark: #2a1863;
+  --co-code: #874bee;
+  --co-code-bg: #ddd6fe80;
+  --co-decoration: #2a186366;
+  --co-decoration-hover: #7c3aed66;
+  --co-link-hover: #7c3aed;
+}
+
+[data-theme='light'] .sprite-callout[data-variant="warning"] {
+  --co-from: #fde68abf;
+  --co-to: #fed7aabf;
+  --co-ring: #f59e0b59;
+  --co-text: #b45309bf;
+  --co-text-dark: #b45309;
+  --co-code: #b45309;
+  --co-code-bg: #b453091a;
+  --co-decoration: #b453094d;
+  --co-decoration-hover: #92400e66;
+  --co-link-hover: #92400e;
+}
+
+[data-theme='light'] .sprite-callout[data-variant="danger"] {
+  --co-from: #bae6fdbf;
+  --co-to: #c7d2febf;
+  --co-ring: #3b82f640;
+  --co-text: #1e3a8ab3;
+  --co-text-dark: #1e3a8ae6;
+  --co-code: #1e3a8ae6;
+  --co-code-bg: #1d4ed81a;
+  --co-decoration: #1e3a8a4d;
+  --co-decoration-hover: #1e3a8a99;
+  --co-link-hover: #172554;
+}
