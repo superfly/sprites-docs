@@ -370,7 +370,17 @@
 
 .expressive-code {
   --ec-brdRad: 0.5rem;
-  --ec-brdCol: var(--sl-color-hairline);
+  /* Code blocks are always dark. Use a faint edge instead of a light hairline
+     halo, and a soft neutral card shadow (matching tables) instead of EC's
+     small offset navy shadow — looks clean in light mode too. */
+  --ec-brdCol: rgba(255, 255, 255, 0.08);
+  --ec-frm-frameBoxShdCssVal: 0 1px 2px rgba(0, 0, 0, 0.2),
+    0 10px 26px -14px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='light'] .expressive-code {
+  --ec-frm-frameBoxShdCssVal: 0 2px 4px rgba(0, 0, 0, 0.06),
+    0 14px 30px -14px rgba(0, 0, 0, 0.22);
 }
 
 /* Single code theme (starlight-dark / Night Owl) in BOTH modes — force the same
@@ -474,7 +484,7 @@
   inset: 0;
   opacity: 0;
   transform: scale(0.5);
-  color: var(--sl-color-accent);
+  color: #34d399; /* emerald check on copy, matching the $ prompt and links */
 }
 
 /* Copied state */
