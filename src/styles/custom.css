@@ -291,21 +291,27 @@
   --sl-color-bg-code: #141019;
 }
 
-/* Bash prompt for single-line code blocks */
-pre[data-bash-prompt] {
-  display: flex;
-}
-
-pre[data-bash-prompt]::before {
+/* Emerald "$" prompt before single-line CLI commands — like fly.io/docs.
+   - .frame.is-terminal → it's a shell/CLI block
+   - .ec-line:only-child → only one line (single-line commands only)
+   - data-language allowlist → $-prompt shells only (excludes e.g. powershell)
+   It's a pseudo-element with user-select:none, so it's never selected or copied. */
+.expressive-code
+  .frame.is-terminal
+  pre:is(
+    [data-language='bash'],
+    [data-language='sh'],
+    [data-language='shell'],
+    [data-language='zsh'],
+    [data-language='console']
+  )
+  code
+  > .ec-line:only-child
+  > .code::before {
   content: '$ ';
-  color: var(--sl-color-accent);
+  color: #34d399;
   user-select: none;
   pointer-events: none;
-  flex-shrink: 0;
-}
-
-pre[data-bash-prompt] > code {
-  flex: 1;
 }
 
 /* Lifecycle diagram animations */
