@@ -96,6 +96,8 @@
 /* shadcn CSS Variables - Light Mode (fly.io/docs violet palette) */
 :root {
   --radius: 0.5rem;
+  /* Content-link underline — emerald green from sprites.dev (both themes) */
+  --link-underline: #34d399;
   --background: #ffffff;
   --foreground: #4c4e67;
   --card: #ffffff;
@@ -837,13 +839,10 @@ h1, h2, h3, h4, h5, h6 {
   --tw-prose-headings: inherit;
 }
 
-/* Link styling - violet in light mode */
-[data-theme='light'] main a:not(.sl-badge):not([class*="button"]):not([class*="btn"]) {
-  color: oklch(0.45 0.22 285);
-}
-
-[data-theme='light'] main a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):hover {
-  color: oklch(0.35 0.25 285);
+/* Content links keep normal text colour (green underline handled globally below);
+   only the hover state goes violet — so no per-theme colour override here. */
+[data-theme='light'] main a:not(.sl-badge):not([class*="button"]):not([class*="btn"]):not(.sl-anchor-link):hover {
+  color: var(--sl-color-accent);
 }
 
 /* Sidebar navigation in light mode - dark readable text */
@@ -1041,17 +1040,23 @@ header.header .site-title img {
   color: oklch(0.75 0.01 56.259);
 }
 
-/* Link styling — underline-free, medium weight, violet on hover (fly.io/docs) */
+/* Link styling — normal text colour + green underline; violet text on hover (sprites.dev) */
 /* Exclude: badges, buttons, cards, edit link, pagination */
 main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .no-underline):not(.sl-anchor-link) {
   color: inherit;
   font-weight: 500;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: var(--link-underline);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+  transition:
+    color 0.15s ease,
+    text-decoration-color 0.15s ease;
 }
 
 main .sl-markdown-content a:not(.sl-badge, [class*="button"], [class*="btn"], .no-underline):not(.sl-anchor-link):hover {
   color: var(--sl-color-accent);
-  text-decoration: none;
+  text-decoration-color: var(--link-underline);
 }
 
 /* External links (marked by rehype-external-links) - small up-right arrow */
