@@ -645,26 +645,27 @@ nav.sidebar {
 
 .sl-markdown-content [data-slot="table-row"] {
   border-bottom: 1px solid var(--border);
-  transition: background-color 0.15s ease;
 }
 
-.sl-markdown-content [data-slot="table-row"]:hover {
+/* fly.io/docs-style zebra striping (no hover) */
+.sl-markdown-content
+  [data-slot="table-body"]
+  [data-slot="table-row"]:nth-child(odd) {
   background-color: var(--muted);
 }
 
 .sl-markdown-content [data-slot="table-head"] {
-  height: 2.75rem;
-  padding: 0.5rem 1rem;
+  padding: 0.625rem 0.875rem;
   text-align: left;
-  vertical-align: middle;
-  font-weight: 700;
-  color: var(--foreground);
-  background-color: var(--muted);
+  vertical-align: bottom;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--sl-color-white);
 }
 
 .sl-markdown-content [data-slot="table-cell"] {
-  padding: 0.75rem 1rem;
-  vertical-align: middle;
+  padding: 0.75rem 0.875rem;
+  vertical-align: top;
 }
 
 /* Headings use Mackinac serif, like fly.io/docs */
@@ -1894,4 +1895,135 @@ h2.method-title {
   .sidebar details details summary .large {
     font-size: var(--sl-text-sm) !important;
   }
+}
+
+/* ============================================================================
+   Callouts (Starlight asides) — fly.io/docs card style
+   Gradient surface + soft violet-tinted shadow + 1px ring, no left border.
+   Variant hues: note/tip = violet, caution = amber, danger = red.
+   ============================================================================ */
+.sl-markdown-content .starlight-aside {
+  position: relative;
+  margin: 1.5rem 0;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 0.625rem;
+  font-size: 0.9375rem;
+  line-height: 1.625;
+  color: var(--callout-text);
+  background-image: linear-gradient(
+    to bottom right,
+    var(--callout-from),
+    var(--callout-to)
+  );
+  box-shadow:
+    0 10px 15px -3px var(--callout-shadow),
+    0 4px 6px -4px var(--callout-shadow),
+    0 0 0 1px var(--callout-ring);
+  /* dark is the default theme; light values overridden below */
+  --callout-shadow: rgba(0, 0, 0, 0.28);
+}
+
+.sl-markdown-content .starlight-aside__title {
+  font-family: var(--sl-font-system), sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  font-size: 1rem;
+  color: var(--callout-accent);
+}
+
+.sl-markdown-content .starlight-aside__icon {
+  color: var(--callout-accent);
+}
+
+.sl-markdown-content .starlight-aside__content a {
+  color: var(--callout-accent);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.sl-markdown-content .starlight-aside :not(pre) > code {
+  background-color: var(--callout-code-bg);
+  color: var(--callout-code);
+}
+
+/* ---- Dark variant tokens (default) ---- */
+.sl-markdown-content .starlight-aside--note {
+  --callout-from: #17273d;
+  --callout-to: #141f30;
+  --callout-ring: rgba(56, 189, 248, 0.3);
+  --callout-text: #d0d9e6;
+  --callout-accent: #7dd3fc;
+  --callout-code: #bae6fd;
+  --callout-code-bg: rgba(56, 189, 248, 0.16);
+}
+.sl-markdown-content .starlight-aside--tip {
+  --callout-from: #2a2140;
+  --callout-to: #231d38;
+  --callout-ring: rgba(139, 92, 246, 0.32);
+  --callout-text: #d6d2e4;
+  --callout-accent: #c4b5fd;
+  --callout-code: #d6c9ff;
+  --callout-code-bg: rgba(139, 92, 246, 0.22);
+}
+.sl-markdown-content .starlight-aside--caution {
+  --callout-from: #2a2114;
+  --callout-to: #241c12;
+  --callout-ring: rgba(245, 158, 11, 0.32);
+  --callout-text: #e6dcc6;
+  --callout-accent: #fbbf24;
+  --callout-code: #fcd34d;
+  --callout-code-bg: rgba(245, 158, 11, 0.18);
+}
+.sl-markdown-content .starlight-aside--danger {
+  --callout-from: #2a171b;
+  --callout-to: #241419;
+  --callout-ring: rgba(244, 63, 94, 0.32);
+  --callout-text: #e6ccd2;
+  --callout-accent: #fb7185;
+  --callout-code: #fda4af;
+  --callout-code-bg: rgba(244, 63, 94, 0.18);
+}
+
+/* ---- Light overrides (fly.io/docs exact palette) ---- */
+[data-theme='light'] .sl-markdown-content .starlight-aside {
+  --callout-shadow: rgba(91, 33, 182, 0.075);
+}
+[data-theme='light'] .sl-markdown-content .starlight-aside--note {
+  --callout-from: #dbeafe;
+  --callout-to: #e0e7ff;
+  --callout-ring: rgba(59, 130, 246, 0.3);
+  --callout-text: #1e3a8a;
+  --callout-accent: #1c398e;
+  --callout-code: #1e40af;
+  --callout-code-bg: rgba(29, 78, 216, 0.1);
+}
+[data-theme='light'] .sl-markdown-content .starlight-aside--tip {
+  --callout-from: #f5f3ff;
+  --callout-to: #eef2ff;
+  --callout-ring: rgba(139, 92, 246, 0.2);
+  --callout-text: #564b80;
+  --callout-accent: #2a1863;
+  --callout-code: #874bee;
+  --callout-code-bg: rgba(221, 214, 254, 0.5);
+}
+[data-theme='light'] .sl-markdown-content .starlight-aside--caution {
+  --callout-from: #fde68a;
+  --callout-to: #fed7aa;
+  --callout-ring: rgba(245, 158, 11, 0.35);
+  --callout-text: #92400e;
+  --callout-accent: #b45309;
+  --callout-code: #92400e;
+  --callout-code-bg: rgba(180, 83, 9, 0.1);
+}
+[data-theme='light'] .sl-markdown-content .starlight-aside--danger {
+  --callout-from: #fee2e2;
+  --callout-to: #fecdd3;
+  --callout-ring: rgba(244, 63, 94, 0.35);
+  --callout-text: #991b1b;
+  --callout-accent: #991b1b;
+  --callout-code: #991b1b;
+  --callout-code-bg: rgba(185, 28, 28, 0.1);
 }
