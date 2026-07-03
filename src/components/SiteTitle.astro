@@ -18,27 +18,27 @@ const { siteTitleHref } = Astro.locals.starlightRoute;
 <style>
   .site-title {
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.625rem;
     font-size: var(--sl-text-h4);
     color: var(--sl-color-white);
     text-decoration: none;
     white-space: nowrap;
     min-width: 0;
-    /* dark theme (default): light body, brand violet inner, holes = page bg */
-    --logo-body: #f3f1fb;
-    --logo-inner: #8b5cf6;
-    --logo-eye: #17141f;
+    /* dark theme (default): bright violet mark for maximum visibility */
+    --logo-body: #c084fc;
+    --logo-inner: #e0c9ff;
+    --logo-eye: #000000;
   }
 
   :global([data-theme='light']) .site-title {
     /* light theme: exact sprites.dev palette (navy body, violet-600 inner) */
     --logo-body: #22183c;
     --logo-inner: #7c3aed;
-    --logo-eye: #ffffff;
+    --logo-eye: #000000;
   }
 
   .logo-icon {
-    height: 1.25rem;
+    height: 1.5rem;
     width: auto;
     flex-shrink: 0;
   }
