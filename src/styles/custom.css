@@ -1909,17 +1909,19 @@ h2.method-title {
 }
 
 /* ============================================================================
-   Callouts (Starlight asides) — fly.io/docs card style
-   Gradient surface + soft violet-tinted shadow + 1px ring, no left border,
-   fly-style icon in the top-left corner (mask tinted by the variant accent).
-   Variant hues: note/tip = violet, caution = amber, danger = red.
+   Callouts (Starlight asides) — verbatim fly.io/docs port
+   Base card: gradient surface, 1px ring, soft violet shadow, 2rem margins.
+   Icon variants (note/caution/danger) use fly's exact 16px icons at 20px,20px
+   with 3.5rem text clearance; tip (fly's plain violet callout) has no icon.
+   Label = weight-500 stretched inline lead-in flowing into the message.
+   Variant map: tip=violet callout, note=note, caution=warning, danger=important.
    ============================================================================ */
 
 .sl-markdown-content .starlight-aside {
   position: relative;
   display: flow-root;
-  margin: 1.5rem 0;
-  padding: 1rem 1.5rem 1rem 3.4rem;
+  margin: 2rem 0;
+  padding: 1rem 1.5rem;
   border: none;
   border-radius: 0.625rem;
   font-size: 0.9375rem;
@@ -1937,14 +1939,22 @@ h2.method-title {
   --callout-shadow: rgba(0, 0, 0, 0.28);
 }
 
-.sl-markdown-content .starlight-aside::before {
+.sl-markdown-content .starlight-aside--note,
+.sl-markdown-content .starlight-aside--caution,
+.sl-markdown-content .starlight-aside--danger {
+  padding-left: 3.5rem;
+}
+
+.sl-markdown-content .starlight-aside--note::before,
+.sl-markdown-content .starlight-aside--caution::before,
+.sl-markdown-content .starlight-aside--danger::before {
   content: '';
   position: absolute;
-  left: 1.25rem;
-  top: 1.15rem;
-  width: 1.25rem;
-  height: 1.25rem;
-  background-color: var(--callout-accent);
+  left: 20px;
+  top: 20px;
+  width: 16px;
+  height: 16px;
+  background-color: var(--callout-text-dark);
   -webkit-mask: var(--callout-icon) center / contain no-repeat;
   mask: var(--callout-icon) center / contain no-repeat;
 }
@@ -1954,35 +1964,60 @@ h2.method-title {
 }
 
 .sl-markdown-content .starlight-aside__title {
+  display: block;
   float: left;
-  margin: 0 0.45rem 0 0;
+  margin: 0 0.35rem 0 0;
   font-family: var(--sl-font-system), sans-serif;
-  font-weight: 600;
-  letter-spacing: -0.005em;
   font-size: 0.9375rem;
   line-height: 1.625;
-  color: var(--callout-accent);
+  font-weight: 500;
+  font-stretch: 98%;
+  letter-spacing: -0.005em;
+  color: var(--callout-text-dark);
 }
 
 .sl-markdown-content .starlight-aside__title::after {
   content: ':';
 }
 
-.sl-markdown-content .starlight-aside__content,
-.sl-markdown-content .starlight-aside__title + .starlight-aside__content {
+.sl-markdown-content .starlight-aside__title + .starlight-aside__content,
+.sl-markdown-content .starlight-aside__content {
   margin-top: 0;
+}
+
+.sl-markdown-content .starlight-aside__content > * {
+  margin-top: 0.75rem;
 }
 
 .sl-markdown-content .starlight-aside__content > :first-child {
   margin-top: 0;
 }
 
-.sl-markdown-content .starlight-aside__content a {
-  color: var(--callout-accent);
+.sl-markdown-content .starlight-aside__content > :last-child {
+  margin-bottom: 0;
+}
+
+.sl-markdown-content .starlight-aside__content strong {
   font-weight: 500;
-  text-decoration: underline;
+  font-stretch: 98%;
+  letter-spacing: -0.005em;
+  color: var(--callout-text-dark);
+}
+
+.sl-markdown-content .starlight-aside__content a {
+  font-weight: 450;
+  letter-spacing: -0.015em;
+  color: var(--callout-text-dark);
+  text-decoration-line: underline;
+  text-decoration-color: var(--callout-decoration);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sl-markdown-content .starlight-aside__content a:hover {
+  color: var(--callout-link-hover);
+  text-decoration-color: var(--callout-decoration-hover);
 }
 
 .sl-markdown-content .starlight-aside :not(pre) > code {
@@ -1994,43 +2029,58 @@ h2.method-title {
 /* ---- Dark variant tokens (default) ---- */
 
 .sl-markdown-content .starlight-aside--note {
-  --callout-from: #262038;
-  --callout-to: #201b30;
-  --callout-ring: rgba(139,92,246,.26);
-  --callout-text: #cdc9da;
-  --callout-accent: #c4b5fd;
-  --callout-code: #d6c9ff;
-  --callout-code-bg: rgba(139,92,246,.16);  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><circle%20cx='10'%20cy='10'%20r='9'%20fill='%23000'%20fill-opacity='.25'/><rect%20x='9'%20y='8.6'%20width='2'%20height='6'%20rx='1'%20fill='%23000'/><circle%20cx='10'%20cy='6'%20r='1.3'%20fill='%23000'/></svg>");
+  --callout-from: #211d30;
+  --callout-to: #1c1928;
+  --callout-ring: rgba(139,92,246,.16);
+  --callout-text: #b3adc4;
+  --callout-text-dark: #d8d1ea;
+  --callout-code: #c4b5fd;
+  --callout-code-bg: rgba(139,92,246,.15);
+  --callout-decoration: rgba(216,209,234,.35);
+  --callout-decoration-hover: rgba(182,155,255,.65);
+  --callout-link-hover: #b69bff;
+  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><circle%20cx='10'%20cy='10'%20r='9.5'%20fill='%23000'%20fill-opacity='.25'/><path%20fill='%23000'%20d='M10.001%208.866H10c-.619%200-1.12.5-1.12%201.115v3.79c.005.61.504%201.104%201.119%201.105H10c.619%200%201.12-.501%201.12-1.115V9.97a1.117%201.117%200%200%200-1.119-1.104zM10%207.544A1.34%201.34%200%200%201%208.657%206.21%201.34%201.34%200%200%201%2010%204.876a1.34%201.34%200%200%201%201.343%201.334A1.34%201.34%200%200%201%2010%207.544z'/></svg>");
 }
 
 .sl-markdown-content .starlight-aside--tip {
-  --callout-from: #2a2140;
-  --callout-to: #231d38;
-  --callout-ring: rgba(139,92,246,.34);
-  --callout-text: #d6d2e4;
-  --callout-accent: #c4b5fd;
-  --callout-code: #d6c9ff;
-  --callout-code-bg: rgba(139,92,246,.22);  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><circle%20cx='10'%20cy='10'%20r='9'%20fill='%23000'%20fill-opacity='.22'/><path%20d='M10%204.3l1.35%203.35L14.7%209l-3.35%201.35L10%2013.7l-1.35-3.35L5.3%209l3.35-1.35z'%20fill='%23000'/></svg>");
+  --callout-from: #241d38;
+  --callout-to: #1f1a2f;
+  --callout-ring: rgba(139,92,246,.28);
+  --callout-text: #b8b1cd;
+  --callout-text-dark: #ddd3f8;
+  --callout-code: #c4b5fd;
+  --callout-code-bg: rgba(139,92,246,.2);
+  --callout-decoration: rgba(221,211,248,.35);
+  --callout-decoration-hover: rgba(182,155,255,.65);
+  --callout-link-hover: #b69bff;
 }
 
 .sl-markdown-content .starlight-aside--caution {
-  --callout-from: #2a2114;
-  --callout-to: #241c12;
+  --callout-from: #2b2112;
+  --callout-to: #241b10;
   --callout-ring: rgba(245,158,11,.32);
-  --callout-text: #e6dcc6;
-  --callout-accent: #fbbf24;
+  --callout-text: #d6c39c;
+  --callout-text-dark: #fbbf24;
   --callout-code: #fcd34d;
-  --callout-code-bg: rgba(245,158,11,.18);  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><path%20d='M10.9%203.2a1.02%201.02%200%200%200-1.8%200L2.18%2015.5A1.02%201.02%200%200%200%203.08%2017h13.84a1.02%201.02%200%200%200%20.9-1.5z'%20fill='%23000'%20fill-opacity='.25'/><rect%20x='9'%20y='7.4'%20width='2'%20height='4.4'%20rx='1'%20fill='%23000'/><circle%20cx='10'%20cy='13.7'%20r='1.15'%20fill='%23000'/></svg>");
+  --callout-code-bg: rgba(245,158,11,.16);
+  --callout-decoration: rgba(251,191,36,.4);
+  --callout-decoration-hover: rgba(251,191,36,.7);
+  --callout-link-hover: #fcd34d;
+  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><path%20fill='%23000'%20fill-opacity='.4'%20d='M12.054%202.732a2.383%202.383%200%200%200-4.108%200l-7.12%2012.14a2.364%202.364%200%200%200-.007%202.384%202.382%202.382%200%200%200%202.061%201.187h14.24c.851%200%201.637-.454%202.061-1.187a2.364%202.364%200%200%200-.007-2.384l-7.12-12.14z'/><path%20fill='%23000'%20d='M9.999%2011.881H10a1.12%201.12%200%200%200%201.121-1.116l-.001-3.79a1.119%201.119%200%200%200-1.119-1.105H10c-.619%200-1.12.501-1.12%201.116v3.79c.006.61.504%201.104%201.119%201.105zM10%2013.202a1.34%201.34%200%200%201%201.343%201.334c0%20.737-.602%201.334-1.343%201.334a1.339%201.339%200%200%201-1.343-1.334A1.34%201.34%200%200%201%2010%2013.202z'/></svg>");
 }
 
 .sl-markdown-content .starlight-aside--danger {
-  --callout-from: #2a171b;
-  --callout-to: #241419;
-  --callout-ring: rgba(244,63,94,.32);
-  --callout-text: #e6ccd2;
-  --callout-accent: #fb7185;
-  --callout-code: #fda4af;
-  --callout-code-bg: rgba(244,63,94,.18);  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><path%20d='M6.79%202.5h6.42l4.29%204.29v6.42l-4.29%204.29H6.79L2.5%2013.21V6.79z'%20fill='%23000'%20fill-opacity='.25'/><rect%20x='9'%20y='6.2'%20width='2'%20height='4.7'%20rx='1'%20fill='%23000'/><circle%20cx='10'%20cy='13.4'%20r='1.15'%20fill='%23000'/></svg>");
+  --callout-from: #172440;
+  --callout-to: #131d33;
+  --callout-ring: rgba(59,130,246,.35);
+  --callout-text: #aec1de;
+  --callout-text-dark: #93c5fd;
+  --callout-code: #93c5fd;
+  --callout-code-bg: rgba(59,130,246,.16);
+  --callout-decoration: rgba(147,197,253,.4);
+  --callout-decoration-hover: rgba(147,197,253,.7);
+  --callout-link-hover: #bfdbfe;
+  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><circle%20cx='10'%20cy='10'%20r='9.5'%20fill='%23000'%20fill-opacity='.25'/><path%20fill='%23000'%20d='M9.999%2010.886H10c.619%200%201.12-.5%201.121-1.115l-.001-3.79a1.118%201.118%200%200%200-1.119-1.105H10c-.619%200-1.12.5-1.12%201.115v3.79c.006.61.504%201.105%201.119%201.105zM10%2012.208c.741%200%201.343.597%201.343%201.334A1.34%201.34%200%200%201%2010%2014.876a1.34%201.34%200%200%201-1.343-1.334c0-.737.602-1.334%201.343-1.334z'/></svg>");
 }
 
 
@@ -2043,39 +2093,51 @@ h2.method-title {
 [data-theme='light'] .sl-markdown-content .starlight-aside--note {
   --callout-from: #fcfcff;
   --callout-to: #faf9ff;
-  --callout-ring: rgba(91,33,182,.14);
+  --callout-ring: rgba(91,33,182,.075);
   --callout-text: #564b80;
-  --callout-accent: #2a1863;
+  --callout-text-dark: #2a1863;
   --callout-code: #7c3aed;
-  --callout-code-bg: rgba(237,233,254,.75);
+  --callout-code-bg: #ede9febf;
+  --callout-decoration: #2a186366;
+  --callout-decoration-hover: #7c3aed66;
+  --callout-link-hover: #7c3aed;
 }
 
 [data-theme='light'] .sl-markdown-content .starlight-aside--tip {
   --callout-from: #f5f3ff;
   --callout-to: #eef2ff;
-  --callout-ring: rgba(139,92,246,.2);
+  --callout-ring: #8b5cf633;
   --callout-text: #564b80;
-  --callout-accent: #2a1863;
+  --callout-text-dark: #2a1863;
   --callout-code: #874bee;
-  --callout-code-bg: rgba(221,214,254,.5);
+  --callout-code-bg: #ddd6fe80;
+  --callout-decoration: #2a186366;
+  --callout-decoration-hover: #7c3aed66;
+  --callout-link-hover: #7c3aed;
 }
 
 [data-theme='light'] .sl-markdown-content .starlight-aside--caution {
-  --callout-from: #fde68a;
-  --callout-to: #fed7aa;
-  --callout-ring: rgba(245,158,11,.35);
-  --callout-text: #92400e;
-  --callout-accent: #b45309;
-  --callout-code: #92400e;
-  --callout-code-bg: rgba(180,83,9,.1);
+  --callout-from: #fde68abf;
+  --callout-to: #fed7aabf;
+  --callout-ring: #f59e0b59;
+  --callout-text: #b45309bf;
+  --callout-text-dark: #b45309;
+  --callout-code: #b45309;
+  --callout-code-bg: #b453091a;
+  --callout-decoration: #b453094d;
+  --callout-decoration-hover: #92400e66;
+  --callout-link-hover: #92400e;
 }
 
 [data-theme='light'] .sl-markdown-content .starlight-aside--danger {
-  --callout-from: #fee2e2;
-  --callout-to: #fecdd3;
-  --callout-ring: rgba(244,63,94,.35);
-  --callout-text: #991b1b;
-  --callout-accent: #991b1b;
-  --callout-code: #991b1b;
-  --callout-code-bg: rgba(185,28,28,.1);
+  --callout-from: #bae6fdbf;
+  --callout-to: #c7d2febf;
+  --callout-ring: #3b82f640;
+  --callout-text: #1e3a8ab3;
+  --callout-text-dark: #1e3a8ae6;
+  --callout-code: #1e3a8ae6;
+  --callout-code-bg: #1d4ed81a;
+  --callout-decoration: #1e3a8a4d;
+  --callout-decoration-hover: #1e3a8a99;
+  --callout-link-hover: #172554;
 }
