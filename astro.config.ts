@@ -22,6 +22,9 @@ export default defineConfig({
     starlight({
       title: 'Sprites',
       expressiveCode: {
+        // Single theme for both light and dark — code blocks render identically
+        // in either mode (same background + syntax colours).
+        themes: ['starlight-dark'],
         shiki: {
           langs: [
             {
