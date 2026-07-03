@@ -625,6 +625,17 @@ nav.sidebar {
   position: relative;
   width: 100%;
   overflow-x: auto;
+  margin-block: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.18),
+    0 10px 26px -12px rgba(0, 0, 0, 0.5);
+}
+[data-theme='light'] .sl-markdown-content [data-slot="table-container"] {
+  box-shadow:
+    0 1px 2px rgba(91, 33, 182, 0.05),
+    0 12px 28px -14px rgba(91, 33, 182, 0.16);
 }
 
 .sl-markdown-content [data-slot="table"] {
@@ -1899,13 +1910,15 @@ h2.method-title {
 
 /* ============================================================================
    Callouts (Starlight asides) — fly.io/docs card style
-   Gradient surface + soft violet-tinted shadow + 1px ring, no left border.
+   Gradient surface + soft violet-tinted shadow + 1px ring, no left border,
+   fly-style icon in the top-left corner (mask tinted by the variant accent).
    Variant hues: note/tip = violet, caution = amber, danger = red.
    ============================================================================ */
+
 .sl-markdown-content .starlight-aside {
   position: relative;
   margin: 1.5rem 0;
-  padding: 1rem 1.5rem;
+  padding: 1rem 1.5rem 1rem 3.4rem;
   border: none;
   border-radius: 0.625rem;
   font-size: 0.9375rem;
@@ -1920,19 +1933,31 @@ h2.method-title {
     0 10px 15px -3px var(--callout-shadow),
     0 4px 6px -4px var(--callout-shadow),
     0 0 0 1px var(--callout-ring);
-  /* dark is the default theme; light values overridden below */
   --callout-shadow: rgba(0, 0, 0, 0.28);
 }
 
+.sl-markdown-content .starlight-aside::before {
+  content: '';
+  position: absolute;
+  left: 1.25rem;
+  top: 1.15rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: var(--callout-accent);
+  -webkit-mask: var(--callout-icon) center / contain no-repeat;
+  mask: var(--callout-icon) center / contain no-repeat;
+}
+
+.sl-markdown-content .starlight-aside__icon {
+  display: none;
+}
+
 .sl-markdown-content .starlight-aside__title {
+  gap: 0;
   font-family: var(--sl-font-system), sans-serif;
   font-weight: 500;
   letter-spacing: -0.005em;
   font-size: 1rem;
-  color: var(--callout-accent);
-}
-
-.sl-markdown-content .starlight-aside__icon {
   color: var(--callout-accent);
 }
 
@@ -1949,81 +1974,92 @@ h2.method-title {
   color: var(--callout-code);
 }
 
+
 /* ---- Dark variant tokens (default) ---- */
+
 .sl-markdown-content .starlight-aside--note {
-  --callout-from: #17273d;
-  --callout-to: #141f30;
-  --callout-ring: rgba(56, 189, 248, 0.3);
-  --callout-text: #d0d9e6;
-  --callout-accent: #7dd3fc;
-  --callout-code: #bae6fd;
-  --callout-code-bg: rgba(56, 189, 248, 0.16);
+  --callout-from: #262038;
+  --callout-to: #201b30;
+  --callout-ring: rgba(139,92,246,.26);
+  --callout-text: #cdc9da;
+  --callout-accent: #c4b5fd;
+  --callout-code: #d6c9ff;
+  --callout-code-bg: rgba(139,92,246,.16);  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><circle%20cx='10'%20cy='10'%20r='9'%20fill='%23000'%20fill-opacity='.25'/><rect%20x='9'%20y='8.6'%20width='2'%20height='6'%20rx='1'%20fill='%23000'/><circle%20cx='10'%20cy='6'%20r='1.3'%20fill='%23000'/></svg>");
 }
+
 .sl-markdown-content .starlight-aside--tip {
   --callout-from: #2a2140;
   --callout-to: #231d38;
-  --callout-ring: rgba(139, 92, 246, 0.32);
+  --callout-ring: rgba(139,92,246,.34);
   --callout-text: #d6d2e4;
   --callout-accent: #c4b5fd;
   --callout-code: #d6c9ff;
-  --callout-code-bg: rgba(139, 92, 246, 0.22);
+  --callout-code-bg: rgba(139,92,246,.22);  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><circle%20cx='10'%20cy='10'%20r='9'%20fill='%23000'%20fill-opacity='.22'/><path%20d='M10%204.3l1.35%203.35L14.7%209l-3.35%201.35L10%2013.7l-1.35-3.35L5.3%209l3.35-1.35z'%20fill='%23000'/></svg>");
 }
+
 .sl-markdown-content .starlight-aside--caution {
   --callout-from: #2a2114;
   --callout-to: #241c12;
-  --callout-ring: rgba(245, 158, 11, 0.32);
+  --callout-ring: rgba(245,158,11,.32);
   --callout-text: #e6dcc6;
   --callout-accent: #fbbf24;
   --callout-code: #fcd34d;
-  --callout-code-bg: rgba(245, 158, 11, 0.18);
+  --callout-code-bg: rgba(245,158,11,.18);  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><path%20d='M10.9%203.2a1.02%201.02%200%200%200-1.8%200L2.18%2015.5A1.02%201.02%200%200%200%203.08%2017h13.84a1.02%201.02%200%200%200%20.9-1.5z'%20fill='%23000'%20fill-opacity='.25'/><rect%20x='9'%20y='7.4'%20width='2'%20height='4.4'%20rx='1'%20fill='%23000'/><circle%20cx='10'%20cy='13.7'%20r='1.15'%20fill='%23000'/></svg>");
 }
+
 .sl-markdown-content .starlight-aside--danger {
   --callout-from: #2a171b;
   --callout-to: #241419;
-  --callout-ring: rgba(244, 63, 94, 0.32);
+  --callout-ring: rgba(244,63,94,.32);
   --callout-text: #e6ccd2;
   --callout-accent: #fb7185;
   --callout-code: #fda4af;
-  --callout-code-bg: rgba(244, 63, 94, 0.18);
+  --callout-code-bg: rgba(244,63,94,.18);  --callout-icon: url("data:image/svg+xml,<svg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2020%2020'><path%20d='M6.79%202.5h6.42l4.29%204.29v6.42l-4.29%204.29H6.79L2.5%2013.21V6.79z'%20fill='%23000'%20fill-opacity='.25'/><rect%20x='9'%20y='6.2'%20width='2'%20height='4.7'%20rx='1'%20fill='%23000'/><circle%20cx='10'%20cy='13.4'%20r='1.15'%20fill='%23000'/></svg>");
 }
 
+
 /* ---- Light overrides (fly.io/docs exact palette) ---- */
+
 [data-theme='light'] .sl-markdown-content .starlight-aside {
   --callout-shadow: rgba(91, 33, 182, 0.075);
 }
+
 [data-theme='light'] .sl-markdown-content .starlight-aside--note {
-  --callout-from: #dbeafe;
-  --callout-to: #e0e7ff;
-  --callout-ring: rgba(59, 130, 246, 0.3);
-  --callout-text: #1e3a8a;
-  --callout-accent: #1c398e;
-  --callout-code: #1e40af;
-  --callout-code-bg: rgba(29, 78, 216, 0.1);
+  --callout-from: #fcfcff;
+  --callout-to: #faf9ff;
+  --callout-ring: rgba(91,33,182,.14);
+  --callout-text: #564b80;
+  --callout-accent: #2a1863;
+  --callout-code: #7c3aed;
+  --callout-code-bg: rgba(237,233,254,.75);
 }
+
 [data-theme='light'] .sl-markdown-content .starlight-aside--tip {
   --callout-from: #f5f3ff;
   --callout-to: #eef2ff;
-  --callout-ring: rgba(139, 92, 246, 0.2);
+  --callout-ring: rgba(139,92,246,.2);
   --callout-text: #564b80;
   --callout-accent: #2a1863;
   --callout-code: #874bee;
-  --callout-code-bg: rgba(221, 214, 254, 0.5);
+  --callout-code-bg: rgba(221,214,254,.5);
 }
+
 [data-theme='light'] .sl-markdown-content .starlight-aside--caution {
   --callout-from: #fde68a;
   --callout-to: #fed7aa;
-  --callout-ring: rgba(245, 158, 11, 0.35);
+  --callout-ring: rgba(245,158,11,.35);
   --callout-text: #92400e;
   --callout-accent: #b45309;
   --callout-code: #92400e;
-  --callout-code-bg: rgba(180, 83, 9, 0.1);
+  --callout-code-bg: rgba(180,83,9,.1);
 }
+
 [data-theme='light'] .sl-markdown-content .starlight-aside--danger {
   --callout-from: #fee2e2;
   --callout-to: #fecdd3;
-  --callout-ring: rgba(244, 63, 94, 0.35);
+  --callout-ring: rgba(244,63,94,.35);
   --callout-text: #991b1b;
   --callout-accent: #991b1b;
   --callout-code: #991b1b;
-  --callout-code-bg: rgba(185, 28, 28, 0.1);
+  --callout-code-bg: rgba(185,28,28,.1);
 }
