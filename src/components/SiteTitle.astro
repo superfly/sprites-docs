@@ -3,12 +3,12 @@ const { siteTitleHref } = Astro.locals.starlightRoute;
 ---
 
 <a href={siteTitleHref} class="site-title sl-flex">
-  <!-- Space invader icon -->
+  <!-- Space invader icon (two-tone, matching sprites.dev) -->
   <svg class="logo-icon" width="20" height="20" viewBox="0 0 724 582" fill-rule="evenodd">
-    <path d="M205.594 197.898h322.661v108.263H205.594z" fill="#ad47ff"/>
-    <path d="M578.582 508.799h-72.323v72.686h72.323v-72.686zm-361.614 0h-72.323v72.686h72.323v-72.686zm361.614-290.742h72.323v145.371h-72.323v72.686h-74.229 1.906v72.685H216.968v-72.685h-72.323v-72.686H72.323V218.057h72.322v-73.163h72.323V72.686h72.323v72.685h144.645V72.686h72.323v72.685h72.323v72.686zM72.323 508.799V363.428H0v145.371h72.323zm650.904 0V363.428h-72.322v145.371h72.322zM289.423 290.742h-.132.132zm-72.455-72.685h72.323v72.685h-72.323v-72.685zm216.968 0h72.323v72.685h-72.323v-72.685zM578.582 0h-72.323v72.686h72.323V0zM216.968 0h-72.323v72.686h72.323V0z" fill="#ad47ff"/>
-    <path d="M144.645 363.428V218.057h72.323v-72.686h289.291v72.686h72.323v72.685l-.001.001v72.685h-72.322v72.686h-72.323V508.8H289.291v-72.686h-72.323v-72.686h-72.323zm144.646-72.686h-72.323v-72.685h72.323v72.685zm216.968 0h-72.323v-72.685h72.323v72.685z" fill="#c27bff"/>
-    <!-- Square eyes -->
+    <path class="body" d="M205.594 197.898h322.661v108.263H205.594z"/>
+    <path class="body" d="M578.582 508.799h-72.323v72.686h72.323v-72.686zm-361.614 0h-72.323v72.686h72.323v-72.686zm361.614-290.742h72.323v145.371h-72.323v72.686h-74.229 1.906v72.685H216.968v-72.685h-72.323v-72.686H72.323V218.057h72.322v-73.163h72.323V72.686h72.323v72.685h144.645V72.686h72.323v72.685h72.323v72.686zM72.323 508.799V363.428H0v145.371h72.323zm650.904 0V363.428h-72.322v145.371h72.322zM289.423 290.742h-.132.132zm-72.455-72.685h72.323v72.685h-72.323v-72.685zm216.968 0h72.323v72.685h-72.323v-72.685zM578.582 0h-72.323v72.686h72.323V0zM216.968 0h-72.323v72.686h72.323V0z"/>
+    <path class="inner" d="M144.645 363.428V218.057h72.323v-72.686h289.291v72.686h72.323v72.685l-.001.001v72.685h-72.322v72.686h-72.323V508.8H289.291v-72.686h-72.323v-72.686h-72.323zm144.646-72.686h-72.323v-72.685h72.323v72.685zm216.968 0h-72.323v-72.685h72.323v72.685z"/>
+    <!-- Square eyes (read as holes / bg colour) -->
     <rect class="eye" x="216.968" y="218.057" width="72.323" height="72.685"/>
     <rect class="eye" x="433.936" y="218.057" width="72.323" height="72.685"/>
   </svg>
@@ -18,26 +18,41 @@ const { siteTitleHref } = Astro.locals.starlightRoute;
 <style>
   .site-title {
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.625rem;
     font-size: var(--sl-text-h4);
     color: var(--sl-color-white);
     text-decoration: none;
     white-space: nowrap;
     min-width: 0;
+    /* dark theme (default): bright violet mark for maximum visibility */
+    --logo-body: #c084fc;
+    --logo-inner: #e0c9ff;
+    --logo-eye: #000000;
+  }
+
+  :global([data-theme='light']) .site-title {
+    /* light theme: exact sprites.dev palette (navy body, violet-600 inner) */
+    --logo-body: #22183c;
+    --logo-inner: #7c3aed;
+    --logo-eye: #000000;
   }
 
   .logo-icon {
-    height: 1.25rem;
+    height: 1.5rem;
     width: auto;
     flex-shrink: 0;
   }
 
-  .logo-icon .eye {
-    fill: black;
+  .logo-icon .body {
+    fill: var(--logo-body);
   }
 
-  :global([data-theme='light']) .logo-icon .eye {
-    fill: white;
+  .logo-icon .inner {
+    fill: var(--logo-inner);
+  }
+
+  .logo-icon .eye {
+    fill: var(--logo-eye);
   }
 
   .logo-text {
