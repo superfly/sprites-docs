@@ -5,7 +5,7 @@ import Background from './Background.astro';
 
 const siteUrl = 'https://docs.sprites.dev';
 const pageTitle = Astro.locals.starlightRoute?.entry?.data?.title ?? 'Sprites Documentation';
-const ogImageUrl = `https://og-images.fly.dev/image?template=sprites&text=${encodeURIComponent(pageTitle)}`;
+const ogImageUrl = `https://og-images.fly.dev/image?template=sprites_docs&text=${encodeURIComponent(pageTitle)}`;
 const slug = Astro.locals.starlightRoute?.slug ?? Astro.locals.starlightRoute?.id;
 const isHomePage = slug === '' || slug === 'index' || slug === 'index.mdx';
 
