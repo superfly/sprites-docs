@@ -1,9 +1,7 @@
-import { motion, useReducedMotion } from 'motion/react';
-import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * Animated architecture diagram for the Claude Managed Agents integration.
+ * Static architecture diagram for the Claude Managed Agents integration.
  *
  * A 2×2 grid read as a clockwise lifecycle loop: the Claude Platform (top
  * left) ① enqueues a work item into the Work queue (top right) → a worker
@@ -16,20 +14,10 @@ import { cn } from '@/lib/utils';
  * Big, chunky blocks and large labels so it stays legible when scaled down.
  * Connectors and labels are drawn ON TOP of the blocks so nothing is occluded.
  * All-SVG; colors adapt to Starlight light/dark via CSS variables scoped to
- * `.shd-root`. Motion (motion.dev) drives the rotating loop, the directional
- * comets (with tails), the queue and the worker pulse; degrades to a clean
- * static image under prefers-reduced-motion.
+ * `.shd-root`. Fully static — no motion.
  */
 
 type Tone = 'clay' | 'violet';
-type Flow = {
-  id: string;
-  d: string;
-  tone: Tone;
-  dur: number;
-  delay: number;
-  tail: number;
-};
 
 // Grid: columns at x=60/444 (centers 158/542), rows at y=70/360. Blocks 196×190.
 const COL = [
@@ -51,34 +39,7 @@ const ENQUEUES = 'M 266 165 L 433 165';
 const CLAIMS = 'M 542 266 L 542 352';
 const LAUNCHES = 'M 434 455 L 267 455';
 
-const FLOWS: Flow[] = [
-  { id: 'toolOut', d: CALL_DOWN, tone: 'clay', dur: 1.8, delay: 1.4, tail: 14 },
-  {
-    id: 'toolIn',
-    d: RESULT_UP,
-    tone: 'violet',
-    dur: 1.8,
-    delay: 2.55,
-    tail: 14,
-  },
-  { id: 's1', d: ENQUEUES, tone: 'clay', dur: 1.6, delay: 1.6, tail: 12 },
-  { id: 's2', d: CLAIMS, tone: 'clay', dur: 1.2, delay: 2.1, tail: 12 },
-  { id: 's3', d: LAUNCHES, tone: 'violet', dur: 1.6, delay: 2.6, tail: 12 },
-];
-
-const REPEAT = { repeat: Number.POSITIVE_INFINITY } as const;
-
 export function SelfHostedDiagram({ className }: { className?: string }) {
-  const reduce = useReducedMotion();
-  // Entrance + ambient motion run only after client mount, so the server
-  // renders the complete static diagram (no baked opacity:0, and no
-  // reduced-motion hydration mismatch since SSR never branches on `reduce`).
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  const anim = mounted && !reduce;
-
   const Block = ({
     x,
     cx,
@@ -86,7 +47,6 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
     title,
     sub,
     subTone,
-    delay,
     children,
   }: {
     x: number;
@@ -95,14 +55,9 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
     title: string;
     sub: string;
     subTone?: Tone;
-    delay: number;
     children: React.ReactNode;
   }) => (
-    <motion.g
-      initial={anim ? { opacity: 0, y: 12 } : false}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: 'easeOut' }}
-    >
+    <g>
       <rect
         x={x}
         y={y}
@@ -135,7 +90,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
       >
         {sub}
       </text>
-    </motion.g>
+    </g>
   );
 
   const Badge = ({
@@ -209,29 +164,6 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
           <stop offset="0" stopColor="var(--shd-card1)" />
           <stop offset="1" stopColor="var(--shd-card2)" />
         </linearGradient>
-        {/* Comet tails fade out behind the head (local coords; heads face +x). */}
-        <linearGradient
-          id="shd-tail-clay"
-          gradientUnits="userSpaceOnUse"
-          x1="-22"
-          y1="0"
-          x2="-3"
-          y2="0"
-        >
-          <stop offset="0" stopColor="var(--shd-clay2)" stopOpacity="0" />
-          <stop offset="1" stopColor="var(--shd-clay2)" stopOpacity="0.7" />
-        </linearGradient>
-        <linearGradient
-          id="shd-tail-violet"
-          gradientUnits="userSpaceOnUse"
-          x1="-22"
-          y1="0"
-          x2="-3"
-          y2="0"
-        >
-          <stop offset="0" stopColor="var(--shd-violet2)" stopOpacity="0" />
-          <stop offset="1" stopColor="var(--shd-violet2)" stopOpacity="0.7" />
-        </linearGradient>
         {/* Two concretely-filled arrowheads (context-stroke is unsupported in
             Safari); each connector references the marker matching its tone. */}
         <marker
@@ -267,17 +199,10 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
         </filter>
       </defs>
 
-      {/* All animated content mounts fresh after hydration (keyed on `anim`),
-          so the entrance stagger replays; the server output stays complete. */}
-      <g key={anim ? 'live' : 'static'}>
+      <g>
         {/* ---- Trust zones (behind everything) ---- */}
-        {ZONES.map((z, i) => (
-          <motion.g
-            key={z.label}
-            initial={anim ? { opacity: 0 } : false}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: i * 0.08 }}
-          >
+        {ZONES.map((z) => (
+          <g key={z.label}>
             <rect
               x="20"
               y={z.y}
@@ -301,7 +226,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
             >
               {z.label}
             </text>
-          </motion.g>
+          </g>
         ))}
 
         {/* ---- Blocks (before connectors, so connectors sit on top) ---- */}
@@ -313,7 +238,6 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
           y={ROW[0]}
           title="Claude Platform"
           sub="agent loop + model"
-          delay={0.1}
         >
           <g transform="translate(0 66)">
             <circle
@@ -322,11 +246,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
               stroke="var(--shd-hair)"
               strokeWidth="2"
             />
-            <motion.g
-              style={{ transformOrigin: '0px 0px' }}
-              animate={anim ? { rotate: 360 } : undefined}
-              transition={{ duration: 9, ease: 'linear', ...REPEAT }}
-            >
+            <g>
               <path
                 d="M 5.6 -31.5 A 32 32 0 0 1 5.6 31.5"
                 fill="none"
@@ -343,7 +263,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
               />
               <circle cx="5.6" cy="31.5" r="4.5" fill="var(--shd-clay2)" />
               <circle cx="-5.6" cy="-31.5" r="4.5" fill="var(--shd-clay2)" />
-            </motion.g>
+            </g>
             <path
               d="M 0 -11 C 1.5 -3.5 3.5 -1.5 11 0 C 3.5 1.5 1.5 3.5 0 11 C -1.5 3.5 -3.5 1.5 -11 0 C -3.5 -1.5 -1.5 -3.5 0 -11 Z"
               fill="url(#shd-clay)"
@@ -358,12 +278,11 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
           y={ROW[0]}
           title="Work queue"
           sub="session work items"
-          delay={0.2}
         >
           {[0, 1, 2].map((i) => {
             const y = 42 + i * 24;
-            const bar = (
-              <>
+            return (
+              <g key={i}>
                 <rect
                   x={-60}
                   y={y}
@@ -384,22 +303,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
                   fill="var(--shd-line)"
                   opacity="0.45"
                 />
-              </>
-            );
-            return i === 0 && anim ? (
-              <motion.g
-                key={i}
-                animate={{ opacity: [0, 1, 1, 0], x: [16, 0, 0, 0] }}
-                transition={{
-                  duration: 3,
-                  times: [0, 0.22, 0.85, 1],
-                  ...REPEAT,
-                }}
-              >
-                {bar}
-              </motion.g>
-            ) : (
-              <g key={i}>{bar}</g>
+              </g>
             );
           })}
         </Block>
@@ -411,28 +315,8 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
           y={ROW[1]}
           title="Worker"
           sub="polls · claims work"
-          delay={0.3}
         >
           <g transform="translate(0 66)">
-            {anim &&
-              [0, 1].map((i) => (
-                <motion.circle
-                  key={i}
-                  r="14"
-                  fill="none"
-                  stroke="var(--shd-line)"
-                  strokeWidth="2"
-                  initial={{ opacity: 0.6, scale: 0.5 }}
-                  animate={{ opacity: 0, scale: 2.6 }}
-                  transition={{
-                    duration: 2.4,
-                    delay: i * 1.2,
-                    ease: 'easeOut',
-                    ...REPEAT,
-                  }}
-                  style={{ transformOrigin: '0px 0px' }}
-                />
-              ))}
             <circle r="15" fill="url(#shd-violet)" />
             <circle r="5" fill="#fff" opacity="0.92" />
           </g>
@@ -446,7 +330,6 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
           title="Sprite"
           sub="stateful · checkpointed"
           subTone="violet"
-          delay={0.4}
         >
           <rect
             x={-55}
@@ -479,27 +362,11 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
           >
             &gt;_
           </text>
-          {anim && (
-            <motion.rect
-              x={-13}
-              y={76}
-              width={9}
-              height={14}
-              rx="1.5"
-              fill="var(--shd-violet2)"
-              animate={{ opacity: [1, 1, 0, 0] }}
-              transition={{ duration: 1.1, times: [0, 0.5, 0.5, 1], ...REPEAT }}
-            />
-          )}
         </Block>
 
         {/* ---- Connectors on top ---- */}
 
-        <motion.g
-          initial={anim ? { opacity: 0 } : false}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        >
+        <g>
           {/* ① enqueues: top gap, left to right */}
           <path
             d={ENQUEUES}
@@ -601,37 +468,7 @@ export function SelfHostedDiagram({ className }: { className?: string }) {
           >
             everything the tools touch stays
           </text>
-        </motion.g>
-
-        {/* Comets with directional tails (very top) */}
-        {anim &&
-          FLOWS.map((f) => (
-            <motion.g
-              key={f.id}
-              style={{ offsetPath: `path('${f.d}')`, offsetRotate: 'auto' }}
-              initial={{ offsetDistance: '0%' }}
-              animate={{ offsetDistance: '100%' }}
-              transition={{
-                duration: f.dur,
-                delay: f.delay,
-                repeatDelay: 0.5,
-                ease: 'easeInOut',
-                ...REPEAT,
-              }}
-            >
-              <line
-                x1={-f.tail}
-                y1={0}
-                x2={-3}
-                y2={0}
-                stroke={`url(#shd-tail-${f.tone})`}
-                strokeWidth="5"
-                strokeLinecap="round"
-              />
-              <circle r="9" fill={`var(--shd-${f.tone}2)`} opacity="0.16" />
-              <circle r="4.5" fill={`var(--shd-${f.tone}2)`} />
-            </motion.g>
-          ))}
+        </g>
       </g>
     </svg>
   );
