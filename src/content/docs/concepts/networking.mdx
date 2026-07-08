@@ -91,6 +91,8 @@ dig blocked.com       # a denied domain returns REFUSED
 
 For calling external APIs without handing the Sprite a long-lived credential, [Connectors](/concepts/connectors) route the request through a gateway that holds the token for you. That's a separate mechanism from the egress policy: the policy decides what a Sprite may reach, Connectors decide what it may reach *as*.
 
+That's the shape of it: the URL and proxy control how you reach a Sprite, the egress policy controls how far it reaches back. Keep both no wider than the work needs.
+
 ## Related documentation
 
 <CardGrid client:load>
