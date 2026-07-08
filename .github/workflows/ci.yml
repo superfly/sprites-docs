@@ -230,20 +230,34 @@ jobs:
               pull_number: context.issue.number,
             });
 
+            const fs = require('fs');
             const baseUrl = '${{ needs.preview.outputs.url }}';
             const urls = new Set([baseUrl]); // Always test homepage
 
             for (const file of files) {
               // Match .mdx files in src/content/docs/
               const match = file.filename.match(/^src\/content\/docs\/(.+)\.mdx$/);
-              if (match && file.status !== 'removed') {
-                let path = match[1];
-                // index.mdx maps to root, others map to their path
-                if (path === 'index') {
-                  urls.add(baseUrl);
-                } else {
-                  urls.add(`${baseUrl}/${path}/`);
+              if (!match || file.status === 'removed') continue;
+
+              // Skip draft pages. They're excluded from the production build,
+              // so their URLs 404 on the preview deploy and fail Lighthouse.
+              try {
+                const source = fs.readFileSync(file.filename, 'utf8');
+                const frontmatter = source.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+                if (frontmatter && /^draft:\s*true\s*$/m.test(frontmatter[1])) {
+                  console.log(`Skipping draft page: ${file.filename}`);
+                  continue;
                 }
+              } catch {
+                // If the file can't be read, fall through and test it anyway.
+              }
+
+              let path = match[1];
+              // index.mdx maps to root, others map to their path
+              if (path === 'index') {
+                urls.add(baseUrl);
+              } else {
+                urls.add(`${baseUrl}/${path}/`);
               }
             }
 
