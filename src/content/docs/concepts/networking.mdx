@@ -43,10 +43,10 @@ Make it public when you actually want that behavior, for example, a webhook that
 
 ```bash
 # Anyone with the URL can reach it
-sprite url update --auth public
+sprite config update --url-auth public
 
 # Back to org-only (the default)
-sprite url update --auth sprite
+sprite config update --url-auth sprite
 ```
 
 <Callout type="warning" title="A public URL is on the open Internet">
