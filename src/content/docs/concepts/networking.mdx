@@ -1,266 +1,125 @@
 ---
 title: Networking
-description: HTTP access, URLs, port forwarding, and network configuration
-draft: true
+description: How traffic reaches a Sprite and how a Sprite reaches out. The URL and proxy that get you in, and the egress policy that governs what goes out
+publishedDate: 2026-07-08
+author: kcmartin
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
-import { Snippet, LinkCard, CardGrid } from '@/components/react';
+import { Callout, LinkCard, CardGrid } from '@/components/react';
 
-Sprites run your code in the cloud. This page is about how to talk to that code via HTTPS URLs and port forwarding that make remote services feel local. You get a public endpoint to hit your app over the Internet, and the ability to proxy ports straight to your laptop so you can test, debug, and connect tools like you're running everything on localhost.
+A Sprite runs your code in the cloud, but it's meant to feel close. There are two ways traffic gets in, an always-on HTTPS URL and a proxy that maps a remote port onto your laptop, and one policy that governs what the Sprite can reach on its way out. This page is the model for all three. The exact commands live on the pages linked throughout.
 
-## Sprite URLs
+## Reaching a Sprite
 
-Every Sprite has a unique URL for HTTPS access, for example:
+Inbound traffic arrives one of two ways, and which you pick depends on whether you want a public endpoint or a local one.
+
+- **The Sprite URL** is always on and needs no CLI. Every Sprite has one at `https://<sprite-name>-<org>.sprites.dev/`, and it routes HTTPS to the Sprite's HTTP service. It's the way to reach an app over the Internet: a webhook target, a shared demo, an API. It carries HTTP(S) to a single port.
+- **`sprite proxy`** maps a remote port onto your machine so the Sprite feels local. It forwards any TCP protocol, not just HTTP, which is how you point a database client or a browser at a service running in the Sprite. It's local to your machine, not the Internet, and it only runs while the CLI does.
 
 ```bash
+# Always-on HTTPS to the Sprite's HTTP service
 sprite url
+
+# Map the Sprite's port 5432 onto localhost:5432 for a psql client
+sprite proxy 5432
 ```
 
-```output
-https://my-sprite-abc123.sprites.app
-```
+The distinction in one line:
 
-If your code is listening on a port (say, 3000 or 8080), that URL routes traffic to it. This means you can:
+| | Sprite URL | `sprite proxy` |
+|---|---|---|
+| Protocol | HTTP(S) only | Any TCP |
+| Reach | Public Internet | Your machine only |
+| Needs the CLI running | No | Yes |
+| Ports | One (the HTTP service) | As many as you forward |
 
-- Access web applications running in your Sprite
-- Test a dev server in the cloud
-- Make API requests to services
-- Connect services to each other via HTTP
+`sprite proxy` also remaps ports (`sprite proxy 3001:3000`) and tunnels stdin and stdout for things like SSH (`sprite proxy -W :22`). And you often don't reach for it at all: when you run `sprite exec` and your command opens a listening port, the CLI forwards that port to your laptop automatically. For the full command surface and the SSH-over-proxy setup, see [Working with Sprites](/working-with-sprites#networking-urls-and-port-forwarding) and the [CLI Commands reference](/cli/commands#networking).
 
-### URL Authentication
+The HTTP service the URL routes to, including how it wakes on an incoming request and how to move it off the default port, is [Services](/concepts/services).
 
-By default, Sprite URLs are private and they require a valid token. You can make them public if you want to share a demo, open up a webhook, or quickly put something onto the Internet:
+## URL authentication
 
-<Tabs>
-<TabItem label="CLI">
+A Sprite URL is private by default. It's reachable only by members of your org, through the browser or with an org token, so standing up a service doesn't put it on the open Internet by accident.
+
+Make it public when you actually want that, a webhook that needs to be hit without a token, a demo you're sharing, something quick on the Internet:
+
 ```bash
-# Make URL public (no authentication required) - good for webhooks, public APIs, demos
+# Anyone with the URL can reach it
 sprite url update --auth public
 
-# Require sprite authentication (default) - good for internal services, development
-sprite url update --auth default
+# Back to org-only (the default)
+sprite url update --auth sprite
 ```
-</TabItem>
 
-<TabItem label="JavaScript">
-```javascript
-// Get sprite info including URL
-const info = await client.getSprite('my-sprite');
-console.log(info.url);
-```
-</TabItem>
-</Tabs>
+<Callout type="warning" title="A public URL is on the open Internet">
+Public means no authentication: anyone with the URL reaches whatever the HTTP service serves. Don't make a URL public while it exposes secrets, tokens, or internal endpoints, and put your own auth in front of anything real. Flip it back to `sprite` when you're done.
+</Callout>
 
-Updating URL settings is available via the CLI, Go SDK, or REST API (the JS SDK does not expose a helper yet).
+## Reaching out
 
-## Port Forwarding
+Outbound traffic is not wide open. A Sprite's egress is governed by a **network policy**: a DNS-based allow-list that decides which domains the Sprite can resolve and reach. A request to an allowed domain works normally. A request to one that isn't gets a DNS `REFUSED` and fails fast, rather than hanging.
 
-Here's the trick that makes Sprites feel local: port forwarding.
+The policy is a set of rules, read-only inside the Sprite at `/.sprite/policy/network.json`:
 
-Now your laptop's localhost:3000 forwards to the Sprite's port 3000. You can open a browser, curl it, or connect with tools that expect a local port.
-
-Try these examples:
-
-<Tabs>
-<TabItem label="CLI">
-```bash
-# Forward local port 3000 to sprite port 3000
-sprite proxy 3000
-
-# Forward multiple ports
-sprite proxy 3000 8080 5432
-
-# Now access locally
-curl http://localhost:3000
-```
-</TabItem>
-
-<TabItem label="Go">
-```go
-// Forward single port
-session, err := client.ProxyPort(ctx, "my-sprite", 3000, 3000)
-if err != nil {
-    log.Fatal(err)
+```json
+{
+  "rules": [
+    { "include": "defaults" },
+    { "domain": "example.com", "action": "allow" },
+    { "domain": "*.example.com", "action": "allow" },
+    { "domain": "blocked.com", "action": "deny" }
+  ]
 }
-defer session.Close()
-
-// localhost:3000 now forwards to sprite:3000
-fmt.Println("Proxy active at localhost:3000")
-
-// Forward multiple ports
-sessions, err := client.ProxyPorts(ctx, "my-sprite", []sprites.PortMapping{
-    {LocalPort: 3000, RemotePort: 3000},
-    {LocalPort: 8080, RemotePort: 80},
-    {LocalPort: 5432, RemotePort: 5432},
-})
-defer func() {
-    for _, s := range sessions {
-        s.Close()
-    }
-}()
 ```
-</TabItem>
 
-<TabItem label="Elixir">
-```elixir
-# Forward single port
-{:ok, session} = Sprites.proxy_port(sprite, 3000, 3000)
+- **`{ "include": "defaults" }`** pulls in the common development domains, GitHub, npm, PyPI, Docker Hub, and the major AI APIs among them, so package installs and model calls work without listing every host yourself.
+- **Domain rules** match an exact host (`example.com`), a subdomain wildcard (`*.example.com`), or everything (`*`). More specific rules win: an exact match beats a subdomain wildcard, which beats the global wildcard.
+- **`{ "rules": [] }`** means no enforcement. The Sprite runs unrestricted.
 
-# localhost:3000 now forwards to sprite:3000
-IO.puts("Proxy active at localhost:3000")
+A few behaviors follow from the DNS-based design:
 
-# Forward multiple ports
-mappings = [
-  %Sprites.Proxy.PortMapping{local_port: 3000, remote_port: 3000},
-  %Sprites.Proxy.PortMapping{local_port: 8080, remote_port: 80},
-  %Sprites.Proxy.PortMapping{local_port: 5432, remote_port: 5432}
-]
-{:ok, sessions} = Sprites.proxy_ports(sprite, mappings)
+- **Raw IP connections are blocked** unless the IP was resolved from an allowed domain. You can't route around the allow-list by dialing an address directly.
+- **Private IPs are always blocked**, so a Sprite can't reach into private network ranges.
+- **Changes reload live.** When a policy tightens, existing connections to newly-blocked domains are dropped rather than left open.
 
-# Stop proxy when done
-Sprites.Proxy.Session.stop(session)
-```
-</TabItem>
-</Tabs>
-
-Port forwarding works for TCP services — web servers, databases, message brokers, whatever. It's just sockets.
-
-## Real-World Examples
-
-### Starting a Web Server
-
-Run a web server and access it via the Sprite URL:
+The policy is read-only from inside: a Sprite can't rewrite its own egress rules. Changes are made from outside through the [Sprites API](https://sprites.dev/api). To test what the current policy allows, resolve a domain and watch for `REFUSED`:
 
 ```bash
-# Start a simple HTTP server
-sprite exec -detachable "python -m http.server 8080"
-
-# Get the URL
-sprite url
+dig github.com        # an allowed domain resolves
+dig blocked.com       # a denied domain returns REFUSED
 ```
 
-```output
-https://my-sprite-abc123.sprites.app
-```
+For calling external APIs without handing the Sprite a long-lived credential, [Connectors](/concepts/connectors) route the request through a gateway that holds the token for you. That's a separate mechanism from the egress policy: the policy decides what a Sprite may reach, Connectors decide what it may reach *as*.
 
-```bash
-# Access via browser or curl (after making public)
-curl https://my-sprite-abc123.sprites.app:8080/
-```
-
-### Development Server
-
-Let's say you've got a frontend or backend dev server that watches files and hot reloads.
-
-```bash
-# Start dev server in detachable session
-sprite exec -detachable "cd /home/sprite/app && npm run dev"
-
-# Forward the port locally
-sprite proxy 3000
-
-# Open in browser
-open http://localhost:3000
-```
-If your server starts dynamically (e.g. via a watcher), Sprites can emit events when a process binds a port. You can hook into those if you want to script around startup behavior.
-
-### Database Access
-
-Running a database inside a Sprite is weirdly nice. You can spin up Postgres, forward its port, and connect with your usual tools:
-
-```bash
-# Start PostgreSQL (if installed)
-sprite exec -detachable "pg_ctl start"
-
-# Forward port locally
-sprite proxy 5432
-
-# Connect with local tools
-psql -h localhost -p 5432 -U postgres
-```
-
-### Multiple Services
-
-Sprites can run multiple processes. You can forward all the ports you care about:
-
-```bash
-# Start multiple services
-sprite exec -detachable "cd /home/sprite/api && npm start"     # Port 3000
-sprite exec -detachable "cd /home/sprite/worker && npm start"  # Port 3001
-sprite exec -detachable "redis-server"                        # Port 6379
-
-# Forward all ports
-sprite proxy 3000 3001 6379
-```
-
-## Network Behavior
-
-Sprites have full network access by default:
-
-- **Outbound**: All protocols and ports. You can fetch packages, call APIs and more
-- **Inbound**: Only via Sprite URL or port forwarding
-- **DNS**: Standard resolution works
-
-The default environment includes common network tools, and you can install additional ones as needed. You can run tools like `netcat`, `curl`, or `nmap` or `wget`. Nothing is artificially restricted and this isn't a locked-down environment.
-
-Example network tool installation:
-```bash
-sprite exec "apt-get update && apt-get install -y nmap netcat"
-```
-
-## Troubleshooting
-
-**Not seeing your app on the URL?** Make sure it's listening on `0.0.0.0`, not `localhost`. The router can't see loopback-only services.
-
-**Forwarded port not responding?** Check the app is actually running, and that you forwarded the right port. Use `sprite ps` to see running processes.
-
-**Getting a 403 on your Sprite URL?** It's probably set to private. Make it public with `sprite url --public` or authenticate with a token.
-
-**Dynamic apps not ready right away?** If your service binds ports after startup, you can use port open events from the SDK to wait for readiness.
-
-## Security Notes
-
-By default, your Sprite isn't publicly accessible. That's on purpose. You control what gets exposed — either by forwarding a port or making the Sprite's URL public.
-
-A few things to keep in mind:
-
-- **Only expose what you actually need** - Run services on specific ports
-- **Use app-level auth** - If you're building anything real, implement your own authentication
-- **Forwarded ports are reachable from your machine** — Not the wider Internet.
-- **Temporary exposure** - Make public only when needed.
-
-We don't add firewall rules or block inbound traffic to forwarded ports, but we also don't auto-protect what you expose. You're in control, which is powerful — and dangerous, if you're not paying attention. Keep it minimal and secure.
-
-## Related Documentation
+## Related documentation
 
 <CardGrid client:load>
   <LinkCard
-    href="/working-with-sprites"
+    href="/working-with-sprites#networking-urls-and-port-forwarding"
     title="Working with Sprites"
-    description="Beyond the basics guide to using Sprites"
+    description="Port forwarding, URL auth, and SSH over the proxy in practice"
     icon="book-open"
     client:load
   />
   <LinkCard
-    href="/cli/commands"
+    href="/concepts/services"
+    title="Services"
+    description="The HTTP service the URL routes to, and waking on a request"
+    icon="cog"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/connectors"
+    title="Connectors"
+    description="Reach external APIs with credentials brokered for you"
+    icon="arrow-up-right"
+    client:load
+  />
+  <LinkCard
+    href="/cli/commands#networking"
     title="CLI Commands"
-    description="Complete command reference"
+    description="Full reference for sprite url and sprite proxy"
     icon="terminal"
-    client:load
-  />
-  <LinkCard
-    href="/reference/configuration"
-    title="Configuration"
-    description="Network settings and options"
-    icon="settings"
-    client:load
-  />
-  <LinkCard
-    href="/concepts/lifecycle"
-    title="Lifecycle"
-    description="Hibernation and persistence behavior"
-    icon="layers"
     client:load
   />
 </CardGrid>
