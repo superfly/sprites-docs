@@ -57,7 +57,7 @@ Public means no authentication: anyone with the URL reaches whatever the HTTP se
 
 ## Reaching out
 
-Outbound traffic is not wide open. A Sprite's egress is governed by a **network policy**: a DNS-based allow-list that decides which domains the Sprite can resolve and reach. A request to an allowed domain works normally. A request to one that isn't gets a DNS `REFUSED` and fails fast, rather than hanging.
+Outbound traffic is not wide open. A Sprite's egress is governed by a **network policy**: a DNS-based allowlist that decides which domains the Sprite can resolve and reach. A request to an allowed domain works normally. A request to one that isn't gets a DNS `REFUSED` and fails fast, rather than hanging.
 
 The policy is a set of rules, read-only inside the Sprite at `/.sprite/policy/network.json`:
 
@@ -78,7 +78,7 @@ The policy is a set of rules, read-only inside the Sprite at `/.sprite/policy/ne
 
 A few behaviors follow from the DNS-based design:
 
-- **Raw IP connections are blocked** unless the IP was resolved from an allowed domain. You can't route around the allow-list by dialing an address directly.
+- **Raw IP connections are blocked** unless the IP was resolved from an allowed domain. You can't route around the allowlist by dialing an address directly.
 - **Private IPs are always blocked**, so a Sprite can't reach into private network ranges.
 - **Changes reload live.** When a policy tightens, existing connections to newly-blocked domains are dropped rather than left open.
 
