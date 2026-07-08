@@ -7,7 +7,7 @@ author: kcmartin
 
 import { Callout, LinkCard, CardGrid } from '@/components/react';
 
-A Sprite runs your code in the cloud, but it's meant to feel close. Traffic gets in two ways, an always-on HTTPS URL and a proxy that maps a remote port onto your laptop, while a single policy governs what the Sprite can reach on its way out. This page is the model for both directions: how you reach in, and what a Sprite can reach going out. The exact commands live on the pages linked throughout.
+A Sprite runs your code in the cloud, but it's meant to feel close. Traffic gets in two ways, an always-on HTTPS URL and a proxy that maps a remote port onto your laptop. A network policy governs what the Sprite can reach on its way out. This page is the model for both directions: how you reach in, and what a Sprite can reach going out. The exact commands live on the pages linked throughout.
 
 ## Reaching a Sprite
 
@@ -17,8 +17,8 @@ Inbound traffic arrives one of two ways, and which you pick depends on whether y
 - **`sprite proxy`** maps a remote port onto your machine so the Sprite feels local. It forwards any TCP protocol, not just HTTP, which is how you point a database client or a browser at a service running in the Sprite. It's local to your machine, not the Internet, and it only runs while the CLI does.
 
 ```bash
-# Always-on HTTPS to the Sprite's HTTP service
-sprite url
+# Show the Sprite's URL and its auth setting
+sprite info
 
 # Map the Sprite's port 5432 onto localhost:5432 for a psql client
 sprite proxy 5432
@@ -120,7 +120,7 @@ That's the shape of networking on Sprites: the URL and proxy control how you rea
   <LinkCard
     href="/cli/commands#networking"
     title="CLI Commands"
-    description="Full reference for sprite url and sprite proxy"
+    description="Full reference for the URL and proxy commands"
     icon="terminal"
     client:load
   />
