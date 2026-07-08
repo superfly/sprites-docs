@@ -13,7 +13,7 @@ A Sprite runs your code in the cloud, but it's meant to feel close. Traffic gets
 
 Inbound traffic arrives one of two ways, and which you pick depends on whether you want a public endpoint or a local one.
 
-- **The Sprite URL** is how you reach an app over the Internet: a webhook target, a shared demo, an API. Every Sprite has one at `https://<sprite-name>-<org>.sprites.app/`, and it routes HTTPS to the Sprite's HTTP service. It's always on: no CLI required.
+- **The Sprite URL** is how you reach an app over the Internet: a webhook target, a shared demo, an API. Every Sprite has one at `https://<sprite-name>-<org-id>.sprites.app/` (the org ID is a short generated identifier; `sprite info` prints your exact URL), and it routes HTTPS to the Sprite's HTTP service. It's always on: no CLI required.
 - **`sprite proxy`** is how you make a Sprite feel local: it maps a remote port onto your machine, so you can point a database client or a browser at a service running in the Sprite.
 
 ```bash
