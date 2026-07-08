@@ -101,14 +101,14 @@ Your Sprite stays awake while there's activity, and sleeps when there isn't. Act
 
 ## Networking: URLs and Port Forwarding
 
-Every Sprite gets a URL: `https://<name>.sprites.app`
+Every Sprite gets a URL: `https://<name>-<org>.sprites.app`
 
 ### HTTP Access
 
 ```bash
-sprite url                      # see URL
-sprite url update --auth public # make public
-sprite url update --auth default # make private again
+sprite info                              # see URL and auth setting
+sprite config update --url-auth public   # make public
+sprite config update --url-auth sprite   # back to org-only (the default)
 ```
 
 - Routes to port 8080 by default (or first HTTP port opened)
