@@ -35,7 +35,7 @@ The distinction in one line:
 
 `sprite proxy` also remaps ports (`sprite proxy 3001:3000`) and tunnels stdin and stdout for things like SSH (`sprite proxy -W :22`). And you often don't reach for it at all: when you run `sprite exec` and your command opens a listening port, the CLI forwards that port to your laptop automatically. For the full command surface and the SSH-over-proxy setup, see [Working with Sprites](/working-with-sprites#networking-urls-and-port-forwarding) and the [CLI Commands reference](/cli/commands#networking).
 
-The HTTP service the URL routes to, including how it wakes on an incoming request and how to move it off the default port, is [Services](/concepts/services).
+The HTTP service the URL routes to, including how it wakes on an incoming request and how to move it off the default port, is covered in [Services](/concepts/services).
 
 ## URL authentication
 
