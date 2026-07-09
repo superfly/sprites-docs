@@ -1,5 +1,5 @@
 ---
-// Custom ThemeProvider that defaults to dark instead of system preference
+// Custom ThemeProvider that defaults to light instead of system preference
 ---
 
 {/* This is intentionally inlined to avoid FOUC. */}
@@ -7,12 +7,12 @@
 	window.StarlightThemeProvider = (() => {
 		const storedTheme =
 			typeof localStorage !== 'undefined' ? localStorage.getItem('starlight-theme') : null;
-		// null = never set any preference → default to dark
+		// null = never set any preference → default to light
 		// '' (empty string) = user chose 'auto' → use system preference
 		// 'light'/'dark' = user chose explicitly
 		let theme;
 		if (storedTheme === null) {
-			theme = 'dark';
+			theme = 'light';
 		} else if (storedTheme === '') {
 			theme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
 		} else {

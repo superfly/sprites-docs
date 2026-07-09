@@ -141,6 +141,7 @@ export const sidebarConfig: SidebarGroup[] = [
       { label: 'Checkpoints', slug: 'concepts/checkpoints' },
       { label: 'Connectors', slug: 'concepts/connectors' },
       { label: 'Lifecycle and Persistence', slug: 'concepts/lifecycle' },
+      { label: 'Networking', slug: 'concepts/networking' },
       { label: 'Services', slug: 'concepts/services' },
     ],
   },
@@ -154,7 +155,13 @@ export const sidebarConfig: SidebarGroup[] = [
   },
   {
     label: 'Integrations',
-    items: [{ label: 'Remote MCP Server', slug: 'integrations/remote-mcp' }],
+    items: [
+      { label: 'Remote MCP Server', slug: 'integrations/remote-mcp' },
+      {
+        label: 'Claude Managed Agents',
+        slug: 'integrations/claude-managed-agents',
+      },
+    ],
   },
   // {
   //   label: 'API Reference',
