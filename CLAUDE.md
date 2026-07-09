@@ -50,7 +50,7 @@ Custom Starlight components in `src/components/` override defaults: `Head.astro`
 ## Styling Notes
 
 - Theme uses rounded corners (`--radius: 0.5rem`)
-- Dark mode is default; light mode uses violet accent (hue 285), dark uses teal/green (hue ~145)
+- Light mode is default; light mode uses violet accent (hue 285), dark uses teal/green (hue ~145)
 - Tailwind v4 custom variant: `@custom-variant dark (&:is(.dark *, [data-theme="dark"] *))`
 - Tables are auto-styled via rehype plugin with `data-slot` attributes for CSS targeting
 

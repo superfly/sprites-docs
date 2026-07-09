@@ -27,7 +27,7 @@ function getTheme(): Theme {
       return stored === '' ? 'auto' : stored;
     }
   }
-  return 'dark';
+  return 'light';
 }
 
 function setTheme(theme: Theme) {
