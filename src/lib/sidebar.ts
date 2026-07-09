@@ -141,6 +141,7 @@ export const sidebarConfig: SidebarGroup[] = [
       { label: 'Checkpoints', slug: 'concepts/checkpoints' },
       { label: 'Connectors', slug: 'concepts/connectors' },
       { label: 'Lifecycle and Persistence', slug: 'concepts/lifecycle' },
+      { label: 'Networking', slug: 'concepts/networking' },
       { label: 'Services', slug: 'concepts/services' },
     ],
   },
