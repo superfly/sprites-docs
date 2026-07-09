@@ -563,10 +563,11 @@
   opacity: 1 !important;
 }
 
-/* Inline code as a light-lavender chip, like fly.io/docs */
+/* Inline code as a light-lavender chip with violet text, matching the callout
+   code styling so inline code reads identically everywhere. */
 :not(pre) > code {
   background: var(--sl-color-bg-inline-code);
-  color: #191034;
+  color: #7c3aed;
   padding: 0.1em 0.36em;
   border-radius: 0.35rem;
   font-size: 0.9em;
@@ -574,7 +575,7 @@
 }
 
 [data-theme='dark'] :not(pre) > code {
-  color: #e7e2f7;
+  color: #c4b5fd;
 }
 
 /*
