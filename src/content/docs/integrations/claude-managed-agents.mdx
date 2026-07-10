@@ -3,8 +3,7 @@ title: Claude Managed Agents
 description: Run Anthropic Claude Managed Agents with tool execution inside your own Sprites
 ---
 
-import { Callout } from '@/components/react';
-import SelfHostedDiagram from '@/components/SelfHostedDiagram.astro';
+import { Callout, ThemeImage } from '@/components/react';
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 <img
@@ -21,7 +20,14 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 A self-hosted environment is a work queue. When a session is assigned to it, Anthropic enqueues a work item. A worker you run claims the item and starts a per-session Sprite that runs Anthropic's tool runner. Tool inputs and outputs flow back to Anthropic so the model can see results; everything the tools touch stays in the Sprite.
 
-<SelfHostedDiagram />
+<ThemeImage
+  light="/images/integrations/claude-managed-agents-light.webp"
+  dark="/images/integrations/claude-managed-agents-dark.webp"
+  alt="Lifecycle loop: the Claude Platform enqueues a work item; a worker you run claims it and launches a per-session Sprite, and tool calls round-trip between the Platform and the Sprite where everything the tools touch stays"
+  width={1672}
+  height={941}
+  style={{ maxWidth: '42rem', marginInline: 'auto', marginBlock: '2rem' }}
+/>
 
 The runner authenticates with an **environment key**, the only credential it needs for both the control plane and the per-session calls. Your organization API key never reaches the Sprite.
 

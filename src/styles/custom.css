@@ -2135,3 +2135,26 @@ h2.method-title {
   --co-decoration-hover: #1e3a8a99;
   --co-link-hover: #172554;
 }
+
+/* Theme-aware image swap (ThemeImage component)
+   Both variants render into the DOM; CSS shows the one matching the active
+   theme. The images have transparent (keyed) backgrounds, so the artwork floats
+   on any surface with no blend mode or matching backdrop needed. */
+.theme-image-frame {
+  display: block;
+  line-height: 0;
+}
+.theme-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.theme-image--dark {
+  display: none;
+}
+[data-theme='dark'] .theme-image--light {
+  display: none;
+}
+[data-theme='dark'] .theme-image--dark {
+  display: block;
+}

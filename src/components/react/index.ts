@@ -36,4 +36,5 @@ export { SearchDialog } from './SearchDialog';
 export { SearchDialogWrapper } from './SearchDialogWrapper';
 export { StatusBadge, StatusCodes } from './StatusCodes';
 export { StatusIcon } from './StatusIcon';
+export { ThemeImage } from './ThemeImage';
 export { ThemeSwitcher } from './ThemeSwitcher';
