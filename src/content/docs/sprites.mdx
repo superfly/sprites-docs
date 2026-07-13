@@ -571,13 +571,13 @@ Every Sprite has a unique URL for HTTP access:
 <TabItem label="CLI">
 ```bash
 # Get sprite URL
-sprite url
+sprite info
 
 # Make URL public (no auth required)
-sprite url update --auth public
+sprite config update --url-auth public
 
 # Make URL require sprite auth (default)
-sprite url update --auth default
+sprite config update --url-auth sprite
 ```
 </TabItem>
 

@@ -126,7 +126,7 @@ Every Sprite has a unique HTTP URL and can serve traffic. This makes it perfect 
 First, get your Sprite's public URL:
 
 ```bash
-sprite url
+sprite info
 ```
 
 Then start a simple Python server:
@@ -141,10 +141,10 @@ Visit the URL in your browser—you'll see Python's directory listing page. Pres
 By default, your Sprite's URL requires authentication. To make it publicly accessible, run:
 
 ```bash
-sprite url update --auth public
+sprite config update --url-auth public
 ```
 
-The `default` auth mode requires a Sprite token with Bearer authentication.
+The `sprite` auth mode (the default) requires a Sprite token with Bearer authentication.
 </Callout>
 
 ### Test on-demand wake-up

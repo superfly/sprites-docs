@@ -18,10 +18,10 @@ Configure HTTP access to your Sprite:
 
 ```bash
 # Make URL public
-sprite url update --auth public
+sprite config update --url-auth public
 
-# Require authentication
-sprite url update --auth default
+# Require authentication (the default)
+sprite config update --url-auth sprite
 ```
 
 For the REST API and Go SDK, use `sprite` or `public` for `url_settings.auth`.
