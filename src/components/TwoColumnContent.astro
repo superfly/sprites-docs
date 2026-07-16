@@ -1,0 +1,65 @@
+---
+/**
+ * Override of Starlight's default `TwoColumnContent`. Upstream pins the
+ * right TOC with `position: fixed`, which leaves it floating on top of the
+ * site footer at full scroll. Here it is `position: sticky` instead, so it
+ * is bounded by its container and gets pushed up together with the content
+ * when the footer scrolls into view (mirroring the sidebar rail change in
+ * `PageFrame.astro`). Everything else is copied verbatim from upstream.
+ */
+---
+
+<div class="lg:sl-flex">
+  {
+    Astro.locals.starlightRoute.toc && (
+      <aside class="right-sidebar-container print:hidden">
+        <div class="right-sidebar">
+          <slot name="right-sidebar" />
+        </div>
+      </aside>
+    )
+  }
+  <div class="main-pane"><slot /></div>
+</div>
+
+<style>
+  @layer starlight.core {
+    .main-pane {
+      isolation: isolate;
+    }
+
+    @media (min-width: 72rem) {
+      .right-sidebar-container {
+        order: 2;
+        position: relative;
+        width: calc(
+          var(--sl-sidebar-width) + (100% - var(--sl-content-width) - var(--sl-sidebar-width)) / 2
+        );
+      }
+
+      .right-sidebar {
+        position: sticky;
+        top: 0;
+        border-inline-start: 1px solid var(--sl-color-hairline);
+        padding-top: var(--sl-nav-height);
+        width: 100%;
+        height: 100vh;
+        overflow-y: auto;
+        scrollbar-width: none;
+      }
+
+      .main-pane {
+        width: 100%;
+      }
+
+      :global([data-has-sidebar][data-has-toc]) .main-pane {
+        --sl-content-margin-inline: auto 0;
+
+        order: 1;
+        width: calc(
+          var(--sl-content-width) + (100% - var(--sl-content-width) - var(--sl-sidebar-width)) / 2
+        );
+      }
+    }
+  }
+</style>
