@@ -221,16 +221,33 @@ async function fetchJSON<T>(url: string): Promise<T> {
   return response.json();
 }
 
+const EMPTY_EXAMPLES: SDKExamples = { endpoints: {}, management: {} };
+
+/**
+ * Fetch a per-language SDK examples file, tolerating a missing (404) file.
+ * Not every API version publishes examples for every SDK, so a missing file
+ * yields an empty example set (that language's tabs are simply omitted)
+ * rather than failing the whole generation run.
+ */
+async function fetchSDKExamples(url: string): Promise<SDKExamples> {
+  try {
+    return await fetchJSON<SDKExamples>(url);
+  } catch (err) {
+    console.warn(`  ⚠️  Skipping unavailable SDK examples: ${url} (${err})`);
+    return EMPTY_EXAMPLES;
+  }
+}
+
 async function fetchAllData(baseUrl: string) {
   console.log(`Fetching API schema and SDK examples from ${baseUrl}...`);
 
   const [schema, goExamples, jsExamples, pythonExamples, elixirExamples] =
     await Promise.all([
       fetchJSON<APISchema>(`${baseUrl}/api_schema.json`),
-      fetchJSON<SDKExamples>(`${baseUrl}/go-examples.json`),
-      fetchJSON<SDKExamples>(`${baseUrl}/js-examples.json`),
-      fetchJSON<SDKExamples>(`${baseUrl}/python-examples.json`),
-      fetchJSON<SDKExamples>(`${baseUrl}/elixir-examples.json`),
+      fetchSDKExamples(`${baseUrl}/go-examples.json`),
+      fetchSDKExamples(`${baseUrl}/js-examples.json`),
+      fetchSDKExamples(`${baseUrl}/python-examples.json`),
+      fetchSDKExamples(`${baseUrl}/elixir-examples.json`),
     ]);
 
   return { schema, goExamples, jsExamples, pythonExamples, elixirExamples };
