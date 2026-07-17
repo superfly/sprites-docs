@@ -119,6 +119,8 @@ export default defineConfig({
       components: {
         Head: './src/components/Head.astro',
         Header: './src/components/Header.astro',
+        PageFrame: './src/components/PageFrame.astro',
+        TwoColumnContent: './src/components/TwoColumnContent.astro',
         Search: './src/components/Search.astro',
         Sidebar: './src/components/Sidebar.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',

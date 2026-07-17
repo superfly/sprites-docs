@@ -1,0 +1,142 @@
+---
+/**
+ * Override of Starlight's default `PageFrame` with two changes:
+ *
+ * 1. A site-wide `SiteFooter` is appended after the main content.
+ * 2. On desktop the sidebar rail is `position: sticky` inside normal flow
+ *    (upstream uses `position: fixed`), wrapped together with `.main-frame`
+ *    in a `.page-body` row. Because the sticky pane is bounded by
+ *    `.page-body`, scrolling to the bottom pushes the sidebar up with the
+ *    content instead of leaving it pinned underneath the footer. The right
+ *    TOC gets the same treatment in `TwoColumnContent.astro`.
+ *
+ * Mobile behaviour (drawer overlay) is copied verbatim from upstream.
+ */
+import MobileMenuToggle from 'virtual:starlight/components/MobileMenuToggle';
+import SiteFooter from './SiteFooter.astro';
+
+const { hasSidebar } = Astro.locals.starlightRoute;
+---
+
+<div class="page sl-flex">
+  <header class="header"><slot name="header" /></header>
+  <div class="page-body">
+    {
+      hasSidebar && (
+        <nav class="sidebar print:hidden" aria-label={Astro.locals.t('sidebarNav.accessibleLabel')}>
+          <MobileMenuToggle />
+          <div id="starlight__sidebar" class="sidebar-pane">
+            <div class="sidebar-content sl-flex">
+              <slot name="sidebar" />
+            </div>
+          </div>
+        </nav>
+      )
+    }
+    <div class="main-frame"><slot /></div>
+  </div>
+  <SiteFooter />
+</div>
+
+<style>
+  @layer starlight.core {
+    .page {
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Grows so the footer sits at the viewport bottom on short pages. */
+    .page-body {
+      flex: 1;
+    }
+
+    .header {
+      z-index: var(--sl-z-index-navbar);
+      position: fixed;
+      inset-inline-start: 0;
+      inset-block-start: 0;
+      width: 100%;
+      height: var(--sl-nav-height);
+      border-bottom: 1px solid var(--sl-color-hairline-shade);
+      padding: var(--sl-nav-pad-y) var(--sl-nav-pad-x);
+      padding-inline-end: var(--sl-nav-pad-x);
+      background-color: var(--sl-color-bg-nav);
+    }
+
+    :global([data-has-sidebar]) .header {
+      padding-inline-end: calc(
+        var(--sl-nav-gap) + var(--sl-nav-pad-x) + var(--sl-menu-button-size)
+      );
+    }
+
+    /* Mobile: full-screen drawer overlay (as upstream). */
+    .sidebar-pane {
+      visibility: var(--sl-sidebar-visibility, hidden);
+      position: fixed;
+      z-index: var(--sl-z-index-menu);
+      inset-block: var(--sl-nav-height) 0;
+      inset-inline-start: 0;
+      width: 100%;
+      background-color: var(--sl-color-black);
+      overflow-y: auto;
+    }
+
+    :global([aria-expanded='true']) ~ .sidebar-pane {
+      --sl-sidebar-visibility: visible;
+    }
+
+    .sidebar-content {
+      height: 100%;
+      min-height: max-content;
+      padding: 1rem var(--sl-sidebar-pad-x) 0;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    @media (min-width: 50rem) {
+      .sidebar-content::after {
+        content: '';
+        padding-bottom: 1px;
+      }
+    }
+
+    .main-frame {
+      padding-top: calc(var(--sl-nav-height) + var(--sl-mobile-toc-height));
+      padding-inline-start: var(--sl-content-inline-start);
+    }
+
+    @media (min-width: 50rem) {
+      :global([data-has-sidebar]) .header {
+        padding-inline-end: var(--sl-nav-pad-x);
+      }
+
+      /* Desktop: sidebar becomes an in-flow sticky rail next to the content. */
+      .page-body {
+        display: flex;
+        align-items: stretch;
+      }
+
+      .sidebar {
+        width: var(--sl-sidebar-width);
+        flex-shrink: 0;
+      }
+
+      .sidebar-pane {
+        --sl-sidebar-visibility: visible;
+        position: sticky;
+        inset-block: var(--sl-nav-height) auto;
+        inset-inline-start: auto;
+        width: 100%;
+        height: calc(100vh - var(--sl-nav-height));
+        background-color: var(--sl-color-bg-sidebar);
+        border-inline-end: 1px solid var(--sl-color-hairline-shade);
+      }
+
+      .main-frame {
+        flex: 1;
+        min-width: 0;
+        padding-inline-start: 0;
+      }
+    }
+  }
+</style>

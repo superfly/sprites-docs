@@ -1,0 +1,214 @@
+---
+/**
+ * Site-wide footer adapted from the fly.io marketing site (ui-ex
+ * `static_footer.html.heex`). Rendered once per page via the `PageFrame`
+ * override, positioned to the right of Starlight's fixed nav rail.
+ *
+ * Theme-aware: a light surface + dark wordmark in light mode, a deep violet
+ * surface + inverted (white) wordmark in dark mode. The logo swap reuses the
+ * `.theme-image--light` / `.theme-image--dark` classes from custom.css.
+ */
+const year = new Date().getFullYear();
+
+const columns = [
+  {
+    heading: 'Company',
+    links: [
+      { label: 'About', href: 'https://fly.io/about/' },
+      { label: 'Pricing', href: 'https://fly.io/pricing/' },
+      { label: 'Jobs', href: 'https://fly.io/jobs/' },
+    ],
+  },
+  {
+    heading: 'Articles',
+    links: [
+      { label: 'Blog', href: 'https://fly.io/blog/' },
+      { label: 'Sprites', href: 'https://fly.io/sprites-blog/' },
+      { label: 'Infra Log', href: 'https://fly.io/infra-log/' },
+      { label: 'Toolbox Turnout', href: 'https://fly.io/toolbox-turnout/' },
+      { label: 'Phoenix Files', href: 'https://fly.io/phoenix-files/' },
+      { label: 'Laravel Bytes', href: 'https://fly.io/laravel-bytes/' },
+      { label: 'Ruby Dispatch', href: 'https://fly.io/ruby-dispatch/' },
+      { label: 'Django Beats', href: 'https://fly.io/django-beats/' },
+      { label: 'JavaScript Journal', href: 'https://fly.io/javascript-journal/' },
+    ],
+  },
+  {
+    heading: 'Resources',
+    links: [
+      { label: 'Docs', href: 'https://fly.io/docs/' },
+      { label: 'Customers', href: 'https://fly.io/customers' },
+      { label: 'Support', href: 'https://fly.io/docs/support/' },
+      { label: 'Support Metrics', href: 'https://fly.io/support/' },
+      { label: 'Status', href: 'https://status.flyio.net/' },
+    ],
+  },
+  {
+    heading: 'Contact',
+    links: [
+      { label: 'GitHub', href: 'https://github.com/superfly/' },
+      { label: 'Twitter', href: 'https://twitter.com/flydotio' },
+      { label: 'Community', href: 'https://community.fly.io/' },
+    ],
+  },
+  {
+    heading: 'Legal',
+    links: [
+      { label: 'Security', href: 'https://fly.io/security/' },
+      { label: 'Privacy policy', href: 'https://fly.io/legal/privacy-policy' },
+      { label: 'Terms of service', href: 'https://fly.io/legal/terms-of-service' },
+      { label: 'Acceptable Use Policy', href: 'https://fly.io/legal/acceptable-use-policy' },
+    ],
+  },
+];
+---
+
+<footer class="site-footer" role="contentinfo">
+  <div class="site-footer__inner">
+    <a class="site-footer__brand" href="https://fly.io/" aria-label="Fly.io">
+      <span class="theme-image-frame">
+        <img
+          class="theme-image theme-image--light"
+          src="/images/fly-logo-landscape.svg"
+          alt="Fly.io"
+          width="120"
+          height="36"
+        />
+        <img
+          class="theme-image theme-image--dark"
+          src="/images/fly-logo-landscape-inverted.svg"
+          alt="Fly.io"
+          width="120"
+          height="36"
+          aria-hidden="true"
+        />
+      </span>
+    </a>
+
+    <div class="site-footer__columns">
+      {
+        columns.map((column) => (
+          <dl class="site-footer__column">
+            <dt class="site-footer__heading">{column.heading}</dt>
+            <dd class="site-footer__links">
+              {column.links.map((link) => (
+                <a class="site-footer__link" href={link.href}>
+                  {link.label}
+                </a>
+              ))}
+            </dd>
+          </dl>
+        ))
+      }
+    </div>
+  </div>
+
+  <p class="site-footer__copyright">Copyright &copy;&nbsp;{year}&nbsp;Fly.io</p>
+</footer>
+
+<style>
+  /* Full viewport width, in normal flow after `.page-body`. The sidebars are
+     sticky and bounded by `.page-body` (see PageFrame/TwoColumnContent), so
+     they scroll up with the page as the footer comes into view. */
+  .site-footer {
+    padding: 3rem var(--sl-content-pad-x, 1.5rem) 2rem;
+    font-size: var(--sl-text-sm);
+    line-height: 1.5;
+    border-top: 1px solid var(--footer-border);
+    background: var(--footer-bg);
+    color: var(--footer-text);
+  }
+
+  /* Light theme (default). */
+  .site-footer {
+    --footer-bg: #faf9fe;
+    --footer-border: var(--border, #e1e4ef);
+    --footer-text: #6c6f86;
+    --footer-heading: #22183c;
+    --footer-hover: #7c3aed;
+    --footer-muted: #8b8da0;
+  }
+
+  /* Dark theme — deep violet surface echoing the fly.io marketing footer. */
+  :global([data-theme='dark']) .site-footer {
+    --footer-bg: linear-gradient(135deg, #1b1630 0%, #17131f 55%, #131019 100%);
+    --footer-border: #2a2440;
+    --footer-text: #9a93ad;
+    --footer-heading: #f3f1fb;
+    --footer-hover: #b69bff;
+    --footer-muted: #6f6a82;
+  }
+
+  .site-footer__inner {
+    max-width: 80rem;
+    margin-inline: auto;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 2.5rem 4rem;
+  }
+
+  .site-footer__brand {
+    display: inline-flex;
+    line-height: 0;
+  }
+
+  .site-footer__brand img {
+    width: 120px;
+    height: auto;
+  }
+
+  .site-footer__columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .site-footer__column {
+    margin: 0;
+  }
+
+  .site-footer__heading {
+    margin: 0 0 0.75rem;
+    font-size: var(--sl-text-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--footer-heading);
+  }
+
+  .site-footer__links {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .site-footer__link {
+    color: var(--footer-text);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s ease;
+  }
+
+  .site-footer__link:hover {
+    color: var(--footer-hover);
+  }
+
+  .site-footer__copyright {
+    max-width: 80rem;
+    margin: 2.5rem auto 0;
+    font-size: var(--sl-text-xs);
+    text-align: center;
+    color: var(--footer-muted);
+  }
+
+  @media (max-width: 50rem) {
+    .site-footer__inner {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+  }
+</style>
