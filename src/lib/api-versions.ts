@@ -18,9 +18,9 @@ export interface APIVersion {
 
 export const API_VERSIONS: APIVersion[] = [
   {
-    id: 'v0.0.1-rc30',
-    label: 'v0.0.1-rc30',
-    schemaUrl: 'https://sprites-binaries.t3.storage.dev/api/v0.0.1-rc30',
+    id: 'v0.0.1-rc46',
+    label: 'v0.0.1-rc46',
+    schemaUrl: 'https://sprites-binaries.t3.storage.dev/api/v0.0.1-rc46',
     isLatest: true,
     badge: 'stable',
   },
