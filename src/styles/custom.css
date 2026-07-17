@@ -602,10 +602,12 @@ header.header {
 /* Separator between social icons and theme select */
 header.header .social-icons::after {
   margin-inline-start: 0.5rem;
+  height: 1.5rem;
+  border-color: var(--sl-color-gray-6);
 }
 
 [data-theme='dark'] header.header .social-icons::after {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Remove borders between sections (except header) */
@@ -752,23 +754,31 @@ h1, h2, h3, h4, h5, h6 {
 
 .sl-anchor-link {
   position: absolute;
-  right: calc(100% + 0.5rem);
+  right: calc(100% + 0.25rem);
   top: 50%;
-  transform: translateY(-35%);
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.3rem;
-  border: 1px solid var(--sl-color-gray-4);
-  border-radius: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
   opacity: 0;
-  color: var(--sl-color-white) !important;
+  color: var(--sl-color-gray-3) !important;
   text-decoration: none !important;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.sl-anchor-link:hover {
+  color: var(--sl-color-white) !important;
+  background-color: var(--sl-color-gray-6);
 }
 
 [data-theme='light'] .sl-anchor-link {
-  color: var(--sl-color-white) !important;
+  color: var(--sl-color-gray-3) !important;
+}
+
+[data-theme='light'] .sl-anchor-link:hover {
+  color: var(--sl-color-black) !important;
 }
 
 .sl-anchor-link svg {

@@ -2,6 +2,7 @@ import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { StarlightUserConfig } from '@astrojs/starlight/types';
+import { apiSidebarConfig } from './api-sidebar';
 
 type SidebarConfig = NonNullable<StarlightUserConfig['sidebar']>;
 type SidebarGroup = Extract<SidebarConfig[number], { items: unknown }>;
@@ -163,10 +164,10 @@ export const sidebarConfig: SidebarGroup[] = [
       },
     ],
   },
-  // {
-  //   label: 'API Reference',
-  //   // Items are auto-generated from API schema by scripts/generate-api-docs.ts
-  //   // Links are dynamically rewritten by Sidebar.astro based on current URL version
-  //   items: apiSidebarConfig,
-  // },
+  {
+    label: 'API Reference',
+    // Items are auto-generated from API schema by scripts/generate-api-docs.ts
+    // Links are dynamically rewritten by Sidebar.astro based on current URL version
+    items: apiSidebarConfig,
+  },
 ];
