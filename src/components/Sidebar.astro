@@ -6,6 +6,7 @@ import {
 	API_VERSIONS,
 	transformSidebarForVersion,
 	type SidebarEntry,
+	type SidebarGroup,
 } from '@/lib/api-versions';
 
 const currentPath = Astro.url.pathname;
@@ -14,34 +15,95 @@ const currentPath = Astro.url.pathname;
 const versionId = getVersionFromPath(currentPath);
 const showVersionSelector = versionId !== null && API_VERSIONS.length > 1;
 
-// Transform sidebar links to use the current API version
-// This ensures sidebar links match the version the user is viewing
-if (versionId && Astro.locals.starlightRoute?.sidebar) {
-	const originalSidebar = Astro.locals.starlightRoute.sidebar as SidebarEntry[];
-	Astro.locals.starlightRoute.sidebar = transformSidebarForVersion(
-		originalSidebar,
-		versionId,
+// The API Reference is a dedicated section: on /api/* pages it owns the whole
+// sidebar; on docs pages it appears as a single entry point instead of a group.
+const isApiSection = currentPath === '/api' || currentPath.startsWith('/api/');
+
+if (Astro.locals.starlightRoute?.sidebar) {
+	const sidebar = Astro.locals.starlightRoute.sidebar as SidebarEntry[];
+	const apiGroup = sidebar.find(
+		(entry): entry is SidebarGroup =>
+			entry.type === 'group' && entry.label === 'API Reference',
 	);
+
+	if (isApiSection) {
+		// API pages: promote the API group's entries to the top level, expand
+		// every endpoint group, and rewrite links to match the version the
+		// user is viewing.
+		const entries = (apiGroup ? apiGroup.entries : sidebar).map((entry) =>
+			entry.type === 'group' ? { ...entry, collapsed: false } : entry,
+		);
+		Astro.locals.starlightRoute.sidebar = versionId
+			? transformSidebarForVersion(entries, versionId)
+			: entries;
+	} else if (apiGroup) {
+		// Docs pages: drop the API group — the header nav links into the section.
+		Astro.locals.starlightRoute.sidebar = sidebar.filter(
+			(entry) => entry !== apiGroup,
+		);
+	}
 }
 ---
+
+{isApiSection && (
+	<div class="sidebar-api-header">
+		<a href="/" class="sidebar-docs-button">
+			<svg
+				width="14"
+				height="14"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<path d="m12 19-7-7 7-7" />
+				<path d="M19 12H5" />
+			</svg>
+			Documentation
+		</a>
+		{showVersionSelector && (
+			<VersionSelector client:load currentPath={currentPath} />
+		)}
+	</div>
+)}
 
 <StarlightSidebar {...Astro.props}>
 	<slot />
 </StarlightSidebar>
 
-{showVersionSelector && (
-	<div class="sidebar-version-selector">
-		<VersionSelector client:load currentPath={currentPath} />
-	</div>
-)}
-
 {/* Version redirect is handled in Head.astro for earliest execution */}
 
 <style>
-	.sidebar-version-selector {
-		position: sticky;
-		bottom: 0;
-		padding: 1rem;
-		margin-top: auto;
+	.sidebar-api-header {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+
+	.sidebar-docs-button {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		height: 2.25rem;
+		padding: 0 0.75rem;
+		font-size: var(--sl-text-sm);
+		font-weight: 500;
+		color: var(--sl-color-white);
+		text-decoration: none;
+		background-color: var(--sl-color-gray-6);
+		border: 1px solid var(--sl-color-gray-5);
+		border-radius: calc(var(--radius, 0.5rem) - 2px);
+	}
+
+	.sidebar-docs-button:hover {
+		background-color: var(--sl-color-gray-5);
+	}
+
+	.sidebar-docs-button svg {
+		color: var(--sl-color-gray-3);
 	}
 </style>
