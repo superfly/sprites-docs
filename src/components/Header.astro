@@ -1,9 +1,7 @@
 ---
 import type { Props } from '@astrojs/starlight/props';
 import Default from '@astrojs/starlight/components/Header.astro';
-import { buildVersionedPath, DEFAULT_VERSION } from '@/lib/api-versions';
-
-const apiHref = buildVersionedPath(DEFAULT_VERSION.id, '');
+const apiHref = 'https://sprites.dev/api';
 ---
 
 <Default {...Astro.props}><slot /></Default>
@@ -17,6 +15,8 @@ const apiHref = buildVersionedPath(DEFAULT_VERSION.id, '');
     link.href = apiHref;
     link.className = 'api-ref-link';
     link.textContent = 'API Reference';
+    link.target = '_blank';
+    link.rel = 'noopener';
     if (window.location.pathname.startsWith('/api')) {
       link.setAttribute('aria-current', 'true');
     }
@@ -58,6 +58,9 @@ const apiHref = buildVersionedPath(DEFAULT_VERSION.id, '');
     width: 0;
     height: 1.5rem;
     border-inline-end: 1px solid var(--sl-color-gray-6);
+    /* Match the 0.5rem extra breathing room the social-icons divider gets in
+       custom.css, so gaps read evenly across the right group. */
+    margin-inline: 0.5rem;
   }
 
   [data-theme='dark'] .header-divider {
