@@ -2023,6 +2023,15 @@ h2.method-title {
   text-decoration-color: var(--co-decoration-hover);
 }
 
+/* Links whose entire label is inline code carry no underline (the code styling
+   already sets them apart). */
+main .sl-markdown-content a:has(> code),
+.sprite-callout__content a:has(> code) {
+  /* !important: the base link rule carries two :not() clauses, so it outweighs
+     this selector on specificity and would otherwise re-add the underline. */
+  text-decoration: none !important;
+}
+
 .sprite-callout__content :not(pre) > code {
   background-color: var(--co-code-bg);
   color: var(--co-code);
