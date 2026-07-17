@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
 export type HttpMethod =
@@ -88,6 +89,75 @@ function MethodIcon({ method }: { method: HttpMethod }) {
   }
 }
 
+// Self-contained heading anchor: copies the section URL and plays the
+// link→check animation entirely in React. Because MethodHeader is a hydrated
+// island, letting the global Head.astro script mutate this DOM before
+// hydration causes a mismatch that wipes the injected icon/handler — so we own
+// it here instead. The global script skips anchors inside `.method-header`.
+function AnchorLink({ id, title }: { id: string; title: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    e.preventDefault();
+    const { href } = e.currentTarget;
+    navigator.clipboard
+      ?.writeText(href)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {});
+    history.pushState(null, '', `#${id}`);
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  return (
+    <a
+      className={cn('sl-anchor-link', copied && 'copied')}
+      href={`#${id}`}
+      aria-label={`Link to ${title}`}
+      onClick={handleClick}
+    >
+      <span aria-hidden="true" className="sl-anchor-icon">
+        <span className="link-icon-wrapper">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M9 17H7A5 5 0 0 1 7 7h2" />
+            <path d="M15 7h2a5 5 0 1 1 0 10h-2" />
+            <line x1="8" x2="16" y1="12" y2="12" />
+          </svg>
+        </span>
+        <span className="check-icon-wrapper">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="check-icon"
+          >
+            <path d="M5 12l5 5L20 7" />
+          </svg>
+        </span>
+      </span>
+      <span className="sr-only">Section titled "{title}"</span>
+    </a>
+  );
+}
+
 export function MethodHeader({
   method,
   path,
@@ -104,21 +174,7 @@ export function MethodHeader({
         <h2 id={id} className="method-title">
           {title}
         </h2>
-        <a
-          className="sl-anchor-link"
-          href={`#${id}`}
-          aria-label={`Link to ${title}`}
-        >
-          <span aria-hidden="true" className="sl-anchor-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24">
-              <path
-                fill="currentcolor"
-                d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"
-              />
-            </svg>
-          </span>
-          <span className="sr-only">Section titled "{title}"</span>
-        </a>
+        <AnchorLink id={id} title={title} />
       </div>
       <div className="method-header-badges">
         <span className={cn('method-badge', `method-badge-${methodLower}`)}>

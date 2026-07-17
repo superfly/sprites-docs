@@ -1452,6 +1452,9 @@ async function copyManualPagesToVersion(versionId: string): Promise<void> {
 async function generateRootRedirectPage(
   defaultVersion: APIVersion,
 ): Promise<string> {
+  // Astro strips dots from slugs, so the route lives at the slugified version
+  // (e.g. v0.0.1-rc46 → v001-rc46). Redirect to the slug, not the raw id.
+  const defaultSlug = versionToSlug(defaultVersion.id);
   return `---
 title: API Reference
 description: REST and WebSocket API for managing Sprites programmatically
@@ -1459,13 +1462,13 @@ description: REST and WebSocket API for managing Sprites programmatically
 
 import { Callout } from '@/components/react';
 
-<meta httpEquiv="refresh" content="0; url=/api/${defaultVersion.id}/" />
+<meta http-equiv="refresh" content="0; url=/api/${defaultSlug}/" />
 
 <Callout type="info" client:load>
   Redirecting to the latest API documentation...
 </Callout>
 
-If you are not redirected automatically, [click here](/api/${defaultVersion.id}/).
+If you are not redirected automatically, [click here](/api/${defaultSlug}/).
 `;
 }
 

@@ -166,6 +166,9 @@ const currentVersionId = isApiPage ? getVersionFromPath(currentPath) : null;
     // Anchor link copy
     document.querySelectorAll('.sl-anchor-link').forEach((link) => {
       if (link.dataset.copyInit) return;
+      // MethodHeader (React island) owns its own anchor icon + copy handler.
+      // Mutating it here would desync hydration, so leave those to React.
+      if (link.closest('.method-header')) return;
       link.dataset.copyInit = 'true';
 
       const iconSpan = link.querySelector('.sl-anchor-icon');
