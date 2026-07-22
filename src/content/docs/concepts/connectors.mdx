@@ -5,7 +5,7 @@ description: Give Sprites access to external APIs without putting provider crede
 
 import { Callout } from '@/components/react';
 
-A Sprite that needs to talk to Slack, GitHub, OpenRouter, or another HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
+A Sprite that needs to talk to GitHub, OpenRouter, or another HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
 
 Connectors solve this by storing the credential once, in your organization, and routing API calls through the Sprites gateway. Sprites never see the token. You decide which Sprites can use a connector and which provider endpoints they can reach.
 
@@ -23,8 +23,6 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 
 | Provider | Credential style | Notes |
 | --- | --- | --- |
-| Slack as User | OAuth (user token) | Acts as the user who authorized. |
-| Slack as Bot | OAuth (bot token) | Acts as the bot user for that workspace. |
 | GitHub | OAuth | Personal or org-scoped depending on requested scopes. |
 | OpenRouter | API key (BYOK) **or** managed | Bring your own OpenRouter key, or use the managed OpenRouter connector — billed as part of your Sprites plan. |
 | Custom API | API key + base URL | Wraps any token-authenticated HTTP API. |
@@ -41,7 +39,7 @@ Click **Add connection** to pick a provider:
 
 What happens next depends on the provider:
 
-- **Slack, GitHub** — you're sent through the provider's OAuth consent screen in a new tab. After you approve, the connector appears in **Your connections** with the scopes you granted.
+- **GitHub** — you're sent through the provider's OAuth consent screen in a new tab. After you approve, the connector appears in **Your connections** with the scopes you granted.
 - **OpenRouter** — choose between bringing your own key (paste it in) or enabling the managed connector with one click.
 - **Custom API** — fill in the base URL, the token, where the token goes (header / query string / URL path), and an optional test request to verify it works before saving.
 
@@ -77,19 +75,19 @@ https://api.sprites.dev/v1/gateway/<provider>/<connection_id>/<path>
 
 No `Authorization` header — the gateway identifies the calling Sprite from Fly.io's request signature. Whatever path you append after the connector ID gets forwarded to the provider with the stored credential attached.
 
-For example, if you set up a Slack-as-Bot connector and granted access to Sprites with the `slack` label:
+For example, if you set up a GitHub connector and granted access to Sprites with the `github` label:
 
 ```bash
-curl -X POST "https://api.sprites.dev/v1/gateway/slack_bot/conn_def456ghi789/chat.postMessage" \
+curl -X POST "https://api.sprites.dev/v1/gateway/github/conn_gh789abc012/repos/acme/website/issues" \
   -H "Content-Type: application/json" \
-  -d '{"channel": "#general", "text": "Hello from a Sprite"}'
+  -d '{"title": "Flaky test in CI", "body": "Opened from a Sprite"}'
 ```
 
 The connector detail page shows the exact gateway URL for each connector — you don't need to construct it by hand.
 
 ## Endpoint allow- and block-lists
 
-The access policy can also restrict which provider paths a Sprite can reach through the connector. This is useful when a connector has more permission than you want any single Sprite to use, for example, a Slack bot that can post messages should probably not be able to call admin endpoints.
+The access policy can also restrict which provider paths a Sprite can reach through the connector. This is useful when a connector has more permission than you want any single Sprite to use, for example, a GitHub connector that can open issues and pull requests should probably not be able to call admin endpoints.
 
 <Callout type="info" title="API only for now">
 Endpoint allow- and block-lists aren't yet editable from the dashboard. Set them via the [Connectors API](https://sprites.dev/api/connectors).
@@ -97,8 +95,8 @@ Endpoint allow- and block-lists aren't yet editable from the dashboard. Set them
 
 Patterns are exact paths or trailing-wildcard prefixes:
 
-- `/chat.postMessage` — exactly that path.
-- `/chat.*` — anything starting with `/chat.`.
+- `/repos/acme/website/issues` — exactly that path.
+- `/repos/*` — anything starting with `/repos/`.
 - `/*` — everything (use sparingly).
 
 Two lists work together:
@@ -128,7 +126,7 @@ Every Sprite ships with the **`sprite-api-gateway`** skill pre-installed for Cla
 
 Ask in plain language:
 
-> "Post a message to #engineering on Slack saying the deploy finished."
+> "Comment 'tests are green, ready to merge' on GitHub PR #42 in acme/website."
 >
 > "Open a GitHub issue in my repo titled 'flaky test'."
 >
@@ -144,7 +142,7 @@ The response tells the agent which providers are connected (with their `gateway_
 
 If the connector exists but is missing scopes the agent needs, the skill points you at a `request_scopes_url` to grant the additional scopes. If no connector exists for the provider, it points you at a `setup_url` to create one.
 
-The practical effect: once an organization admin has set up a Slack or GitHub connector and granted access to the right Sprites, anyone using a coding agent inside one of those Sprites can use the integration in natural language, with no API knowledge required.
+The practical effect: once an organization admin has set up a GitHub connector and granted access to the right Sprites, anyone using a coding agent inside one of those Sprites can use the integration in natural language, with no API knowledge required.
 
 <Callout type="tip" title="Where the skill lives">
 The skill is loaded from `~/.claude/skills/sprite-api-gateway/`, `~/.cursor/skills/sprite-api-gateway/`, `~/.codex/skills/sprite-api-gateway/`, and `~/.gemini/skills/sprite-api-gateway/` inside every Sprite. It's part of the Sprite base image, so there's nothing to install.
@@ -171,11 +169,11 @@ Everything in the dashboard is also available as a REST API. Useful when you wan
 ### Start an OAuth flow
 
 ```bash
-curl -X GET "https://api.sprites.dev/v1/oauth/slack/authorize?scopes=chat:write,channels:read" \
+curl -X GET "https://api.sprites.dev/v1/oauth/github/authorize?scopes=repo,read:org" \
   -H "Authorization: Bearer $SPRITES_TOKEN"
 ```
 
-Returns an `authorize_url` and a `state`. Send the user to the URL; on consent, Slack redirects back to the Sprites callback and the connector is created.
+Returns an `authorize_url` and a `state`. Send the user to the URL; on consent, GitHub redirects back to the Sprites callback and the connector is created.
 
 ### Create an API-key (BYOK) connector
 
@@ -201,7 +199,7 @@ curl -X POST "https://api.sprites.dev/v1/oauth/connections/provision" \
 curl -X PUT "https://api.sprites.dev/v1/oauth/connections/<id>" \
   -H "Authorization: Bearer $SPRITES_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "access_policy": { "sprite_labels": ["slack"], "allowed_endpoints": ["/chat.*"] } }'
+  -d '{ "access_policy": { "sprite_labels": ["github"], "allowed_endpoints": ["/repos/*"] } }'
 ```
 
 ### List, inspect, delete
