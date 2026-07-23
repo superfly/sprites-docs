@@ -31,13 +31,7 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 
 Most connector management happens in the dashboard. Open your organization, then **Connectors**. You'll see what's already configured, grouped into "Managed by Sprites" (provided by your plan) and "Your connections" (everything you've added yourself).
 
-![Connectors dashboard listing managed and self-added connectors](/images/connectors/list.png)
-
-Click **Add connection** to pick a provider:
-
-![Add connection dropdown showing the available providers](/images/connectors/add-menu.png)
-
-What happens next depends on the provider:
+Click **Add connection** to pick a provider. What happens next depends on the provider:
 
 - **GitHub** — you're sent through the provider's OAuth consent screen in a new tab. After you approve, the connector appears in **Your connections** with the scopes you granted.
 - **OpenRouter** — choose between bringing your own key (paste it in) or enabling the managed connector with one click.
@@ -48,8 +42,6 @@ Newly created connectors show up in the list immediately. Until you grant access
 ## Configuring access
 
 Click any connector to open its detail page. This is where you control which Sprites can use it and what they can do with it.
-
-![Connector detail page showing scopes, access configuration, and authorized sprites](/images/connectors/detail.png)
 
 The **Access Configuration** card has three switches:
 
@@ -115,8 +107,6 @@ For some providers, Sprites offers a **managed connector** — you don't bring y
 OpenRouter is currently available as a managed connector, giving Sprites in your organization access to the OpenRouter model catalog without you signing up for OpenRouter at all. More managed providers are planned.
 
 A managed connector behaves exactly like one you set up yourself — you still set an access policy, and the Gateway Playground still works against it.
-
-![Managed OpenRouter connector showing usage stats and authorized sprites](/images/connectors/managed.png)
 
 The detail page adds a **Usage** strip at the top showing your spend over the last 24 hours, 7 days, and 30 days. That spend rolls into your Sprites bill.
 
