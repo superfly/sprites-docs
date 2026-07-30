@@ -1,12 +1,8 @@
 import type { APIRoute } from 'astro';
 import { getGroupedDocs } from './llms-full.txt';
 
-const skippedGroups = ['Getting Started'];
-
 export const GET: APIRoute = async () => {
-  const groups = (await getGroupedDocs()).filter(
-    ({ label }) => !skippedGroups.includes(label),
-  );
+  const groups = await getGroupedDocs();
 
   const body = `# Sprites Documentation
 
@@ -25,8 +21,6 @@ Sprites is a product by Fly.io that provides instant, secure sandboxes for AI ag
 
 ## Documentation Sections
 
-- Overview: https://docs.sprites.dev/index.md
-- Quickstart: https://docs.sprites.dev/quickstart.md
 ${groups
   .map(({ label, items }) => {
     const lines = items.map(
