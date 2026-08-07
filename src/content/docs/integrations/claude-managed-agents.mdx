@@ -260,7 +260,11 @@ async function ok(resp: Response, context: string): Promise<void> {
   throw new Error(`${context}: HTTP ${resp.status}${body ? `: ${body}` : ''}`);
 }
 
-async function fsWrite(name: string, path: string, content: Uint8Array): Promise<void> {
+async function fsWrite(
+  name: string,
+  path: string,
+  content: Uint8Array<ArrayBuffer>,
+): Promise<void> {
   // workingDir is required by the fs endpoints.
   const qs = new URLSearchParams({ path, workingDir: '/' });
   const reqPath = `/v1/sprites/${name}/fs/write?${qs}`;
