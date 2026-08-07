@@ -42,7 +42,7 @@ You need:
 - A **Claude API key** (`ANTHROPIC_API_KEY`) to create the environment and start sessions. It stays off the Sprite; the worker and runner use only the environment key.
 - A **Sprites API token** (`org-slug/org-id/token-id/token-value`). Export it as `SPRITE_TOKEN`.
 - An **Anthropic agent**. Create one with the [Quickstart](https://platform.claude.com/docs/en/managed-agents/quickstart) and note its agent ID.
-- A **worker runtime** on the worker host: Python 3.10+ with the `anthropic` and `httpx` packages, or Node 22+ with `@anthropic-ai/sdk` and `tsx`.
+- A **worker runtime** on the worker host: Python 3.10+ with the `anthropic` and `sprites-py` packages, or Node 22+ with `@anthropic-ai/sdk`, `@fly/sprites` and `tsx`.
 
 ## Set up the environment
 
@@ -85,15 +85,18 @@ A service is supervised, but it does not hold the Sprite in an active state: onc
 ```python
 # sprite_sandbox.py
 import os
-import httpx
 
-API = os.environ.get("SPRITES_API_URL", "https://api.sprites.dev")
-HEADERS = {"authorization": f"Bearer {os.environ['SPRITE_TOKEN']}"}
+from sprites import SpritesClient
+from sprites.exceptions import NotFoundError, SpriteError
+
 RUNNER_PATH = "/root/sandbox_runner.py"
+WORKDIR = "/workspace"
+
+client = SpritesClient(token=os.environ["SPRITE_TOKEN"])
 
 # Anthropic's provider-agnostic runner. One call is the whole worker: it builds
 # the per-session tool context, downloads skills, runs the tool loop, and posts
-# results back. See the cookbook for the full file.
+# results back.
 RUNNER_SRC = '''import asyncio, logging, os, sys
 from anthropic import AsyncAnthropic
 
@@ -127,42 +130,40 @@ def _name(session_id) -> str:
 def find_live(session_id) -> str | None:
     # Return the Sprite's name when one for this session already exists and is
     # serving, so redelivered work is a no-op instead of re-provisioning it.
-    c = httpx.Client(base_url=API, headers=HEADERS, timeout=30)
     name = _name(session_id)
-    resp = c.get(f"/v1/sprites/{name}")
-    if resp.status_code == 404:
+    try:
+        sprite = client.get_sprite(name)
+    except NotFoundError:
         return None
-    resp.raise_for_status()
-    return name if resp.json().get("status") in ("running", "warm") else None
+    return name if sprite.status in ("running", "warm") else None
 
 
 def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
     name = _name(session_id)
-    c = httpx.Client(base_url=API, headers=HEADERS, timeout=300)
 
-    # Tolerate the Sprite already existing (reuse it).
-    created = c.post("/v1/sprites", json={"name": name, "wait_for_capacity": True})
-    if created.status_code not in (200, 201, 409):
-        created.raise_for_status()
-    c.put(f"/v1/sprites/{name}/fs/write",
-          params={"path": RUNNER_PATH, "workingDir": "/"},
-          content=RUNNER_SRC.encode()).raise_for_status()
+    try:
+        sprite = client.create_sprite(name, wait_for_capacity=True)
+    except SpriteError:
+        # Another delivery for this session got here first; reuse its Sprite.
+        sprite = client.sprite(name)
+
+    fs = sprite.filesystem("/")
+    (fs / RUNNER_PATH).write_text(RUNNER_SRC)
 
     # Install the SDK and create the workspace. This runs on every new Sprite;
-    # the checkpoint note at the end of the guide covers cutting the cost.
-    exec_resp = c.post(f"/v1/sprites/{name}/exec", params=[
-        ("cmd", "bash"), ("cmd", "-c"),
-        ("cmd", "mkdir -p /workspace && python3 -m pip install -q anthropic")])
-    exec_resp.raise_for_status()
-    # Exec streams framed output ending in an exit frame, 0x03 then the exit
-    # code; a nonzero code means the install failed (e.g. PyPI is blocked).
-    body = exec_resp.content
-    code = body[-1] if len(body) >= 2 and body[-2] == 0x03 else 0
-    if code != 0:
-        raise RuntimeError(f"sprite {name}: runner setup failed (exit {code})")
+    # the checkpoint note at the end of the guide covers cutting the cost. A
+    # nonzero exit means the install failed (for example PyPI is blocked).
+    result = sprite.run(
+        "bash", "-c", f"mkdir -p {WORKDIR} && python3 -m pip install -q anthropic",
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"sprite {name}: runner setup failed (exit {result.returncode})")
 
     # The env contract Anthropic's worker reads. The environment key is the
-    # runner's only credential.
+    # runner's only credential. It is written to a file the service sources
+    # rather than passed as service arguments, so it never appears in process
+    # listings; the service deletes the file right after sourcing it.
     env = {
         "ANTHROPIC_BASE_URL": os.environ.get("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
         "ANTHROPIC_ENVIRONMENT_KEY": environment_key,
@@ -170,10 +171,9 @@ def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
         "ANTHROPIC_ENVIRONMENT_ID": environment_id,
         "ANTHROPIC_WORK_ID": work_id,
     }
-    env_file = "".join(f"{k}={_sq(v)}\n" for k, v in env.items())
-    c.put(f"/v1/sprites/{name}/fs/write",
-          params={"path": "/root/runner.env", "workingDir": "/"},
-          content=env_file.encode()).raise_for_status()
+    (fs / "/root/runner.env").write_text(
+        "".join(f"{k}={_sq(v)}\n" for k, v in env.items())
+    )
 
     # The service registers a Task to hold the Sprite active for the session,
     # heartbeats it (5m expiry refreshed every 60s) while the runner works, then
@@ -187,16 +187,21 @@ def spawn(session_id, *, environment_id, work_id, environment_key) -> str:
         "kill \"$heartbeat\" 2>/dev/null || true; "
         "sprite-env curl -X DELETE /v1/tasks/agent-runner >/dev/null 2>&1 || true; "
         "sprite-env services stop agent-runner >/dev/null 2>&1 || true")
-    c.put(f"/v1/sprites/{name}/services/agent-runner",
-          json={"cmd": "bash", "args": ["-lc", cmd], "needs": []}).raise_for_status()
+
+    # create_service streams startup events; draining it waits for the service
+    # to actually come up rather than returning as soon as it is registered.
+    for _event in sprite.create_service("agent-runner", cmd="bash", args=["-lc", cmd], needs=[]):
+        pass
     return name
 ```
 </TabItem>
 <TabItem label="TypeScript">
 ```typescript
 // sprite-sandbox.ts
-const API = process.env.SPRITES_API_URL ?? 'https://api.sprites.dev';
+import { APIError, ExecError, SpritesClient } from '@fly/sprites';
+
 const RUNNER_PATH = '/root/sandbox_runner.py';
+const WORKDIR = '/workspace';
 
 // Read a required env var, throwing a clear error (naming it) if unset.
 export function requireEnv(name: string): string {
@@ -205,12 +210,12 @@ export function requireEnv(name: string): string {
   return value;
 }
 
-const HEADERS = { authorization: `Bearer ${requireEnv('SPRITE_TOKEN')}` };
+const client = new SpritesClient(requireEnv('SPRITE_TOKEN'));
 
 // Anthropic's provider-agnostic runner. One call is the whole worker: it builds
 // the per-session tool context, downloads skills, runs the tool loop, and posts
 // results back. This is the same Python runner the Python tab uploads; the
-// worker's own language is independent of it. See the cookbook for the full file.
+// worker's own language is independent of it.
 const RUNNER_SRC = `import asyncio, logging, os, sys
 from anthropic import AsyncAnthropic
 
@@ -239,67 +244,18 @@ const shquote = (v: string) => `'${v.replace(/'/g, `'\\''`)}'`;
 const spriteName = (sessionId: string) =>
   `claude-agent-${sessionId.toLowerCase().replace(/_/g, '-').slice(0, 40)}`;
 
-async function api(
-  method: string,
-  path: string,
-  init: RequestInit = {},
-  timeoutMs = 30_000,
-): Promise<Response> {
-  return fetch(`${API}${path}`, {
-    method,
-    ...init,
-    headers: { ...HEADERS, ...init.headers },
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-}
-
-// fetch doesn't throw on 4xx/5xx; this is the raise_for_status equivalent.
-async function ok(resp: Response, context: string): Promise<void> {
-  if (resp.ok) return;
-  const body = (await resp.text().catch(() => '')).slice(0, 300);
-  throw new Error(`${context}: HTTP ${resp.status}${body ? `: ${body}` : ''}`);
-}
-
-async function fsWrite(
-  name: string,
-  path: string,
-  content: Uint8Array<ArrayBuffer>,
-): Promise<void> {
-  // workingDir is required by the fs endpoints.
-  const qs = new URLSearchParams({ path, workingDir: '/' });
-  const reqPath = `/v1/sprites/${name}/fs/write?${qs}`;
-  const resp = await api('PUT', reqPath, {
-    body: content,
-    headers: { 'content-type': 'application/octet-stream' },
-  });
-  await ok(resp, `PUT ${reqPath}`);
-}
-
-// Run `bash -c <command>` in the Sprite and return its exit code. Sprites streams
-// exec output as frames ending in an exit frame, 0x03 then the code; the final
-// byte (when the byte before it is 0x03) is that exit code.
-async function exec(name: string, command: string): Promise<number> {
-  const qs = new URLSearchParams([['cmd', 'bash'], ['cmd', '-c'], ['cmd', command]]);
-  const path = `/v1/sprites/${name}/exec?${qs}`;
-  const resp = await api('POST', path, {}, 300_000);
-  await ok(resp, `POST ${path}`);
-  const body = new Uint8Array(await resp.arrayBuffer());
-  if (body.length < 2 || body[body.length - 2] !== 0x03) {
-    throw new Error(`exec ${name}: response missing exit frame`);
-  }
-  return body[body.length - 1]!;
-}
-
-// Return the Sprite name if one for this session already exists and is serving,
-// so redelivered work is a no-op instead of re-provisioning it.
+// Return the Sprite's name when one for this session already exists and is
+// serving, so redelivered work is a no-op instead of re-provisioning it.
 export async function findLive(sessionId: string): Promise<string | null> {
   const name = spriteName(sessionId);
-  const path = `/v1/sprites/${name}`;
-  const resp = await api('GET', path);
-  if (resp.status === 404) return null;
-  await ok(resp, `GET ${path}`);
-  const { status } = (await resp.json()) as { status?: string };
-  return status === 'running' || status === 'warm' ? name : null;
+  try {
+    const sprite = await client.getSprite(name);
+    return sprite.status === 'running' || sprite.status === 'warm' ? name : null;
+  } catch (e) {
+    // A missing Sprite is the normal case for new work; anything else is real.
+    if (e instanceof APIError && e.statusCode === 404) return null;
+    throw e;
+  }
 }
 
 // The service registers a Task to hold the Sprite active for the session,
@@ -324,23 +280,30 @@ export interface SpawnParams {
 
 export async function spawn(sessionId: string, opts: SpawnParams): Promise<string> {
   const name = spriteName(sessionId);
-  const bytes = (s: string) => new TextEncoder().encode(s);
 
-  // Tolerate the Sprite already existing (reuse it): 200/201 created, 409 exists.
-  const created = await api('POST', '/v1/sprites', {
-    body: JSON.stringify({ name, wait_for_capacity: true }),
-    headers: { 'content-type': 'application/json' },
-  }, 300_000);
-  if (![200, 201, 409].includes(created.status)) {
-    await ok(created, 'POST /v1/sprites');
+  let sprite;
+  try {
+    sprite = await client.createSprite(name, { waitForCapacity: true });
+  } catch {
+    // Another delivery for this session got here first; reuse its Sprite.
+    sprite = client.sprite(name);
   }
-  await fsWrite(name, RUNNER_PATH, bytes(RUNNER_SRC));
+
+  const fs = sprite.filesystem('/');
+  await fs.writeFile(RUNNER_PATH, RUNNER_SRC);
 
   // Install the SDK and create the workspace. This runs on every new Sprite; the
-  // checkpoint note at the end of the guide covers cutting the cost. A nonzero
-  // exit means the install failed (e.g. PyPI is blocked).
-  const code = await exec(name, 'mkdir -p /workspace && python3 -m pip install -q anthropic');
-  if (code !== 0) throw new Error(`sprite ${name}: runner setup failed (exit ${code})`);
+  // checkpoint note at the end of the guide covers cutting the cost. execFile is
+  // what reports the command's real exit code — exec() reports 1 for any
+  // failure, which would turn "PyPI is blocked" into an unhelpful message.
+  try {
+    await sprite.execFile('bash', ['-c', `mkdir -p ${WORKDIR} && python3 -m pip install -q anthropic`]);
+  } catch (e) {
+    if (e instanceof ExecError) {
+      throw new Error(`sprite ${name}: runner setup failed (exit ${e.exitCode})`);
+    }
+    throw e;
+  }
 
   // The env contract Anthropic's worker reads. The environment key is the
   // runner's only credential. Written to a file (not service args) so it never
@@ -353,14 +316,18 @@ export async function spawn(sessionId: string, opts: SpawnParams): Promise<strin
     ANTHROPIC_WORK_ID: opts.workId,
   };
   const envFile = Object.entries(env).map(([k, v]) => `${k}=${shquote(v)}`).join('\n') + '\n';
-  await fsWrite(name, '/root/runner.env', bytes(envFile));
+  await fs.writeFile('/root/runner.env', envFile);
 
-  const svcPath = `/v1/sprites/${name}/services/agent-runner`;
-  const svc = await api('PUT', svcPath, {
-    body: JSON.stringify({ cmd: 'bash', args: ['-lc', SERVICE_CMD], needs: [] }),
-    headers: { 'content-type': 'application/json' },
+  // createService streams startup events; draining it waits for the service to
+  // actually come up rather than returning as soon as it is registered.
+  const stream = await sprite.createService('agent-runner', {
+    cmd: 'bash',
+    args: ['-lc', SERVICE_CMD],
+    needs: [],
   });
-  await ok(svc, `PUT ${svcPath}`);
+  for await (const _event of stream) {
+    // drain
+  }
   return name;
 }
 ```
@@ -471,13 +438,13 @@ main().catch((e) => {
 <Tabs syncKey="lang">
 <TabItem label="Python">
 ```bash
-pip install anthropic httpx
+pip install anthropic sprites-py
 python sprites_poller.py
 ```
 </TabItem>
 <TabItem label="TypeScript">
 ```bash
-npm install @anthropic-ai/sdk tsx
+npm install @anthropic-ai/sdk @fly/sprites tsx
 npx tsx sprites-poller.ts
 ```
 </TabItem>
@@ -551,3 +518,5 @@ Most failures here surface either as a queue that never drains or as a Sprite se
 - [Self-hosted sandboxes](https://platform.claude.com/docs/en/managed-agents/self-hosted-sandboxes): Anthropic's reference for the worker contract.
 - [Services](/concepts/services): supervised long-running processes inside a Sprite.
 - [Checkpoints](/concepts/checkpoints): snapshot a prepared Sprite to skip cold-start setup.
+- [`sprites-py`](https://github.com/superfly/sprites-py) and [`@fly/sprites`](https://github.com/superfly/sprites-js): the SDKs the worker uses.
+- [Sprites API](/api/dev-latest/sprites): the underlying endpoints, for workers written in another language.
