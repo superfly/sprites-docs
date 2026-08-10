@@ -1,0 +1,195 @@
+---
+title: Claude Code Self-Hosted Environments
+description: Run Claude Code cloud sessions on Sprites you provision on demand
+---
+
+import { Callout } from '@/components/react';
+
+[Claude Code self-hosted environments](https://code.claude.com/docs/en/self-hosted-environments) run [cloud sessions](https://code.claude.com/docs/en/claude-code-on-the-web) — the ones developers start from claude.ai, the mobile and desktop apps, `claude --cloud`, and scheduled routines — on compute you operate instead of Anthropic's. Anthropic publishes no runner image and leaves provisioning to you, so the runner host can be a Sprite created per session and destroyed when it finishes.
+
+<Callout type="info">
+Anthropic uses the phrase *self-hosted environment* for two different products. This page is about **Claude Code** sessions. For **Claude Managed Agents**, where Anthropic runs the agent loop and only the tools execute in your sandbox, see [Claude Managed Agents](/integrations/claude-managed-agents).
+</Callout>
+
+## How it works
+
+Self-hosting has three parts:
+
+- An **environment** is a named destination, created in claude.ai admin settings, that appears in the environment picker when a developer starts a session. Its ID has the form `ccpool_…`.
+- A **runner** is a process you deploy. It registers with the environment, polls for work, and spawns a child Claude Code process per session. The runner is a subcommand of the standard `claude` binary, not a separate download.
+- A **session** is one Claude Code task.
+
+You can run a fixed fleet of runners, or run the **orchestrator**, a second process that polls Anthropic for queued sessions and invokes a `spawn-runner` hook once per session. The orchestrator is the better fit for Sprites, and it is also the posture Anthropic recommends: on a fixed fleet the environment secret sits on every host that runs user code, where any session can read it, while the orchestrator keeps the secret on a host that never runs user code and hands each runner a single-use work order that registers exactly one runner.
+
+All traffic is outbound. The runner polls `api.anthropic.com`; Anthropic never connects in.
+
+## Before you begin
+
+You need:
+
+- A **Claude Team or Enterprise organization** with **Allow self-hosted environments** turned on by an Owner or admin on the [Cloud environments](https://claude.ai/admin-settings/cloud-environments) page. The feature is in public beta and off by default.
+- An **environment** and its **environment secret**. Create the environment on that page; claude.ai shows the secret once and it expires after 365 days.
+- A **Sprites API token** (`org-slug/org-id/token-id/token-value`). Export it as `SPRITE_TOKEN`.
+- The **`sprite` CLI**, authenticated, on the orchestrator host.
+
+## Build the runner image
+
+Anthropic doesn't publish a runner image, so the runner host has to carry the `claude` binary and a git identity. On Sprites this is short: `git`, `curl`, `ca-certificates`, and `openssh-client` are already in the base image, so only the binary and the git config are left.
+
+```bash
+curl -fsSL "https://downloads.claude.ai/claude-code-releases/2.1.226/linux-x64/claude" \
+  -o /usr/local/bin/claude
+chmod +x /usr/local/bin/claude
+
+git config --system user.name "Claude"
+git config --system user.email "noreply@anthropic.com"
+git config --system --add safe.directory '*'
+```
+
+Pin the version rather than tracking `latest`. Each session's child process runs the runner's own binary and the runner disables auto-update inside sessions, so the version you install is the version every session runs until you replace it. The runner requires **2.1.224 or later**; earlier builds don't recognize the `self-hosted-runner` subcommand.
+
+<Callout type="info">
+Installing on demand costs about a second and a half: the binary is roughly 300 MB and Sprites pull it at around 200 MB/s. If you want it off the session's critical path anyway, [checkpoint](/concepts/checkpoints) a prepared Sprite and keep a small standby pool. Checkpoints belong to the Sprite that created them, so a pool is a set of prepared Sprites, not one image restored into many.
+</Callout>
+
+## Provision a runner per session
+
+The orchestrator runs `${hooks-dir}/spawn-runner` once per queued session. The hook must submit the workload and return within `--hook-timeout` (60 seconds by default) without waiting for the runner to boot.
+
+Save this as `spawn-runner` in your hooks directory and make it executable:
+
+```bash
+#!/bin/sh
+set -eu
+
+: "${CLAUDE_RUNNER_WORK_ORDER_FILE:?no work order}"
+: "${CLAUDE_RUNNER_ORDER_ID:?no order id}"
+
+# The order ID is unique per spawn request and safe as a resource name, so
+# using it as the Sprite name makes a redelivered request collide with the
+# Sprite it already created instead of provisioning a second runner.
+SPRITE="ccr-$(printf '%s' "$CLAUDE_RUNNER_ORDER_ID" | tr '[:upper:]_' '[:lower:]-' | cut -c1-40)"
+
+if ! sprite create --skip-console "$SPRITE" >/dev/null 2>&1; then
+  # Already provisioned by an earlier delivery of this same order: report
+  # success, because the runner it started is the one this order wanted.
+  if sprite exec -s "$SPRITE" -- true >/dev/null 2>&1; then
+    echo "order $CLAUDE_RUNNER_ORDER_ID already spawned $SPRITE" >&2
+    exit 0
+  fi
+  echo "could not provision sprite for order $CLAUDE_RUNNER_ORDER_ID" >&2
+  exit 1
+fi
+
+# One exec does the rest. Each `sprite exec` is a round trip, and on a hook
+# with a 60-second budget the number of round trips matters more than the
+# work inside them.
+#
+# The work order is a single-use JWT that registers exactly one runner. It
+# arrives on stdin so it never reaches argv or a process listing, and the
+# orchestrator deletes its own copy as soon as this hook exits.
+sprite exec -s "$SPRITE" -- sudo sh -c "
+  set -e
+  mkdir -p /etc/claude
+  umask 077 && cat > /etc/claude/work-order
+  curl -fsSL 'https://downloads.claude.ai/claude-code-releases/2.1.226/linux-x64/claude' \
+    -o /usr/local/bin/claude
+  chmod +x /usr/local/bin/claude
+  git config --system user.name 'Claude'
+  git config --system user.email 'noreply@anthropic.com'
+  git config --system --add safe.directory '*'
+  mkdir -p /workspace
+  chown sprite:sprite /workspace /etc/claude/work-order
+  /.sprite/bin/sprite-env services create claude-runner \
+    --cmd /usr/local/bin/claude \
+    --args self-hosted-runner,--environment-secret-file,/etc/claude/work-order,--base-dir,/workspace,--capacity,1,--use-anthropic-git-proxy
+" < "$CLAUDE_RUNNER_WORK_ORDER_FILE" >/dev/null
+
+exit 0
+```
+
+Start the orchestrator on a host that never runs sessions, pointing it at the environment secret and the hooks directory:
+
+```bash
+claude self-hosted-runner orchestrator \
+  --environment-secret-file /etc/claude/environment-secret \
+  --hooks-dir /etc/claude/hooks \
+  --expected-spawn-seconds 30
+```
+
+### What the hook has to get right
+
+**Exit codes are a contract.** `0` means submitted, `1` means retryable and the session is re-offered after a backoff, and `2` or higher blocks that session from spawning again until an admin selects **Retry** in the environment's Activity tab. The tail of the hook's stderr is shown there as the failure reason, so write something actionable to stderr and never write secrets.
+
+**Don't retry the workload yourself.** One order ID means at most one created runner. If a runner never registers, Anthropic re-requests with a fresh order ID after `--expected-spawn-seconds`.
+
+**Set `--expected-spawn-seconds` to your p99 boot time.** It is a server-side lease, not a hint, and every orchestrator replica must use the same value. A Sprite that installs the binary on demand registers in well under ten seconds, so the 120-second default is far more headroom than this path needs; lowering it makes a genuinely failed spawn get re-offered sooner.
+
+**Use `--capacity 1`.** A session-bound work order registers exactly one runner bound to one session, so extra slots would never receive work. It is also required by `--use-anthropic-git-proxy`.
+
+### Git credentials
+
+`--use-anthropic-git-proxy` clones through Anthropic using the session creator's own stored GitHub token, which means the Sprite needs no git credentials at all: no deploy keys, no credential helper, no `.netrc`. That suits a per-session Sprite, where any credential baked into the image would be readable by every session that image ever runs. It requires git 2.32 or newer and `--capacity 1`, and the runner refuses to start if either is unmet.
+
+The proxy fetches from Anthropic's side, so it needs your git host to be reachable from Anthropic. For a git host that is only routable inside your own network, drop the flag and supply a [`checkout` lifecycle hook](https://code.claude.com/docs/en/self-hosted-environments-configuration#checkout) that clones however you need.
+
+## Keep the Sprite alive for the session
+
+A runner with an active session is busy, but it takes no inbound traffic, so the Sprite counts as quiet and would [pause](/concepts/lifecycle) on its idle window, stalling the session mid-turn. Hold the Sprite active with a [Task](/keeping-sprites-running) for as long as the runner is working, and drop it when the runner exits.
+
+Wrap the runner in a small command rather than invoking the binary directly:
+
+```bash
+sprite-env curl -X POST /v1/tasks -d '{"name": "claude-runner", "expire": "5m"}'
+( while true; do
+    sprite-env curl -X PUT /v1/tasks/claude-runner -d '{"expire": "5m"}'
+    sleep 60
+  done ) & heartbeat=$!
+
+/usr/local/bin/claude self-hosted-runner \
+  --environment-secret-file /etc/claude/work-order \
+  --base-dir /workspace --capacity 1 --use-anthropic-git-proxy
+
+kill "$heartbeat" 2>/dev/null || true
+sprite-env curl -X DELETE /v1/tasks/claude-runner || true
+```
+
+The short expiry is the crash-safety net: if the runner dies without cleaning up, the task expires on its own and the Sprite is free to pause instead of being held open indefinitely.
+
+This is also why a Sprite doesn't need `--retire-at`, which exists for hosts that are destroyed at a known wall-clock time without a signal. The task is dynamic — it lasts exactly as long as the work does — where `--retire-at` requires guessing a deadline in advance.
+
+<Callout type="info">
+The runner announces its shutdown budget at startup, 80 seconds at default settings. It uses that time to stop the session child and run the `post-session` hook, so a Sprite destroyed sooner can cut a session's cleanup short.
+</Callout>
+
+## Network egress
+
+Sessions run model-directed code, so restrict what they can reach with a [network policy](/concepts/networking) rather than relying on the session's own permission settings. Sessions need `api.anthropic.com` for the control plane, session streaming, and model inference; your git host, unless you use the Anthropic git proxy; and whichever internal services the sessions are there to reach.
+
+Anthropic's [network requirements](https://code.claude.com/docs/en/self-hosted-environments-deploy#network-requirements) list the conditional hosts — plugin marketplaces, documentation lookups, npm for MCP servers — that you only need if you use those features.
+
+## Clean up
+
+The hook creates one Sprite per session and nothing removes it. A paused Sprite stops compute billing but keeps its filesystem, and its storage cost, so an active environment accumulates them. Delete each one once its session finishes with [`DELETE /v1/sprites/{name}`](/api/dev-latest/sprites#delete-sprite), from a `post-session` lifecycle hook or a periodic sweep over Sprites whose `claude-runner` service has stopped.
+
+Destroying the Sprite per session is also the isolation posture Anthropic asks for: a runner executes model-directed code on behalf of any member of your organization, and dispatch into an environment is organization-wide with no per-environment access control.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Check / fix |
+|---|---|---|
+| Environment creation returns `403 permission_error` | **Allow self-hosted environments** is off for the organization | An Owner or admin turns it on from the [Cloud environments](https://claude.ai/admin-settings/cloud-environments) page. It also requires Claude Code on the web to be enabled. |
+| Runner exits immediately with `[runner:fatal] RegisterRunner auth failed` | The work order or environment secret is invalid, revoked, or expired; or the host clock is more than five minutes off | Read `/.sprite/logs/services/claude-runner.log`. Authentication fails on clock skew, so check the clock before rotating the secret. |
+| Service crash-loops with `cannot create or write to base directory /workspace (EACCES)` | Services run as the unprivileged `sprite` user, and `--base-dir` was created by root | `chown sprite:sprite /workspace`. The runner fails at startup rather than at session pickup, so the log shows this before any session arrives. |
+| Sessions stay queued and no Sprite appears | The orchestrator isn't running, or the hook is failing | Check the orchestrator's `/healthz` body for queue counts, then the environment's **Activity** tab, where a failed session shows the hook's stderr and a **Retry** button. |
+| Sessions fail right after pickup | Missing build tools in the image, or a git credential problem | Open the session at claude.ai/code for the error. The runner preserves the session's debug log and prints its path in the runner log. |
+| A long session stalls mid-turn | The keep-alive task is missing or expired, so the Sprite paused | Inside the Sprite, `sprite-env curl -s /v1/tasks` should show `claude-runner` with a future expiry while a session is active. |
+| Runner logs a warning about capacity at startup | `--capacity` above 1 with a session-bound work order | Set `--capacity 1`; the extra slots can never receive work. |
+
+## See also
+
+- [Self-hosted environments](https://code.claude.com/docs/en/self-hosted-environments): Anthropic's reference for the runner, orchestrator, and hook contracts.
+- [Claude Managed Agents](/integrations/claude-managed-agents): the other Anthropic integration, where only tool execution runs in your Sprite.
+- [Services](/concepts/services): supervised long-running processes inside a Sprite.
+- [Keeping Sprites running](/keeping-sprites-running): tasks and the idle window.
+- [Checkpoints](/concepts/checkpoints): snapshot a prepared Sprite to skip cold-start setup.

@@ -162,6 +162,10 @@ export const sidebarConfig: SidebarGroup[] = [
         label: 'Claude Managed Agents',
         slug: 'integrations/claude-managed-agents',
       },
+      {
+        label: 'Claude Code Self-Hosted Environments',
+        slug: 'integrations/claude-code-self-hosted-environments',
+      },
     ],
   },
   {
