@@ -429,13 +429,14 @@ sprite checkpoint --help    Full checkpoint documentation
 sprite proxy - Forward local ports through the remote server proxy
 
 ```bash
-sprite proxy [flags] <port1> [port2] ... or <local1:remote1> [local2:remote2] ...
+sprite proxy [flags] <port1> [port2] ... or <local1:remote1> [local2:remote2] ... sprite proxy --ssh
 ```
 
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
 - `-W, --stdio <[host]:port>` - Forward stdin and stdout to host:port on the Sprite
+- `--ssh Emulate` - an SSH session with a Sprite over stdio, for use as an ssh ProxyCommand.
 - `-h, --help Show` - this help message
 
 > Each port will be forwarded from localhost to the remote environment.
@@ -454,6 +455,7 @@ sprite proxy 4005:4000
 sprite proxy 3001:3000 8081:8080
 sprite proxy -W :22
 sprite proxy -o myorg -s mysprite 8080
+sprite proxy --ssh -s mysprite
 ```
 
 ### `sprite url`
