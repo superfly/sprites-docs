@@ -72,10 +72,17 @@ export function parseHelpOutput(command: string, output: string): ParsedHelp {
     // Parse content based on current section
     switch (currentSection) {
       case 'usage':
-        if (trimmedLine && !result.usage) {
+        // A blank line ends the usage block; anything after it belongs to
+        // another section (Flags, Examples, or free-form prose we don't use).
+        if (!trimmedLine) {
+          if (result.usage) {
+            currentSection = 'none';
+          }
+        } else if (!result.usage) {
           result.usage = trimmedLine;
-        } else if (trimmedLine) {
-          result.usage += ` ${trimmedLine}`;
+        } else {
+          // Commands can document several invocation forms, one per line.
+          result.usage += `\n${trimmedLine}`;
         }
         break;
 
@@ -118,12 +125,18 @@ function parseOptionLine(
   currentOption: Partial<ParsedOption> | null,
   setCurrentOption: (opt: Partial<ParsedOption> | null) => void,
 ): void {
+  // Arguments are always written as placeholders (`<name>`, `<[host]:port>`),
+  // so anything else after the flag is the start of its description.
+  const ARGUMENT = '(<[^>]*>|\\[[^\\]]*\\])';
+
   // Check if this is a new option (starts with -)
   const optionMatch = trimmedLine.match(
-    /^(-\w)(?:,\s*|\s+)(--[\w-]+)?(?:\s+(\S+))?(?:\s+(.+))?$/,
+    new RegExp(
+      `^(-\\w)(?:,\\s*|\\s+)(--[\\w-]+)?(?:\\s+${ARGUMENT})?(?:\\s+(.+))?$`,
+    ),
   );
   const longOnlyMatch = trimmedLine.match(
-    /^(--[\w-]+)(?:\s+(\S+))?(?:\s+(.+))?$/,
+    new RegExp(`^(--[\\w-]+)(?:\\s+${ARGUMENT})?(?:\\s+(.+))?$`),
   );
   const goStyleMatch = trimmedLine.match(/^-(\w+)(?:\s+(\w+))?$/);
 
