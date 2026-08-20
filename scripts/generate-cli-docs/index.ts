@@ -235,7 +235,7 @@ async function main(): Promise<void> {
     );
 
     // Step 9: Write output
-    writeFileSync(config.outputPath, mdxContent);
+    writeFileSync(config.outputPath, `${mdxContent}\n`);
     console.log(`  Written to: ${config.outputPath}`);
 
     // Step 10: Print report

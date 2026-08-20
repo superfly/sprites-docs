@@ -24,7 +24,7 @@ sprite login [flags] [api-url]
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
@@ -45,7 +45,7 @@ sprite logout [flags]
 ```
 
 **Options:**
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
@@ -57,14 +57,14 @@ sprite logout
 sprite org auth - Add an API token
 
 ```bash
-sprite org auth [-o <api>:<org>] [api-url|alias] Arguments: api-url|alias          Optional API endpoint URL or alias (default: https://api.sprites.dev)
+sprite org auth [-o <api>:<org>] [api-url|alias]
 ```
 
 **Aliases:** `sprite orgs`, `sprite organizations`, `sprite o`
 
 **Options:**
 - `-o, --org <name>` - Specify organization
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
@@ -81,11 +81,11 @@ sprite org auth https://staging-api.sprites.dev -o staging:test-org
 sprite org list - Show configured tokens
 
 ```bash
-sprite org list [api-url|alias] Arguments: api-url|alias          Optional filter by API endpoint URL or alias
+sprite org list [api-url|alias]
 ```
 
 **Options:**
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 ### `sprite org logout`
 
@@ -96,8 +96,8 @@ sprite org logout [flags]
 ```
 
 **Options:**
-- `--force Skip` - confirmation prompt
-- `-h, --help Show` - this help message
+- `--force` - Skip confirmation prompt
+- `-h, --help` - Show this help message
 
 ### `sprite org keyring disable`
 
@@ -108,7 +108,7 @@ sprite org keyring disable
 ```
 
 **Options:**
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
@@ -124,7 +124,7 @@ sprite org keyring enable
 ```
 
 **Options:**
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 ### `sprite auth setup`
 
@@ -136,7 +136,7 @@ sprite auth setup --token <token>
 
 **Options:**
 - `--token <token>` - Token in format: org-slug/org-id/token-id/token-value
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
@@ -156,9 +156,9 @@ sprite create [flags] [sprite-name]
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
-- `--skip-console Exit` - after creating instead of connecting to console
+- `--skip-console` - Exit after creating instead of connecting to console
 - `--label <label>` - Label to apply to the sprite (can be repeated)
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 > Creates a new sprite with the specified name.
 > The sprite will be created in the selected organization.
@@ -190,8 +190,8 @@ sprite use [flags] [sprite-name]
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
-- `--unset Remove` - the .sprite file from current directory
-- `-h, --help Show` - this help message
+- `--unset` - Remove the .sprite file from current directory
+- `-h, --help` - Show this help message
 
 > Creates a .sprite file in the current directory to set the active sprite.
 > This file will be used by other commands when no sprite is explicitly specified.
@@ -218,9 +218,9 @@ sprite list [flags]
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
-- `-w, --watch Watch` - for live updates
+- `-w, --watch` - Watch for live updates
 - `--prefix <prefix>` - Filter sprites by name prefix
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 > Lists all sprites in the selected organization.
 > Use --prefix to filter sprites by name prefix.
@@ -243,8 +243,8 @@ sprite destroy [flags] [sprite-name]
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
-- `--force Skip` - confirmation prompt
-- `-h, --help Show` - this help message
+- `--force` - Skip confirmation prompt
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
@@ -273,12 +273,12 @@ sprite exec [flags] -- <command> [args...]
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
 - `--dir <path>` - Working directory for command
-- `--tty Allocate` - pseudo-TTY
+- `--tty` - Allocate pseudo-TTY
 - `--env <vars>` - Environment variables (KEY=value,KEY2=value2)
-- `--http-post Use` - HTTP/1.1 POST instead of WebSockets (non-TTY only)
-- `--no-port-forward Disable` - automatic local port forwarding for ports opened by the command
+- `--http-post` - Use HTTP/1.1 POST instead of WebSockets (non-TTY only)
+- `--no-port-forward` - Disable automatic local port forwarding for ports opened by the command
 - `--file <source:dest>` - Upload file before exec (repeatable)
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 > When using --tty, terminal environment variables (TERM, COLORTERM, LANG,
 > LC_ALL) are automatically passed through from your local environment.
@@ -306,8 +306,8 @@ sprite console [flags]
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
-- `--no-port-forward Disable` - automatic local port forwarding for ports opened by the console
-- `-h, --help Show` - this help message
+- `--no-port-forward` - Disable automatic local port forwarding for ports opened by the console
+- `-h, --help` - Show this help message
 
 > Opens an interactive shell with a TTY allocated.
 > Uses shell environment variables to determine which shell to use.
@@ -339,7 +339,7 @@ sprite checkpoint create [flags]
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
 - `--comment <text>` - Optional comment describing this checkpoint
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 ### `sprite checkpoint list`
 
@@ -355,8 +355,8 @@ sprite checkpoint list [flags]
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
 - `--history <version>` - Filter by history version
-- `--include-auto Include` - auto-generated checkpoints
-- `-h, --help Show` - this help message
+- `--include-auto` - Include auto-generated checkpoints
+- `-h, --help` - Show this help message
 
 ### `sprite checkpoint info`
 
@@ -369,7 +369,7 @@ sprite checkpoint info [flags] <version-id>
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
@@ -389,7 +389,7 @@ sprite checkpoint delete [flags] <version-id>
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
@@ -409,7 +409,7 @@ sprite restore [flags] <version-id>
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
@@ -430,13 +430,15 @@ sprite proxy - Forward local ports through the remote server proxy
 
 ```bash
 sprite proxy [flags] <port1> [port2] ... or <local1:remote1> [local2:remote2] ...
+sprite proxy --ssh
 ```
 
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
 - `-W, --stdio <[host]:port>` - Forward stdin and stdout to host:port on the Sprite
-- `-h, --help Show` - this help message
+- `--ssh` - Emulate an SSH session with a Sprite over stdio, for use as an ssh ProxyCommand.
+- `-h, --help` - Show this help message
 
 > Each port will be forwarded from localhost to the remote environment.
 > Use LOCAL:REMOTE syntax to map different local and remote ports.
@@ -454,6 +456,7 @@ sprite proxy 4005:4000
 sprite proxy 3001:3000 8081:8080
 sprite proxy -W :22
 sprite proxy -o myorg -s mysprite 8080
+sprite proxy --ssh -s mysprite
 ```
 
 ### `sprite url`
@@ -461,13 +464,14 @@ sprite proxy -o myorg -s mysprite 8080
 sprite url - Manage sprite URL settings
 
 ```bash
-sprite url                  Show sprite URL and auth setting sprite url update [flags]   Update URL authentication settings URL Format: https://<sprite-name>-<org>.sprites.app/ Authentication Modes: sprite     Allows access via browser to Sprite org members, and via org tokens (default) public     No authentication - anyone with URL can access Subcommands: update     Update URL authentication settings
+sprite url                  Show sprite URL and auth setting
+sprite url update [flags]   Update URL authentication settings
 ```
 
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 - `--auth <type>` - Authentication type: 'public' or 'sprite'
 
 **Examples:**
@@ -490,14 +494,14 @@ Security Notes:
 sprite url update - Update URL authentication settings
 
 ```bash
-sprite url update --auth <type> [flags] Authentication Types: sprite     Require org membership to access (default) public     No authentication - anyone with URL can access
+sprite url update --auth <type> [flags]
 ```
 
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
 - `-a, --auth <type>` - Authentication type: 'public' or 'sprite'
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
@@ -525,11 +529,11 @@ sprite upgrade [flags]
 ```
 
 **Options:**
-- `--check Check` - for updates without installing
-- `--force Force` - upgrade even if already up to date
+- `--check` - Check for updates without installing
+- `--force` - Force upgrade even if already up to date
 - `--version <version>` - Upgrade to a specific version
 - `--channel <channel>` - Release channel (release, rc, dev)
-- `-h, --help Show` - this help message
+- `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
