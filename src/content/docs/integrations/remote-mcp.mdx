@@ -4,10 +4,11 @@ description: Connect MCP clients to Sprites with the hosted remote MCP server
 ---
 
 import { Callout } from '@/components/react';
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Sprites runs a hosted MCP server. Connect an MCP client to it and the client can control Sprites directly. It can create and manage them, run commands, inspect checkpoints, and change network policy through standard MCP tools.
 
-Why use it? Your MCP client gets persistent, isolated Linux environments without you pasting API tokens into a prompt or running a local MCP bridge.
+Why use it? Your MCP client gets persistent, isolated Linux environments without you pasting API tokens into a prompt. Most clients connect directly; clients without MCP OAuth support can use a local authentication bridge.
 
 ## MCP server URL
 
@@ -31,6 +32,140 @@ The connector uses OAuth. During setup, you sign in with your Fly.io account, ch
 <Callout type="info">
 If your client asks for a connector name, use `Sprites`.
 </Callout>
+
+## Client setup
+
+Choose your client for its settings location and configuration. Cline, Windsurf, Zed, and Continue connect directly to the hosted server and complete OAuth in your browser. JetBrains AI Assistant uses a local bridge for the OAuth flow.
+
+<Tabs>
+<TabItem label="Cline">
+
+1. In the Cline panel, open **MCP Servers**.
+2. Open **Configure**, then select **Configure MCP Servers**.
+3. Add this server under `mcpServers`:
+
+```json
+{
+  "mcpServers": {
+    "sprites": {
+      "type": "streamableHttp",
+      "url": "https://sprites.dev/mcp",
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+After Cline detects that authentication is required, select **Authenticate** for the Sprites server and complete the browser flow. Leaving `autoApprove` empty makes Cline ask before every Sprites tool call.
+
+See [Cline's MCP documentation](https://docs.cline.bot/mcp/mcp-overview).
+
+</TabItem>
+<TabItem label="Windsurf">
+
+New Windsurf tabs use Devin Local. Add Sprites with the Devin CLI, then authenticate it:
+
+```sh
+devin mcp add sprites https://sprites.dev/mcp
+devin mcp login sprites
+```
+
+For the legacy Cascade agent:
+
+1. Open the MCP server menu, or open **Devin Settings → Cascade → MCP Servers**.
+2. Edit `~/.codeium/windsurf/mcp_config.json` and add:
+
+```json
+{
+  "mcpServers": {
+    "sprites": {
+      "serverUrl": "https://sprites.dev/mcp"
+    }
+  }
+}
+```
+
+Both agents support OAuth for remote HTTP servers. Complete the browser flow when asked to authenticate Sprites. A team administrator can turn off custom MCP servers or require the server ID `sprites` to be on the allowlist.
+
+See [the MCP documentation for Windsurf](https://docs.windsurf.com/windsurf/cascade/mcp).
+
+</TabItem>
+<TabItem label="Zed">
+
+1. Open **Settings → AI → MCP Servers**.
+2. Select **Add Server → Add Remote Server**, or add this entry to your Zed settings file:
+
+```json
+{
+  "context_servers": {
+    "sprites": {
+      "url": "https://sprites.dev/mcp"
+    }
+  }
+}
+```
+
+Do not add an `Authorization` header. When it is absent, Zed starts the standard MCP OAuth flow. The server indicator turns green and shows **Server is active** after Sprites connects.
+
+Zed asks before tool calls by default. You can change that behavior with `agent.tool_permissions`, including rules for individual `mcp:sprites:<tool_name>` tools.
+
+See [Zed's MCP documentation](https://zed.dev/docs/ai/mcp).
+
+</TabItem>
+<TabItem label="Continue">
+
+1. Create `.continue/mcpServers/sprites.yaml` at the root of your workspace.
+2. Add:
+
+```yaml
+name: Sprites MCP
+version: 0.0.1
+schema: v1
+mcpServers:
+  - name: Sprites
+    type: streamable-http
+    url: https://sprites.dev/mcp
+```
+
+Open Continue in **Agent** mode. Continue starts the OAuth flow when it first connects to Sprites; complete it in the browser. MCP tools are only available in Agent mode.
+
+See [the MCP documentation for Continue](https://docs.continue.dev/customize/deep-dives/mcp).
+
+</TabItem>
+<TabItem label="JetBrains AI Assistant">
+
+JetBrains AI Assistant supports the `Streamable HTTP` transport. Its MCP documentation does not include the browser OAuth flow that Sprites requires, so use `mcp-remote` as a local stdio bridge.
+
+1. Make sure Node.js and `npx` are installed.
+2. Open **Settings → Tools → AI Assistant → Model Context Protocol (MCP)**.
+3. Select **Add**, choose **STDIO**, and enter:
+
+```json
+{
+  "mcpServers": {
+    "sprites": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://sprites.dev/mcp"]
+    }
+  }
+}
+```
+
+AI Assistant launches the bridge as a child process. The bridge opens the Sprites browser OAuth flow and passes the authenticated MCP connection back to the IDE; your Sprites token does not go in the configuration file.
+
+See [JetBrains AI Assistant's MCP documentation](https://www.jetbrains.com/help/ai-assistant/mcp.html).
+
+</TabItem>
+</Tabs>
+
+After setup, ask your client:
+
+```text
+List my Sprites.
+```
+
+An empty list is still a successful authenticated response.
 
 ## Permissions
 
@@ -60,7 +195,7 @@ The Sprite-level tools are generated from the public Sprite environment API. The
 
 | Category | Examples |
 |----------|----------|
-| Exec | Run a command, list exec sessions, kill a session |
+| Exec | Run a command, list exec sessions, stop a session |
 | Checkpoints | Create, list, inspect, and restore checkpoints |
 | Network policy | Read or update outbound network rules |
 | Services | List, create, start, stop, and inspect background services |
