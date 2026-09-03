@@ -29,6 +29,7 @@ You need:
 
 - A **Cursor Enterprise plan** with Self-Hosted Machines enabled by a team admin under **Dashboard** › **Cloud Agents** › **Self-Hosted**. Team pools are an Enterprise feature.
 - A **Cursor service account API key** with agent scope, created under **Settings** › **Service accounts**. Personal, team-admin, and organization keys can't start pool workers. Export it as `CURSOR_API_KEY`.
+- **Privacy mode set to the current option, not legacy.** Legacy privacy mode blocks Cloud Agents, and a self-hosted worker is still a Cloud Agent from Cursor's side: the worker authenticates, reports it is running, and then reconnects to Cursor's bridge every few seconds without ever being listed. Check under **Settings** › **Privacy** for the account that owns the key.
 - A **Sprites API token** (`org-slug/org-id/token-id/token-value`). Export it as `SPRITE_TOKEN`.
 - A **controller host**: any Linux or macOS machine with outbound HTTPS. It runs the Cursor controller and the spawn hook, and holds both keys. Only `CURSOR_API_KEY` reaches a Sprite; `SPRITE_TOKEN` never does.
 - Optional: **GitHub token minting** enabled for team pool workers in the Cursor dashboard, if you want workers to clone repositories themselves. See [Repositories](#repositories).
@@ -298,6 +299,7 @@ A destroyed Sprite can't be woken; a follow-up for it falls through to a fresh c
 |---|---|---|
 | Agent stays queued, no Sprite appears | The controller isn't running, `CURSOR_API_KEY` isn't a service account key, or `--pool` doesn't match the pool name in the dashboard (names are case-sensitive) | Run the controller in the foreground and watch its output. A `401` means the wrong kind of key. |
 | Hook fails with `sprite name must contain only…` | A worker id produced an invalid name | The hook lowercases and strips the id; report the id if this still happens. |
+| Worker logs `Worker is now running`, then `Starting bridge connection attempt` with a rising `retryCount` every few seconds, and Cursor reports the worker as not found | The account that owns the key is on legacy privacy mode. `agent worker … debug` shows `Visibility … [invalid_argument]`. | Switch that account to the current privacy setting (or off), then restart the worker. It reads privacy mode only at startup. |
 | Sprite is created, worker exits within seconds | The key inside the Sprite is invalid, or the CLI install failed | `sprite exec -s <name> -- cat /.sprite/logs/services/cursor-worker.log`. "The provided API key is invalid" means the controller's key was rejected by Cursor. |
 | `--clone-git-repos` exits with an error | The flag only works on named any-repo pools, and needs token minting enabled by a team admin | Use a pool name other than `default`, keep the workspace free of a git remote, and confirm minting is enabled. |
 | A long session stalls mid-turn | The keep-alive task is missing or expired, so the Sprite paused | Inside the Sprite, `sprite-env curl /v1/tasks` should list `cursor-worker` with a future `expires_at`. If it doesn't, check that the heartbeat loop in `cursor-worker.sh` is running. |
