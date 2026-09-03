@@ -2185,6 +2185,7 @@ main .sl-markdown-content a:has(> code),
 }
 
 .sprite-expandable__content {
+  position: relative;
   overflow: hidden;
 }
 
@@ -2192,15 +2193,27 @@ main .sl-markdown-content a:has(> code),
   margin-top: 0;
 }
 
+/* Collapsed preview: clip to the code block's own corners and fade into the
+   code surface, which is the same near-black in both light and dark mode
+   (see the .expressive-code override above), not into the page background. */
+.sprite-expandable[data-collapsed='true'] .sprite-expandable__content {
+  border-radius: var(--ec-brdRad, 0.5rem);
+}
+
 .sprite-expandable[data-collapsed='true'] .sprite-expandable__content::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 2.75rem;
-  height: 6rem;
+  bottom: 0;
+  height: 5rem;
   pointer-events: none;
-  background: linear-gradient(to bottom, transparent, var(--sl-color-bg));
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    oklch(0.14 0 0 / 0.85) 60%,
+    oklch(0.14 0 0)
+  );
 }
 
 .sprite-expandable__toggle {
