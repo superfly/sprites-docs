@@ -26,7 +26,7 @@ Other sandbox providers implement Cursor's hibernation by snapshotting a machine
 
 You need:
 
-- A **Cursor account with Cloud Agents**.
+- A **Cursor account with Cloud Agents**, and **privacy mode set to the current option, not legacy**. Legacy privacy mode blocks Cloud Agents, and a self-hosted worker is still a Cloud Agent from Cursor's side: it authenticates and reports it is running, then reconnects to Cursor every few seconds without ever being listed. Check under **Settings** › **Privacy** for the account that owns the key.
 - A **Cursor API key**, exported as `CURSOR_API_KEY`. For a personal machine, a user API key from [Dashboard › API Keys](https://cursor.com/dashboard/api). For a team pool, an agent-scoped service account key instead; see [Scale out with a team pool](#scale-out-with-a-team-pool).
 - A **Sprites API token** (`org-slug/org-id/token-id/token-value`), exported as `SPRITE_TOKEN`.
 - The **Sprites CLI** on the machine you run the scripts from. It reads `SPRITE_TOKEN` from the environment.
@@ -39,10 +39,6 @@ sprite list
 ```
 
 Only `CURSOR_API_KEY` reaches a Sprite. `SPRITE_TOKEN` stays on the machine you run the scripts from.
-
-<Callout type="info" title="Check the account's privacy mode">
-Legacy privacy mode blocks Cloud Agents, and a self-hosted worker is still a Cloud Agent from Cursor's side. With it on, the worker authenticates and reports it is running, then reconnects to Cursor every few seconds without ever being listed. Set the account that owns the key to the current privacy option under **Settings** › **Privacy**.
-</Callout>
 
 ## Get the scripts
 
@@ -117,11 +113,12 @@ trap 'rm -f "$envfile"' EXIT
 } > "$envfile"
 
 # Install the CLI on first boot, clone the repository if one was named and the
-# workspace is still empty, then create the service or start the existing one.
+# workspace is still empty, then create the service or restart the existing one.
 # `sprite exec` wakes a paused Sprite, so the wake path needs nothing extra.
-repo=()
-[ -n "${CURSOR_REPO_URL:-}" ] && repo=(--env "REPO_URL=$CURSOR_REPO_URL")
-sprite exec -s "$name" "${repo[@]}" \
+setup_env=()
+[ -n "${CURSOR_REPO_URL:-}" ] && setup_env+=(--env "REPO_URL=$CURSOR_REPO_URL")
+case " ${CURSOR_WORKER_EXTRA_ARGS:-} " in *" --computer-use "*|*" --share-desktop"*) setup_env+=(--env "DESKTOP=1") ;; esac
+sprite exec -s "$name" "${setup_env[@]}" \
   --file "$HERE/cursor-worker.sh:/home/sprite/cursor-worker.sh" \
   --file "$envfile:/home/sprite/.cursor-worker.env" \
   -- bash -c '
@@ -134,8 +131,30 @@ sprite exec -s "$name" "${repo[@]}" \
     if [ -n "${REPO_URL:-}" ] && [ ! -e ~/workspace/.git ]; then
       git clone -q "$REPO_URL" ~/workspace
     fi
+    if [ -n "${DESKTOP:-}" ]; then
+      if ! command -v Xtigervnc >/dev/null; then
+        # Desktop packages for computer use (Cursor does not install them).
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+          dbus-x11 ffmpeg tigervnc-standalone-server x11-utils x11-xserver-utils xdotool \
+          xfce4 adwaita-icon-theme >/dev/null
+      fi
+      # The worker starts its desktop with `startxfce4` and waits for a window
+      # manager. Two things get in the way inside a Sprite: the shell carries
+      # Linux capabilities, which makes bubblewrap (used by GTK image loaders)
+      # refuse to run, and the Xfce session manager never launches xfwm4. This
+      # wrapper drops capabilities and runs xfwm4 directly under a session bus,
+      # which is all computer use needs.
+      cat > ~/.local/bin/startxfce4 <<"WRAP"
+#!/bin/sh
+exec setpriv --ambient-caps=-all --inh-caps=-all --bounding-set=-all \
+  dbus-run-session -- /usr/bin/xfwm4 "$@"
+WRAP
+      chmod 755 ~/.local/bin/startxfce4
+    fi
     if sprite-env services get cursor-worker >/dev/null 2>&1; then
-      sprite-env services start cursor-worker >/dev/null
+      # Stopped after idle release, or still running from an earlier start:
+      # either way, come back up with the environment just uploaded.
+      sprite-env services restart cursor-worker >/dev/null
     else
       sprite-env services create cursor-worker --cmd /home/sprite/cursor-worker.sh --no-stream >/dev/null
     fi
@@ -179,6 +198,10 @@ else
   mode=(--name "${CURSOR_WORKER_NAME:-sprite}")
 fi
 
+# Displays left behind by a worker that was killed rather than shut down would
+# block the next one from starting its own.
+pkill -u "$(id -u)" -x Xtigervnc 2>/dev/null; pkill -u "$(id -u)" -x xfwm4 2>/dev/null
+
 # A worker only opens an outbound connection, which does not count as Sprite
 # activity. Register a task and heartbeat it so the Sprite stays active for the
 # length of the session. If this script dies, the task expires and the Sprite pauses.
@@ -188,6 +211,12 @@ sprite-env curl -s -X POST /v1/tasks -d '{"name":"cursor-worker","expire":"5m"}'
     sprite-env curl -s -X PUT /v1/tasks/cursor-worker -d '{"expire":"5m"}' >/dev/null 2>&1
   done ) &
 heartbeat=$!
+
+# When the runtime stops or restarts this service it sends TERM. In that case
+# the runtime owns the service state, so skip the self-stop below: otherwise a
+# restart's outgoing instance would stop the incoming one.
+stopped_by_runtime=0
+trap 'stopped_by_runtime=1' TERM
 
 echo "cursor-worker: starting worker ${mode[*]} id=${CURSOR_AGENT_WORKER_ID:-<new>}"
 agent worker \
@@ -200,10 +229,12 @@ rc=$?
 
 kill "$heartbeat" 2>/dev/null
 sprite-env curl -s -X DELETE /v1/tasks/cursor-worker >/dev/null 2>&1
-echo "cursor-worker: worker exited with code $rc; stopping service so the Sprite can pause"
-# `stop` is sticky: the runtime will not restart this service on the next wake.
-# spawn.sh starts it again explicitly when the worker is wanted.
-sprite-env services stop cursor-worker >/dev/null 2>&1
+if [ "$stopped_by_runtime" = 0 ]; then
+  echo "cursor-worker: worker exited with code $rc; stopping service so the Sprite can pause"
+  # `stop` is sticky: the runtime will not restart this service on the next wake.
+  # spawn.sh starts it again explicitly when the worker is wanted.
+  sprite-env services stop cursor-worker >/dev/null 2>&1
+fi
 exit "$rc"
 ```
 </ExpandableCode>
@@ -330,6 +361,27 @@ To shorten how long a Sprite stays active after the agent goes quiet, lower the 
 export CURSOR_WORKER_IDLE_RELEASE_TIMEOUT=120
 ```
 
+## Computer use
+
+Cursor's [computer use](https://cursor.com/docs/cloud-agent/self-hosted/computer-use) lets the agent click, type, and take screenshots on the worker, and `--share-desktop` lets people watch or take over that desktop from Cursor. On Linux the worker needs an X11 display and a few desktop packages. Pass the flags through `CURSOR_WORKER_EXTRA_ARGS` and `spawn.sh` takes care of the rest on first start:
+
+```bash
+export CURSOR_WORKER_EXTRA_ARGS="--computer-use --share-desktop view_and_control"
+./spawn.sh
+```
+
+The install adds about five minutes to the first start of a Sprite. After that, the worker log reports both displays:
+
+```output
+INFO  Computer-use display is ready ctx=worker-mode meta={display: ":0", source: "tigervnc", …}
+INFO  Worker desktop display is up; agent sessions and computer use will use it ctx=worker-mode meta={display: ":2", …}
+Worker is now running
+```
+
+Ask the agent to take a screenshot to confirm, and open the desktop from the agent's page in Cursor to watch it work. Pass `--share-desktop view` for watch-only. Give the mode explicitly: `--share-desktop` on its own swallows the `start` subcommand as its argument.
+
+Two things `spawn.sh` does here are specific to Sprites. GTK's image loaders run through bubblewrap, which refuses to start from a process that carries Linux capabilities, as a Sprite shell does; and Xfce's session manager never launches its window manager in this environment. So the script installs a `startxfce4` wrapper that drops capabilities and runs the window manager on its own under a session bus. That is enough for computer use: the agent starts applications through the shell, and the shared desktop shows them. Install Chromium or Firefox in the Sprite if you want the agent to drive a browser.
+
 ## Network access
 
 A worker needs outbound HTTPS to `api2.cursor.sh` and `api2direct.cursor.sh`, plus `downloads.cursor.com` for the CLI install and `cloud-agent-artifacts.s3.us-east-1.amazonaws.com` for artifact uploads. The default Sprite [network policy](/concepts/networking) allows all of these. If you restrict egress for worker Sprites, keep those hosts and whatever git hosts, package registries, and internal services your agents need.
@@ -357,6 +409,7 @@ A destroyed Sprite can't be woken; a follow-up for it falls through to a fresh c
 | `--clone-git-repos` exits with an error | The flag only works on named any-repo pools, and needs token minting enabled by a team admin | Use a pool name other than `default`, keep the workspace free of a git remote, and confirm minting is enabled. |
 | A long session stalls mid-turn | The keep-alive task is missing or expired, so the Sprite paused | Inside the Sprite, `sprite-env curl /v1/tasks` should list `cursor-worker` with a future `expires_at`. If it doesn't, check that the heartbeat loop in `cursor-worker.sh` is running. |
 | Pool follow-ups always land on a fresh Sprite | The pool has no reconnect window | Re-register the pool with `workerReadyTimeoutSeconds` greater than zero. |
+| With `--computer-use`, the worker exits with `Timed out waiting for XFCE window manager` or `X11 is not installed` | The desktop wrapper was not installed, or a display from a killed worker is still running | Run `spawn.sh` again with the flags in `CURSOR_WORKER_EXTRA_ARGS`; it writes the wrapper and the worker script clears stale displays. `agent worker --computer-use debug` inside the Sprite prints the X11 preflight. |
 | Service shows `failed (exit 143)` after a session | Expected. That's the self-stop at the end of `cursor-worker.sh`. | Nothing to fix. |
 
 ## Related documentation
