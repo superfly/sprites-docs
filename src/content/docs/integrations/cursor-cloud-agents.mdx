@@ -26,7 +26,7 @@ Other sandbox providers implement Cursor's hibernation by snapshotting a machine
 
 You need:
 
-- A **Cursor account with Cloud Agents**, and **privacy mode set to the current option, not legacy**. Legacy privacy mode blocks Cloud Agents, and a self-hosted worker is still a Cloud Agent from Cursor's side: it authenticates and reports it is running, then reconnects to Cursor every few seconds without ever being listed. Check under **Settings** › **Privacy** for the account that owns the key.
+- A **Cursor account with Cloud Agents**.
 - A **Cursor API key**, exported as `CURSOR_API_KEY`. For a personal machine, a user API key from [Dashboard › API Keys](https://cursor.com/dashboard/api). For a team pool, an agent-scoped service account key instead; see [Scale out with a team pool](#scale-out-with-a-team-pool).
 - A **Sprites API token** (`org-slug/org-id/token-id/token-value`), exported as `SPRITE_TOKEN`.
 - The **Sprites CLI** on the machine you run the scripts from. It reads `SPRITE_TOKEN` from the environment.
@@ -39,6 +39,10 @@ sprite list
 ```
 
 Only `CURSOR_API_KEY` reaches a Sprite. `SPRITE_TOKEN` stays on the machine you run the scripts from.
+
+<Callout type="info" title="Check the account's privacy mode">
+Legacy privacy mode blocks Cloud Agents, and a self-hosted worker is still a Cloud Agent from Cursor's side. With it on, the worker authenticates and reports it is running, then reconnects to Cursor every few seconds without ever being listed. Set the account that owns the key to the current privacy option under **Settings** › **Privacy**.
+</Callout>
 
 ## Get the scripts
 
