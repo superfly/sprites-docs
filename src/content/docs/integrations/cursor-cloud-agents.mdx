@@ -118,6 +118,7 @@ trap 'rm -f "$envfile"' EXIT
 setup_env=()
 [ -n "${CURSOR_REPO_URL:-}" ] && setup_env+=(--env "REPO_URL=$CURSOR_REPO_URL")
 case " ${CURSOR_WORKER_EXTRA_ARGS:-} " in *" --computer-use "*|*" --share-desktop"*) setup_env+=(--env "DESKTOP=1") ;; esac
+[ -n "${CURSOR_INSTALL_CHROME:-}" ] && setup_env+=(--env "INSTALL_CHROME=1")
 sprite exec -s "$name" "${setup_env[@]}" \
   --file "$HERE/cursor-worker.sh:/home/sprite/cursor-worker.sh" \
   --file "$envfile:/home/sprite/.cursor-worker.env" \
@@ -147,6 +148,32 @@ sprite exec -s "$name" "${setup_env[@]}" \
         printf "#!/bin/sh\nexec setpriv --ambient-caps=-all --inh-caps=-all --bounding-set=-all /usr/bin/bwrap.real \"\$@\"\n" \
           | sudo tee /usr/bin/bwrap >/dev/null
         sudo chmod 755 /usr/bin/bwrap
+      fi
+      if [ -n "${INSTALL_CHROME:-}" ]; then
+      # Google Chrome for computer use. Chromium and Firefox from apt are snap stubs.
+      if [ ! -x /opt/google/chrome/google-chrome ]; then
+        curl -sSL -o /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq /tmp/chrome.deb >/dev/null
+        rm -f /tmp/chrome.deb
+      fi
+      mkdir -p ~/.config/google-chrome && touch "$HOME/.config/google-chrome/First Run"
+      # Agents launch browsers every way imaginable, and the Cursor shell tool kills
+      # the process group of each command when it returns. Put a wrapper in front of
+      # the chrome commands that always detaches and skips the dialogs that hide the
+      # browser window (first run, default browser, crash restore).
+      sudo tee /usr/local/bin/chrome-detached >/dev/null <<"WRAP"
+      #!/bin/sh
+      exec setsid -f /opt/google/chrome/google-chrome --no-first-run --no-default-browser-check \
+        --hide-crash-restore-bubble --disable-gpu "$@" </dev/null >/dev/null 2>&1
+      WRAP
+      sudo chmod 755 /usr/local/bin/chrome-detached
+      for alt in google-chrome x-www-browser gnome-www-browser; do
+        sudo update-alternatives --quiet --install /usr/bin/$alt $alt /usr/local/bin/chrome-detached 500
+      done
+      if [ ! -e /usr/bin/google-chrome-stable.real ]; then
+        sudo dpkg-divert --quiet --rename --divert /usr/bin/google-chrome-stable.real /usr/bin/google-chrome-stable
+        sudo ln -sf /usr/local/bin/chrome-detached /usr/bin/google-chrome-stable
+      fi
       fi
       # The Cursor shell tool kills the whole process group of a command when
       # the command returns, so a browser started as a background job dies
@@ -413,18 +440,15 @@ Ask the agent to take a screenshot to confirm.
 Adding `--share-desktop` lets people watch the agent's desktop from Cursor, but with the current CLI (2026.08) it splits the worker across two displays: the agent's shell opens windows on the shared desktop while the screenshot tool keeps capturing the first display. The agent then sees an empty desktop, concludes its browser crashed, and loops. Until Cursor fixes that, run computer use without desktop sharing. If you do enable it, give the mode explicitly (`--share-desktop view_and_control`), since the bare flag swallows the `start` subcommand.
 </Callout>
 
-For browsing, install Chrome in the Sprite. Its sandbox works as-is:
+For browsing, have `spawn.sh` install Google Chrome as well. Chromium and Firefox from apt are snap stubs on this image and do not run:
 
 ```bash
-sprite exec -s cursor-my-sprite -- bash -c \
-  'curl -sSL -o /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-   && sudo apt-get install -y -qq /tmp/chrome.deb \
-   && mkdir -p ~/.config/google-chrome && touch "$HOME/.config/google-chrome/First Run"'
+export CURSOR_WORKER_EXTRA_ARGS="--computer-use"
+export CURSOR_INSTALL_CHROME=1
+./spawn.sh
 ```
 
-The empty `First Run` file skips Chrome's welcome dialog, which otherwise opens instead of a browser window and leaves the agent convinced that Chrome failed to start. The rule the script installs tells the agent to pass `--no-first-run` as well, for launches that use a fresh profile.
-
-Cursor's shell tool kills a command's whole process group when the command returns, so an agent that starts a browser as a plain background job sees it vanish. `spawn.sh` writes a user-level [rule](https://cursor.com/docs/rules) into `~/.cursor/rules` on the Sprite that tells the agent to launch GUI applications with `setsid -f`, and to take a screenshot afterwards. Edit that file if your desktop needs other instructions.
+Besides installing the package, the script puts a small wrapper in front of the `google-chrome`, `google-chrome-stable`, and `x-www-browser` commands. Agents launch browsers every way imaginable, and Cursor's shell tool kills a command's whole process group when the command returns, so a browser started as a background job dies immediately. The wrapper always starts Chrome detached, and passes the flags that skip the first-run welcome dialog and the crash-restore bubble, both of which otherwise open instead of a browser window and leave the agent convinced that Chrome failed. A user-level [rule](https://cursor.com/docs/rules) written to `~/.cursor/rules` on the Sprite explains the same things to the agent for any other GUI program. Edit that file if your desktop needs other instructions.
 
 <Callout type="info" title="Why spawn.sh wraps bubblewrap">
 GTK loads images through bubblewrap, and bubblewrap refuses to start from a process that carries Linux capabilities, which every process in a Sprite does. Without a fix, Xfce's window manager and any GTK application the agent launches abort on their first icon. `spawn.sh` diverts `/usr/bin/bwrap` behind a one-line wrapper that drops capabilities before running the real binary. The desktop and the agent's applications then render normally, and the agent keeps `sudo`.
