@@ -148,6 +148,27 @@ sprite exec -s "$name" "${setup_env[@]}" \
           | sudo tee /usr/bin/bwrap >/dev/null
         sudo chmod 755 /usr/bin/bwrap
       fi
+      # Cursor's shell tool kills a command's whole process group when the
+      # command returns, so a browser started as a background job dies with
+      # it. Tell the agent how this desktop works, as a user-level rule.
+      mkdir -p ~/.cursor/rules
+      cat > ~/.cursor/rules/sprite-desktop.mdc <<"RULE"
+---
+description: How to use the desktop on this Sprite worker
+alwaysApply: true
+---
+
+# Desktop on this machine
+
+This worker has an X11 desktop for computer use. Take a screenshot to see it.
+
+- Start GUI applications fully detached, or they are killed when your shell
+  command returns: `setsid -f google-chrome https://example.com >/dev/null 2>&1 </dev/null`
+- Use the `DISPLAY` already set in your shell. Do not start another X server.
+- Google Chrome is installed as `google-chrome` when the operator added it.
+  Chromium and Firefox from apt are snap stubs here and do not work.
+- After launching something, wait a few seconds and take a screenshot.
+RULE
     fi
     if sprite-env services get cursor-worker >/dev/null 2>&1; then
       # Stopped after idle release, or still running from an earlier start:
@@ -385,6 +406,8 @@ sprite exec -s cursor-my-sprite -- bash -c \
   'curl -sSL -o /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
    && sudo apt-get install -y -qq /tmp/chrome.deb'
 ```
+
+Cursor's shell tool kills a command's whole process group when the command returns, so an agent that starts a browser as a plain background job sees it vanish. `spawn.sh` writes a user-level [rule](https://cursor.com/docs/rules) into `~/.cursor/rules` on the Sprite that tells the agent to launch GUI applications with `setsid -f`, and to take a screenshot afterwards. Edit that file if your desktop needs other instructions.
 
 <Callout type="info" title="Why spawn.sh wraps bubblewrap">
 GTK loads images through bubblewrap, and bubblewrap refuses to start from a process that carries Linux capabilities, which every process in a Sprite does. Without a fix, Xfce's window manager and any GTK application the agent launches abort on their first icon. `spawn.sh` diverts `/usr/bin/bwrap` behind a one-line wrapper that drops capabilities before running the real binary. The desktop and the agent's applications then render normally, and the agent keeps `sudo`.
