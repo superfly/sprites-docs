@@ -162,12 +162,20 @@ alwaysApply: true
 
 This worker has an X11 desktop for computer use. Take a screenshot to see it.
 
-- Start GUI applications fully detached, or they are killed when your shell
-  command returns: `setsid -f google-chrome https://example.com >/dev/null 2>&1 </dev/null`
-- Use the `DISPLAY` already set in your shell. Do not start another X server.
-- Google Chrome is installed as `google-chrome` when the operator added it.
-  Chromium and Firefox from apt are snap stubs here and do not work.
-- After launching something, wait a few seconds and take a screenshot.
+Your shell tool kills the whole process group when a command returns, so any
+GUI program started as a normal background job dies immediately. Start GUI
+programs fully detached, exactly like this, then wait 5 seconds and screenshot:
+
+    setsid -f google-chrome --disable-gpu https://example.com >/dev/null 2>&1 </dev/null
+
+- Use the DISPLAY already set in your shell. Do not start another X server.
+- Google Chrome is `google-chrome`. Its sandbox works here; add `--no-sandbox`
+  only if a detached launch still exits at once. Chromium and Firefox from apt
+  are snap stubs on this machine and do not run.
+- Do not pipe a GUI program to `head` or run it in the foreground: it is killed
+  when the tool call ends.
+- To record the screen, run ffmpeg the same detached way and stop it with
+  `pkill -INT -x ffmpeg`.
 RULE
     fi
     if sprite-env services get cursor-worker >/dev/null 2>&1; then
