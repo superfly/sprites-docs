@@ -148,9 +148,9 @@ sprite exec -s "$name" "${setup_env[@]}" \
           | sudo tee /usr/bin/bwrap >/dev/null
         sudo chmod 755 /usr/bin/bwrap
       fi
-      # Cursor's shell tool kills a command's whole process group when the
-      # command returns, so a browser started as a background job dies with
-      # it. Tell the agent how this desktop works, as a user-level rule.
+      # The Cursor shell tool kills the whole process group of a command when
+      # the command returns, so a browser started as a background job dies
+      # with it. Tell the agent how this desktop works, as a user-level rule.
       mkdir -p ~/.cursor/rules
       cat > ~/.cursor/rules/sprite-desktop.mdc <<"RULE"
 ---
