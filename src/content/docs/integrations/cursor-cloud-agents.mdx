@@ -136,20 +136,18 @@ sprite exec -s "$name" "${setup_env[@]}" \
         # Desktop packages for computer use (Cursor does not install them).
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
           dbus-x11 ffmpeg tigervnc-standalone-server x11-utils x11-xserver-utils xdotool \
-          xfce4 adwaita-icon-theme >/dev/null
+          xfce4 xfce4-terminal adwaita-icon-theme xfonts-base >/dev/null
       fi
-      # The worker starts its desktop with `startxfce4` and waits for a window
-      # manager. Two things get in the way inside a Sprite: the shell carries
-      # Linux capabilities, which makes bubblewrap (used by GTK image loaders)
-      # refuse to run, and the Xfce session manager never launches xfwm4. This
-      # wrapper drops capabilities and runs xfwm4 directly under a session bus,
-      # which is all computer use needs.
-      cat > ~/.local/bin/startxfce4 <<"WRAP"
-#!/bin/sh
-exec setpriv --ambient-caps=-all --inh-caps=-all --bounding-set=-all \
-  dbus-run-session -- /usr/bin/xfwm4 "$@"
-WRAP
-      chmod 755 ~/.local/bin/startxfce4
+      # GTK loads images through bubblewrap, and bubblewrap refuses to start
+      # from a process that carries Linux capabilities, which every process in
+      # a Sprite does. Put a wrapper in front of it that drops them first, so
+      # Xfce and any GTK app the agent launches can render.
+      if [ ! -e /usr/bin/bwrap.real ]; then
+        sudo dpkg-divert --quiet --rename --divert /usr/bin/bwrap.real /usr/bin/bwrap
+        printf "#!/bin/sh\nexec setpriv --ambient-caps=-all --inh-caps=-all --bounding-set=-all /usr/bin/bwrap.real \"\$@\"\n" \
+          | sudo tee /usr/bin/bwrap >/dev/null
+        sudo chmod 755 /usr/bin/bwrap
+      fi
     fi
     if sprite-env services get cursor-worker >/dev/null 2>&1; then
       # Stopped after idle release, or still running from an earlier start:
@@ -370,7 +368,7 @@ export CURSOR_WORKER_EXTRA_ARGS="--computer-use --share-desktop view_and_control
 ./spawn.sh
 ```
 
-The install adds about five minutes to the first start of a Sprite. After that, the worker log reports both displays:
+The install adds a few minutes to the first start of a Sprite. After that, the worker log reports both displays:
 
 ```output
 INFO  Computer-use display is ready ctx=worker-mode meta={display: ":0", source: "tigervnc", …}
@@ -380,7 +378,17 @@ Worker is now running
 
 Ask the agent to take a screenshot to confirm, and open the desktop from the agent's page in Cursor to watch it work. Pass `--share-desktop view` for watch-only. Give the mode explicitly: `--share-desktop` on its own swallows the `start` subcommand as its argument.
 
-Two things `spawn.sh` does here are specific to Sprites. GTK's image loaders run through bubblewrap, which refuses to start from a process that carries Linux capabilities, as a Sprite shell does; and Xfce's session manager never launches its window manager in this environment. So the script installs a `startxfce4` wrapper that drops capabilities and runs the window manager on its own under a session bus. That is enough for computer use: the agent starts applications through the shell, and the shared desktop shows them. Install Chromium or Firefox in the Sprite if you want the agent to drive a browser.
+For browsing, install Chrome in the Sprite. Its sandbox works as-is:
+
+```bash
+sprite exec -s cursor-my-sprite -- bash -c \
+  'curl -sSL -o /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+   && sudo apt-get install -y -qq /tmp/chrome.deb'
+```
+
+<Callout type="info" title="Why spawn.sh wraps bubblewrap">
+GTK loads images through bubblewrap, and bubblewrap refuses to start from a process that carries Linux capabilities, which every process in a Sprite does. Without a fix, Xfce's window manager and any GTK application the agent launches abort on their first icon. `spawn.sh` diverts `/usr/bin/bwrap` behind a one-line wrapper that drops capabilities before running the real binary. The desktop and the agent's applications then render normally, and the agent keeps `sudo`.
+</Callout>
 
 ## Network access
 
@@ -409,7 +417,7 @@ A destroyed Sprite can't be woken; a follow-up for it falls through to a fresh c
 | `--clone-git-repos` exits with an error | The flag only works on named any-repo pools, and needs token minting enabled by a team admin | Use a pool name other than `default`, keep the workspace free of a git remote, and confirm minting is enabled. |
 | A long session stalls mid-turn | The keep-alive task is missing or expired, so the Sprite paused | Inside the Sprite, `sprite-env curl /v1/tasks` should list `cursor-worker` with a future `expires_at`. If it doesn't, check that the heartbeat loop in `cursor-worker.sh` is running. |
 | Pool follow-ups always land on a fresh Sprite | The pool has no reconnect window | Re-register the pool with `workerReadyTimeoutSeconds` greater than zero. |
-| With `--computer-use`, the worker exits with `Timed out waiting for XFCE window manager` or `X11 is not installed` | The desktop wrapper was not installed, or a display from a killed worker is still running | Run `spawn.sh` again with the flags in `CURSOR_WORKER_EXTRA_ARGS`; it writes the wrapper and the worker script clears stale displays. `agent worker --computer-use debug` inside the Sprite prints the X11 preflight. |
+| With `--computer-use`, the worker exits with `Timed out waiting for XFCE window manager`, or the agent's screenshots show a black desktop and GUI apps exit at once | The bubblewrap wrapper is missing, or displays from a killed worker are still running | Run `spawn.sh` again with the flags in `CURSOR_WORKER_EXTRA_ARGS`; it installs the wrapper and the worker script clears stale displays. Inside the Sprite, `bwrap --ro-bind / / true` must succeed and `agent worker --computer-use debug` prints the X11 preflight. |
 | Service shows `failed (exit 143)` after a session | Expected. That's the self-stop at the end of `cursor-worker.sh`. | Nothing to fix. |
 
 ## Related documentation
