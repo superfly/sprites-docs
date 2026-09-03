@@ -166,8 +166,11 @@ Your shell tool kills the whole process group when a command returns, so any
 GUI program started as a normal background job dies immediately. Start GUI
 programs fully detached, exactly like this, then wait 5 seconds and screenshot:
 
-    setsid -f google-chrome --disable-gpu https://example.com >/dev/null 2>&1 </dev/null
+    setsid -f google-chrome --no-first-run --no-default-browser-check --disable-gpu https://example.com >/dev/null 2>&1 </dev/null
 
+- Keep `--no-first-run --no-default-browser-check`. Without them Chrome shows a
+  small "Welcome to Google Chrome" dialog instead of a browser window, and it
+  looks like nothing opened. Do not use a fresh `--user-data-dir`.
 - Use the DISPLAY already set in your shell. Do not start another X server.
 - Google Chrome is `google-chrome`. Its sandbox works here; add `--no-sandbox`
   only if a detached launch still exits at once. Chromium and Firefox from apt
@@ -415,8 +418,11 @@ For browsing, install Chrome in the Sprite. Its sandbox works as-is:
 ```bash
 sprite exec -s cursor-my-sprite -- bash -c \
   'curl -sSL -o /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-   && sudo apt-get install -y -qq /tmp/chrome.deb'
+   && sudo apt-get install -y -qq /tmp/chrome.deb \
+   && mkdir -p ~/.config/google-chrome && touch "$HOME/.config/google-chrome/First Run"'
 ```
+
+The empty `First Run` file skips Chrome's welcome dialog, which otherwise opens instead of a browser window and leaves the agent convinced that Chrome failed to start. The rule the script installs tells the agent to pass `--no-first-run` as well, for launches that use a fresh profile.
 
 Cursor's shell tool kills a command's whole process group when the command returns, so an agent that starts a browser as a plain background job sees it vanish. `spawn.sh` writes a user-level [rule](https://cursor.com/docs/rules) into `~/.cursor/rules` on the Sprite that tells the agent to launch GUI applications with `setsid -f`, and to take a screenshot afterwards. Edit that file if your desktop needs other instructions.
 
