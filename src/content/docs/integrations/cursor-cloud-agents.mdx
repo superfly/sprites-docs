@@ -1,0 +1,338 @@
+---
+title: Cursor Cloud Agents
+description: Run Cursor Cloud Agents with tool execution inside your own Sprites using Cursor Self-Hosted Machines
+---
+
+import { Callout, LinkCard, CardGrid } from '@/components/react';
+
+[Cursor Self-Hosted Machines](https://cursor.com/docs/cloud-agent/self-hosted) let Cursor run the agent loop and the model while the agent's tool calls (the commands it runs, the files it edits, the repositories it clones) execute on a machine you control. Point a Cursor team pool at Sprites and each Cloud Agent session runs inside its own Sprite, so the agent's code, filesystem, and network egress stay in your infrastructure.
+
+## How it works
+
+A pool is a queue. When someone starts a Cloud Agent against your pool, the request waits until a worker claims it. Cursor's `agent worker controller` watches the queue from a host you run, claims each request, and calls a **spawn hook** you write. On Sprites, the spawn hook:
+
+1. Creates a Sprite named after the worker id Cursor assigned to the request.
+2. Installs the Cursor CLI in it.
+3. Starts `agent worker … start` as a Sprite [service](/concepts/services). The worker opens one outbound HTTPS connection to Cursor. Nothing connects inbound.
+
+Cursor then forwards every tool call for that agent to the worker in the Sprite. When the agent goes idle past the worker's release timeout, the worker exits, the service stops itself, and the Sprite [pauses](/concepts/lifecycle) on its own. Its filesystem, including the agent's workspace, stays put.
+
+When a follow-up message arrives later, Cursor tells the controller the claimed worker is offline, and the controller runs the same spawn hook with `CURSOR_WAKE=1`. The hook finds the Sprite by worker id and restarts the worker. The Sprite wakes, the worker reconnects under the same id, and the agent resumes in the workspace it already had.
+
+<Callout type="info">
+Other sandbox providers implement Cursor's hibernation by snapshotting a machine, stopping it, and restoring the snapshot on wake. A Sprite does not need any of that: pausing is automatic, the filesystem persists across the pause, and a paused Sprite costs nothing in compute. [Checkpoints](/concepts/checkpoints) stay available as a deliberate rollback point on top of that.
+</Callout>
+
+## Before you begin
+
+You need:
+
+- A **Cursor Enterprise plan** with Self-Hosted Machines enabled by a team admin under **Dashboard** › **Cloud Agents** › **Self-Hosted**. Team pools are an Enterprise feature.
+- A **Cursor service account API key** with agent scope, created under **Settings** › **Service accounts**. Personal, team-admin, and organization keys can't start pool workers. Export it as `CURSOR_API_KEY`.
+- A **Sprites API token** (`org-slug/org-id/token-id/token-value`). Export it as `SPRITE_TOKEN`.
+- A **controller host**: any Linux or macOS machine with outbound HTTPS. It runs the Cursor controller and the spawn hook, and holds both keys. Only `CURSOR_API_KEY` reaches a Sprite; `SPRITE_TOKEN` never does.
+- Optional: **GitHub token minting** enabled for team pool workers in the Cursor dashboard, if you want workers to clone repositories themselves. See [Repositories](#repositories).
+
+## Set up the controller host
+
+Install the Cursor CLI and the Sprites CLI, then export the two credentials:
+
+```bash
+curl https://cursor.com/install -fsS | bash
+export PATH="$HOME/.local/bin:$PATH"
+agent --version
+
+curl -fsSL https://sprites.dev/install.sh | sh
+sprite list
+
+export CURSOR_API_KEY="<service account API key>"
+export SPRITE_TOKEN="<org-slug/org-id/token-id/token-value>"
+```
+
+The `sprite` CLI reads `SPRITE_TOKEN` from the environment. If you've already run `sprite org auth`, make sure the active organization is the one that should own the worker Sprites.
+
+## Register the pool
+
+Register the pool up front so it's selectable in the dashboard before any worker connects, and give it a reconnect window. `workerReadyTimeoutSeconds` is how long Cursor holds a follow-up for a worker that's offline before it hands the request to a fresh machine. The default is `0`, which disables hibernation entirely. A Sprite keeps its workspace for as long as the Sprite exists, so use a generous window:
+
+```bash
+curl --request POST \
+  --url "https://api.cursor.com/v0/private-workers/pools" \
+  -u "$CURSOR_API_KEY:" \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "scope": "team",
+    "poolName": "sprites",
+    "workerReadyTimeoutSeconds": 3600
+  }'
+```
+
+This is an any-repo pool: it has no repository attached, and it shows up under **Any repo** on [cursor.com/agents](https://cursor.com/agents).
+
+## Write the spawn hook
+
+Put these two files in a directory on the controller host and make both executable. The controller runs `spawn.sh`; `spawn.sh` uploads `cursor-worker.sh` into each Sprite.
+
+### spawn.sh
+
+The hook is idempotent. A fresh claim creates the Sprite; a wake (or a retried claim) reuses it. Everything the worker needs is written to a private temp file and uploaded next to the run script; the run script deletes the file as soon as it has sourced it.
+
+```bash
+#!/usr/bin/env bash
+# Cursor Self-Hosted Machines spawn hook for Sprites.
+#
+# The Cursor controller runs this once per claimed request:
+#   agent worker controller --spawn ./spawn.sh --pool <name>
+# It gives each request its own Sprite, installs the Cursor CLI in it, and starts
+# the worker as a supervised Sprite service. On a wake-up (CURSOR_WAKE=1) it
+# finds the same Sprite by worker id and restarts the worker in place.
+#
+# Requires on the controller host: the `sprite` CLI and SPRITE_TOKEN.
+set -euo pipefail
+
+: "${SPRITE_TOKEN:?SPRITE_TOKEN (Sprites API token) is required}"
+: "${CURSOR_API_KEY:?set by the controller}"
+: "${CURSOR_AGENT_WORKER_ID:?set by the controller}"
+: "${CURSOR_POOL:?set by the controller}"
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SPRITE_PREFIX="${SPRITE_PREFIX:-cursor}"
+
+# The worker id is the durable identity Cursor uses to route follow-ups, so the
+# Sprite name derives from it. Sprite names: lowercase letters, digits, hyphens,
+# at most 55 characters.
+name="$SPRITE_PREFIX-$(printf '%s' "$CURSOR_AGENT_WORKER_ID" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n' '-')"
+name="$(printf '%s' "$name" | cut -c1-55 | sed -E 's/-+$//')"
+
+log() { printf 'spawn[%s]: %s\n' "$name" "$*" >&2; }
+
+if [ "${CURSOR_WAKE:-0}" = "1" ]; then
+  log "wake for worker $CURSOR_AGENT_WORKER_ID (window ${CURSOR_WAKE_TIMEOUT_MS:-?} ms)"
+  if ! sprite list 2>/dev/null | grep -qx "$name"; then
+    # The Sprite is gone (destroyed by cleanup). Let the wake window lapse so
+    # Cursor re-advertises the request and a fresh claim provisions a new one.
+    log "no Sprite for this worker id; nothing to wake"
+    exit 1
+  fi
+else
+  log "claim ${CURSOR_REQUEST_ID:-?} for worker $CURSOR_AGENT_WORKER_ID"
+  # A retried claim or a wake after a missed event lands here with the Sprite
+  # already present; that is fine, everything below is idempotent.
+  out="$(sprite create --skip-console "$name" 2>&1)" \
+    || case "$out" in *"already exists"*) ;; *) log "$out"; exit 1 ;; esac
+fi
+
+# Environment for the worker process. Written to a private temp file, uploaded
+# next to the run script, and deleted by the run script once sourced.
+umask 077
+envfile="$(mktemp)"
+trap 'rm -f "$envfile"' EXIT
+{
+  for v in CURSOR_API_KEY CURSOR_AGENT_WORKER_ID CURSOR_POOL CURSOR_WORKER_NAME \
+           CURSOR_WORKER_IDLE_RELEASE_TIMEOUT CURSOR_WORKER_EXTRA_ARGS; do
+    [ -n "${!v:-}" ] && printf '%s=%q\n' "$v" "${!v}"
+  done
+} > "$envfile"
+
+# Install the CLI on first boot, then create the service or start the existing
+# one. `sprite exec` wakes a paused Sprite, so the wake path needs nothing extra.
+sprite exec -s "$name" \
+  --file "$HERE/cursor-worker.sh:/home/sprite/cursor-worker.sh" \
+  --file "$envfile:/home/sprite/.cursor-worker.env" \
+  -- bash -c '
+    set -euo pipefail
+    export PATH="$HOME/.local/bin:$PATH"
+    chmod 700 ~/cursor-worker.sh; chmod 600 ~/.cursor-worker.env
+    if ! command -v agent >/dev/null; then
+      curl https://cursor.com/install -fsS | bash >/dev/null
+    fi
+    if sprite-env services get cursor-worker >/dev/null 2>&1; then
+      sprite-env services start cursor-worker >/dev/null
+    else
+      sprite-env services create cursor-worker --cmd /home/sprite/cursor-worker.sh --no-stream >/dev/null
+    fi
+  '
+log "worker service started"
+```
+
+### cursor-worker.sh
+
+This is the service command inside the Sprite. A pool worker only holds an outbound connection, which does not count as [activity](/working-with-sprites/#idle-detection), so the script registers a [Task](/keeping-sprites-running) and heartbeats it while the worker is connected. If the worker dies without cleaning up, the task expires within five minutes and the Sprite pauses on its own.
+
+```bash
+#!/usr/bin/env bash
+# Runs inside the Sprite as the `cursor-worker` service. Started by spawn.sh.
+#
+# Sources the environment the spawn hook uploaded, holds the Sprite active with
+# a Tasks heartbeat while the worker is connected, and stops its own service when
+# the worker exits so the Sprite can pause with its workspace intact.
+set -uo pipefail
+
+ENV_FILE="$HOME/.cursor-worker.env"
+if [ ! -f "$ENV_FILE" ]; then
+  echo "cursor-worker: $ENV_FILE missing; the spawn hook uploads it on every start" >&2
+  sprite-env services stop cursor-worker >/dev/null 2>&1
+  exit 1
+fi
+set -a; . "$ENV_FILE"; set +a
+rm -f "$ENV_FILE"   # the API key lives only in this process from here on
+
+export PATH="$HOME/.local/bin:$PATH"
+WORKSPACE="$HOME/workspace"
+mkdir -p "$WORKSPACE"
+
+# A worker only opens an outbound connection, which does not count as Sprite
+# activity. Register a task and heartbeat it so the Sprite stays active for the
+# length of the session. If this script dies, the task expires and the Sprite pauses.
+sprite-env curl -s -X POST /v1/tasks -d '{"name":"cursor-worker","expire":"5m"}' >/dev/null 2>&1
+( while true; do
+    sleep 60
+    sprite-env curl -s -X PUT /v1/tasks/cursor-worker -d '{"expire":"5m"}' >/dev/null 2>&1
+  done ) &
+heartbeat=$!
+
+echo "cursor-worker: starting worker id=$CURSOR_AGENT_WORKER_ID pool=$CURSOR_POOL"
+agent worker \
+  --pool "$CURSOR_POOL" \
+  --worker-dir "$WORKSPACE" \
+  --idle-release-timeout "${CURSOR_WORKER_IDLE_RELEASE_TIMEOUT:-600}" \
+  ${CURSOR_WORKER_EXTRA_ARGS:-} \
+  start --verbose
+rc=$?
+
+kill "$heartbeat" 2>/dev/null
+sprite-env curl -s -X DELETE /v1/tasks/cursor-worker >/dev/null 2>&1
+echo "cursor-worker: worker exited with code $rc; stopping service so the Sprite can pause"
+# `stop` is sticky: the runtime will not restart this service on the next wake.
+# spawn.sh starts it again explicitly when Cursor asks for this worker id.
+sprite-env services stop cursor-worker >/dev/null 2>&1
+exit "$rc"
+```
+
+Because `sprite-env services stop` is sticky, the runtime does not bring the worker back on the next wake. That is deliberate: the spawn hook starts it, with a fresh copy of the environment, when Cursor asks for that worker id.
+
+## Run the controller
+
+From the directory holding the two scripts:
+
+```bash
+agent worker controller --spawn ./spawn.sh --pool sprites
+```
+
+The controller claims each request and runs the hook once per claim. Leave it running under `systemd`, `tmux`, or your own supervisor. It needs only outbound HTTPS.
+
+Each claim takes a few seconds to create the Sprite and install the Cursor CLI before the worker connects. Cursor keeps the request queued in the meantime.
+
+## Start an agent
+
+In [cursor.com/agents](https://cursor.com/agents), pick the **Any repo** group and choose the `sprites` pool, or use `pool=sprites` from a Slack, GitHub, or Linear trigger. From the API:
+
+```bash
+curl --request POST \
+  --url https://api.cursor.com/v1/agents \
+  --header "Authorization: Bearer $CURSOR_API_KEY" \
+  --header "Content-Type: application/json" \
+  --data '{
+    "prompt": { "text": "What operating system and CPU architecture is this machine?" },
+    "env": { "type": "pool", "name": "sprites" }
+  }'
+```
+
+While the agent runs, `sprite list` shows a `cursor-<worker id>` Sprite, and inside it `sprite-env curl /v1/tasks` shows the `cursor-worker` task with a future `expires_at`. The worker's log is at `/.sprite/logs/services/cursor-worker.log`:
+
+```bash
+sprite exec -s cursor-<worker id> -- tail -f /.sprite/logs/services/cursor-worker.log
+```
+
+## Repositories
+
+The pool above is an any-repo pool, so the worker starts in an empty `~/workspace` and source control is up to you. Two ways to give the agent code:
+
+**Let the worker clone.** Ask a team admin to enable GitHub token minting for team pool workers, then pass `--clone-git-repos` to the worker. It clones the agent's repositories on claim with a short-lived token Cursor mints for the run; nothing long-lived lands in the Sprite. Set it on the controller host before starting the controller; the hook forwards it:
+
+```bash
+export CURSOR_WORKER_EXTRA_ARGS="--clone-git-repos"
+```
+
+Start agents with `repos` set (or pick the repository in the dashboard) and the `sprites` pool.
+
+**Clone in the hook.** For repositories the minted token can't reach, or to seed the workspace with more than one repo, extend the setup command in `spawn.sh` to run `git clone` into `/home/sprite/workspace` on the fresh-claim path only. Sprites persist the clone across pauses, so a wake never re-clones. Note that once the workspace has a git remote, the worker registers a `repo=` label and the request is routed as repo-bound.
+
+## Hibernation and wake
+
+Putting the lifecycle together for one agent:
+
+1. **Claim.** The controller claims the request and runs the hook. The Sprite is created and the worker connects with worker id `W`.
+2. **Session.** Tool calls execute in the Sprite. The heartbeat keeps it active.
+3. **Idle release.** The agent finishes, and after `CURSOR_WORKER_IDLE_RELEASE_TIMEOUT` (600 seconds in the script) the worker exits with code 0. The script drops the task and stops the service. About 30 seconds later the Sprite pauses.
+4. **Follow-up.** A user replies. Cursor sees `W` is offline and, because the pool has a reconnect window, emits a `claimed_offline` event. The controller runs the hook with `CURSOR_WAKE=1` and `CURSOR_AGENT_WORKER_ID=W`.
+5. **Wake.** The hook's `sprite exec` wakes the Sprite and starts the service. The worker reconnects as `W` and the follow-up resumes in the same workspace.
+
+If the Sprite was destroyed in between, the hook exits non-zero. The wake window lapses, Cursor re-advertises the request, and the next claim provisions a fresh Sprite. If you want that to happen immediately instead, [release the claim](https://cursor.com/docs/cloud-agent/api/endpoints#release-a-claim).
+
+To shorten how long a Sprite stays active after the agent goes quiet, lower the idle release timeout on the controller host; the hook forwards it:
+
+```bash
+export CURSOR_WORKER_IDLE_RELEASE_TIMEOUT=120
+```
+
+## Network access
+
+A worker needs outbound HTTPS to `api2.cursor.sh` and `api2direct.cursor.sh`, plus `downloads.cursor.com` for the CLI install and `cloud-agent-artifacts.s3.us-east-1.amazonaws.com` for artifact uploads. The default Sprite [network policy](/concepts/networking) allows all of these. If you restrict egress for worker Sprites, keep those hosts and whatever git hosts, package registries, and internal services your agents need.
+
+## Clean up
+
+Worker Sprites outlive their sessions on purpose: that is what makes wake-up cheap. A paused Sprite stops compute billing but keeps its filesystem, so a busy pool accumulates `cursor-*` Sprites over time. Destroy the ones you no longer need, for example anything older than the pool's reconnect window:
+
+```bash
+sprite list | grep '^cursor-' | while read -r name; do
+  sprite destroy --force "$name"
+done
+```
+
+A destroyed Sprite can't be woken; a follow-up for it falls through to a fresh claim as described above.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Check / fix |
+|---|---|---|
+| Agent stays queued, no Sprite appears | The controller isn't running, `CURSOR_API_KEY` isn't a service account key, or `--pool` doesn't match the pool name in the dashboard (names are case-sensitive) | Run the controller in the foreground and watch its output. A `401` means the wrong kind of key. |
+| Hook fails with `sprite name must contain only…` | A worker id produced an invalid name | The hook lowercases and strips the id; report the id if this still happens. |
+| Sprite is created, worker exits within seconds | The key inside the Sprite is invalid, or the CLI install failed | `sprite exec -s <name> -- cat /.sprite/logs/services/cursor-worker.log`. "The provided API key is invalid" means the controller's key was rejected by Cursor. |
+| `--clone-git-repos` exits with an error | The flag only works on named any-repo pools, and needs token minting enabled by a team admin | Use a pool name other than `default`, keep the workspace free of a git remote, and confirm minting is enabled. |
+| A long session stalls mid-turn | The keep-alive task is missing or expired, so the Sprite paused | Inside the Sprite, `sprite-env curl /v1/tasks` should list `cursor-worker` with a future `expires_at`. If it doesn't, check that the heartbeat loop in `cursor-worker.sh` is running. |
+| Follow-ups always land on a fresh Sprite | The pool has no reconnect window | Re-register the pool with `workerReadyTimeoutSeconds` greater than zero. |
+| Service shows `failed (exit 143)` after a session | Expected. That's the self-stop at the end of `cursor-worker.sh`. | Nothing to fix. |
+
+## Related documentation
+
+<CardGrid client:load>
+  <LinkCard
+    href="https://cursor.com/docs/cloud-agent/self-hosted/pool"
+    title="Cursor: Self-hosted pools"
+    description="Cursor's reference for pools, the worker controller, and hibernation"
+    icon="book-open"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/services"
+    title="Services"
+    description="Supervised long-running processes inside a Sprite"
+    icon="cog"
+    client:load
+  />
+  <LinkCard
+    href="/keeping-sprites-running"
+    title="Keeping a Sprite running"
+    description="The Tasks API and the heartbeat pattern the worker script uses"
+    icon="zap"
+    client:load
+  />
+  <LinkCard
+    href="/concepts/lifecycle"
+    title="Lifecycle and Persistence"
+    description="How a Sprite pauses, wakes, and keeps its filesystem"
+    icon="layers"
+    client:load
+  />
+</CardGrid>

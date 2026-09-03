@@ -162,6 +162,10 @@ export const sidebarConfig: SidebarGroup[] = [
         label: 'Claude Managed Agents',
         slug: 'integrations/claude-managed-agents',
       },
+      {
+        label: 'Cursor Cloud Agents',
+        slug: 'integrations/cursor-cloud-agents',
+      },
     ],
   },
   {
