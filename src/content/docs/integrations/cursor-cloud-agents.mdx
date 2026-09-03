@@ -393,19 +393,22 @@ export CURSOR_WORKER_IDLE_RELEASE_TIMEOUT=120
 Cursor's [computer use](https://cursor.com/docs/cloud-agent/self-hosted/computer-use) lets the agent click, type, and take screenshots on the worker, and `--share-desktop` lets people watch or take over that desktop from Cursor. On Linux the worker needs an X11 display and a few desktop packages. Pass the flags through `CURSOR_WORKER_EXTRA_ARGS` and `spawn.sh` takes care of the rest on first start:
 
 ```bash
-export CURSOR_WORKER_EXTRA_ARGS="--computer-use --share-desktop view_and_control"
+export CURSOR_WORKER_EXTRA_ARGS="--computer-use"
 ./spawn.sh
 ```
 
-The install adds a few minutes to the first start of a Sprite. After that, the worker log reports both displays:
+The install adds a few minutes to the first start of a Sprite. After that, the worker log reports the display:
 
 ```output
 INFO  Computer-use display is ready ctx=worker-mode meta={display: ":0", source: "tigervnc", …}
-INFO  Worker desktop display is up; agent sessions and computer use will use it ctx=worker-mode meta={display: ":2", …}
 Worker is now running
 ```
 
-Ask the agent to take a screenshot to confirm, and open the desktop from the agent's page in Cursor to watch it work. Pass `--share-desktop view` for watch-only. Give the mode explicitly: `--share-desktop` on its own swallows the `start` subcommand as its argument.
+Ask the agent to take a screenshot to confirm.
+
+<Callout type="warning" title="Leave desktop sharing off for now">
+Adding `--share-desktop` lets people watch the agent's desktop from Cursor, but with the current CLI (2026.08) it splits the worker across two displays: the agent's shell opens windows on the shared desktop while the screenshot tool keeps capturing the first display. The agent then sees an empty desktop, concludes its browser crashed, and loops. Until Cursor fixes that, run computer use without desktop sharing. If you do enable it, give the mode explicitly (`--share-desktop view_and_control`), since the bare flag swallows the `start` subcommand.
+</Callout>
 
 For browsing, install Chrome in the Sprite. Its sandbox works as-is:
 
@@ -449,6 +452,7 @@ A destroyed Sprite can't be woken; a follow-up for it falls through to a fresh c
 | A long session stalls mid-turn | The keep-alive task is missing or expired, so the Sprite paused | Inside the Sprite, `sprite-env curl /v1/tasks` should list `cursor-worker` with a future `expires_at`. If it doesn't, check that the heartbeat loop in `cursor-worker.sh` is running. |
 | Pool follow-ups always land on a fresh Sprite | The pool has no reconnect window | Re-register the pool with `workerReadyTimeoutSeconds` greater than zero. |
 | With `--computer-use`, the worker exits with `Timed out waiting for XFCE window manager`, or the agent's screenshots show a black desktop and GUI apps exit at once | The bubblewrap wrapper is missing, or displays from a killed worker are still running | Run `spawn.sh` again with the flags in `CURSOR_WORKER_EXTRA_ARGS`; it installs the wrapper and the worker script clears stale displays. Inside the Sprite, `bwrap --ro-bind / / true` must succeed and `agent worker --computer-use debug` prints the X11 preflight. |
+| The agent launches a browser, its screenshots never show it, and it reports the window "isn't visible" | `--share-desktop` is on, so the shell and the screenshot tool use different displays | Drop `--share-desktop` from `CURSOR_WORKER_EXTRA_ARGS` and run `spawn.sh` again. |
 | Service shows `failed (exit 143)` after a session | Expected. That's the self-stop at the end of `cursor-worker.sh`. | Nothing to fix. |
 
 ## Related documentation
