@@ -1,489 +1,85 @@
 ---
 title: Cursor Cloud Agents
-description: Run Cursor Cloud Agents with tool execution inside your own Sprites using Cursor Self-Hosted Machines
+description: Run Cursor Cloud Agents on your own Sprites from the Sprites dashboard
 ---
 
-import { Callout, CardGrid, ExpandableCode, LinkCard } from '@/components/react';
+import { Callout, CardGrid, LinkCard } from '@/components/react';
 
-[Cursor Self-Hosted Machines](https://cursor.com/docs/cloud-agent/self-hosted) let Cursor run the agent loop and the model while the agent's tool calls (the commands it runs, the files it edits, the repositories it clones) execute on a machine you control. Make that machine a Sprite and each Cloud Agent session runs in an isolated environment that pauses when the agent goes quiet, keeps its workspace, and wakes when the next message arrives.
+[Cursor Self-Hosted Machines](https://cursor.com/docs/cloud-agent/self-hosted) let Cursor run the agent loop and the model while the agent's tool calls, the commands it runs and the files it edits, execute on a machine you control. The Sprites dashboard turns a Sprite into one of those machines with a form: paste a Cursor API key, name the machine, and it appears under **My Machines** in Cursor. No terminal, no scripts.
 
-This works on any Cursor plan with Cloud Agents. Start with a single personal machine, then, if your team is on Cursor Enterprise, scale the same scripts out to a pool that provisions a Sprite per request.
+This works on any Cursor plan with Cloud Agents.
 
 ## How it works
 
-A worker is the Cursor CLI running `agent worker start` inside the Sprite. It opens one outbound HTTPS connection to Cursor; nothing connects inbound. Cursor forwards every tool call for the agent over that connection, and the worker executes it in the Sprite.
+Each Cursor machine is one Sprite. On it, a `cursor-worker` [service](/concepts/services) runs the Cursor CLI's worker, which opens a single outbound connection to Cursor. Cursor forwards the agent's tool calls over that connection and the worker executes them in the Sprite's workspace. Nothing connects inbound.
 
-Two Sprites features make that a good fit:
-
-- The worker runs as a supervised [service](/concepts/services), and while it is connected the script registers a [Task](/keeping-sprites-running) and heartbeats it so the Sprite stays active. An outbound connection alone does not count as activity.
-- When the agent goes idle past the worker's release timeout, the worker exits, the service stops itself, and the Sprite [pauses](/concepts/lifecycle) on its own. Its filesystem, including the workspace, stays put. Starting the worker again wakes the Sprite with everything where the agent left it.
-
-<Callout type="info">
-Other sandbox providers implement Cursor's hibernation by snapshotting a machine, stopping it, and restoring the snapshot on wake. A Sprite does not need any of that: pausing is automatic, the filesystem persists across the pause, and a paused Sprite costs nothing in compute. [Checkpoints](/concepts/checkpoints) stay available as a deliberate rollback point on top of that.
-</Callout>
+While the worker is connected, the service holds the Sprite active through the [Tasks API](/keeping-sprites-running). When no agent has used the machine for 10 minutes, the worker exits, the hold is released, and the Sprite [pauses](/concepts/lifecycle) with its workspace intact. Cursor lists the machine as offline until you start it again.
 
 ## Before you begin
 
-You need:
+- A **Sprites organization** with Sprites active.
+- A **Cursor user API key**, created under [API keys in the Cursor dashboard](https://cursor.com/dashboard/api). The dashboard verifies the key with Cursor before it builds anything, and never stores it: the key lives only in the worker's environment on the Sprite.
 
-- A **Cursor account with Cloud Agents**, and **privacy mode set to the current option, not legacy**. Legacy privacy mode blocks Cloud Agents, and a self-hosted worker is still a Cloud Agent from Cursor's side: it authenticates and reports it is running, then reconnects to Cursor every few seconds without ever being listed. Check under **Settings** › **Privacy** for the account that owns the key.
-- A **Cursor API key**, exported as `CURSOR_API_KEY`. For a personal machine, a user API key from [Dashboard › API Keys](https://cursor.com/dashboard/api). For a team pool, an agent-scoped service account key instead; see [Scale out with a team pool](#scale-out-with-a-team-pool).
-- A **Sprites API token** (`org-slug/org-id/token-id/token-value`), exported as `SPRITE_TOKEN`.
-- The **Sprites CLI** on the machine you run the scripts from. It reads `SPRITE_TOKEN` from the environment.
+<Callout type="info" title="Privacy mode">
+The Cursor account that owns the key must be on the current privacy setting, not legacy privacy mode. Legacy privacy mode blocks Cloud Agents, and a self-hosted worker is still a Cloud Agent from Cursor's side: it connects and reports it is running, but Cursor never lists it. Check under **Settings › Privacy** in Cursor.
+</Callout>
 
-```bash
-curl -fsSL https://sprites.dev/install.sh | sh
-export SPRITE_TOKEN="<org-slug/org-id/token-id/token-value>"
-export CURSOR_API_KEY="<key>"
-sprite list
-```
+## Create a Cursor machine
 
-Only `CURSOR_API_KEY` reaches a Sprite. `SPRITE_TOKEN` stays on the machine you run the scripts from.
+1. In the Fly.io dashboard, open your organization's **Sprites** page and choose the **Integrations** tab.
+2. Open **Cursor Cloud Agents**.
+3. Paste your **Cursor API key** and give the machine a **name**. That name is what Cursor shows under My Machines; the Sprite is named `cursor-<name>`.
+4. Tick **Computer use** if the agent should have a desktop and a browser. See [Computer use](#computer-use) for what that adds.
+5. Click **Create Cursor machine**.
 
-## Get the scripts
+The dashboard creates the Sprite, installs the worker service, starts it, and waits for Cursor to accept the machine. It takes about a minute, or a few minutes with computer use. When it is done, the machine appears in the **Cursor machines** table below the form.
 
-Put these two files in a directory and make both executable. You run `spawn.sh`; it creates the Sprite, installs the Cursor CLI in it, uploads `cursor-worker.sh`, and starts it as a service. Running it again for the same machine or worker id reuses the Sprite and restarts the worker, which is also how a paused Sprite comes back.
+## Use it in Cursor
 
-### spawn.sh
+Each row in the table has **Open in Cursor**, which opens Cursor's agents page with that machine selected. Or start a Cloud Agent in Cursor and pick the machine under **My Machines**. Either way, the agent's tool calls now run in the Sprite, and whatever repository the task names is cloned into `~/workspace` on it.
 
-The environment the worker needs is written to a private temp file, uploaded next to the run script, and deleted by the run script as soon as it has been sourced.
+The machine keeps its workspace between sessions. A follow-up on the same machine finds the files where the last agent left them.
 
-<ExpandableCode label="spawn.sh" client:load>
-```bash
-#!/usr/bin/env bash
-# Start a Cursor Self-Hosted Machines worker in its own Sprite.
-#
-# Two ways to run it:
-#
-#   As a personal machine (My Machines, any Cursor plan):
-#     CURSOR_API_KEY=… CURSOR_WORKER_NAME=my-sprite ./spawn.sh
-#
-#   As the spawn hook of a team pool (Cursor Enterprise):
-#     agent worker controller --spawn ./spawn.sh --pool <name>
-#   The controller runs it once per claimed request with CURSOR_POOL and
-#   CURSOR_AGENT_WORKER_ID set, and again with CURSOR_WAKE=1 to revive a
-#   hibernated worker.
-#
-# Either way it creates a Sprite (or finds the existing one), installs the
-# Cursor CLI, and starts the worker as a supervised Sprite service.
-# Requires on this host: the `sprite` CLI and SPRITE_TOKEN.
-set -euo pipefail
+## Manage machines
 
-: "${SPRITE_TOKEN:?SPRITE_TOKEN (Sprites API token) is required}"
-: "${CURSOR_API_KEY:?CURSOR_API_KEY is required}"
+The table shows one of three states for each machine:
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SPRITE_PREFIX="${SPRITE_PREFIX:-cursor}"
+| Status | Meaning |
+|---|---|
+| **Online** | The worker is connected. Cursor lists the machine as available. |
+| **Stopped** | The Sprite is up but the worker is not running. |
+| **Paused** | The Sprite is paused. The workspace is kept. |
 
-# The Sprite name derives from the durable identity Cursor routes by: the
-# worker id in pool mode, the machine name otherwise. Sprite names: lowercase
-# letters, digits, hyphens, at most 55 characters.
-identity="${CURSOR_AGENT_WORKER_ID:-${CURSOR_WORKER_NAME:-sprite}}"
-name="$SPRITE_PREFIX-$(printf '%s' "$identity" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n' '-')"
-name="$(printf '%s' "$name" | cut -c1-55 | sed -E 's/-+$//')"
+- **Start** runs the worker service, waking the Sprite if it was paused. The machine is back in Cursor within a few seconds, with the same worker id as before.
+- **Stop** stops the worker. Cursor lists the machine as offline at once, and the Sprite pauses on its own about half a minute later.
+- **Delete** destroys the Sprite, including the workspace. You type the Sprite's name to confirm.
 
-log() { printf 'spawn[%s]: %s\n' "$name" "$*" >&2; }
-
-if [ "${CURSOR_WAKE:-0}" = "1" ]; then
-  log "wake for worker $CURSOR_AGENT_WORKER_ID (window ${CURSOR_WAKE_TIMEOUT_MS:-?} ms)"
-  if ! sprite list 2>/dev/null | grep -qx "$name"; then
-    # The Sprite is gone (destroyed by cleanup). Let the wake window lapse so
-    # Cursor re-advertises the request and a fresh claim provisions a new one.
-    log "no Sprite for this worker id; nothing to wake"
-    exit 1
-  fi
-else
-  log "start ${CURSOR_POOL:+pool=$CURSOR_POOL }${CURSOR_REQUEST_ID:+request=$CURSOR_REQUEST_ID }worker=$identity"
-  # A retried claim, or a personal machine started again, lands here with the
-  # Sprite already present; that is fine, everything below is idempotent.
-  out="$(sprite create --skip-console "$name" 2>&1)" \
-    || case "$out" in *"already exists"*) ;; *) log "$out"; exit 1 ;; esac
-fi
-
-# Environment for the worker process. Written to a private temp file, uploaded
-# next to the run script, and deleted by the run script once sourced.
-umask 077
-envfile="$(mktemp)"
-trap 'rm -f "$envfile"' EXIT
-{
-  for v in CURSOR_API_KEY CURSOR_AGENT_WORKER_ID CURSOR_POOL CURSOR_WORKER_NAME \
-           CURSOR_WORKER_IDLE_RELEASE_TIMEOUT CURSOR_WORKER_EXTRA_ARGS; do
-    [ -n "${!v:-}" ] && printf '%s=%q\n' "$v" "${!v}"
-  done
-} > "$envfile"
-
-# Install the CLI on first boot, clone the repository if one was named and the
-# workspace is still empty, then create the service or restart the existing one.
-# `sprite exec` wakes a paused Sprite, so the wake path needs nothing extra.
-setup_env=()
-[ -n "${CURSOR_REPO_URL:-}" ] && setup_env+=(--env "REPO_URL=$CURSOR_REPO_URL")
-case " ${CURSOR_WORKER_EXTRA_ARGS:-} " in *" --computer-use "*|*" --share-desktop"*) setup_env+=(--env "DESKTOP=1") ;; esac
-[ -n "${CURSOR_INSTALL_CHROME:-}" ] && setup_env+=(--env "INSTALL_CHROME=1")
-sprite exec -s "$name" "${setup_env[@]}" \
-  --file "$HERE/cursor-worker.sh:/home/sprite/cursor-worker.sh" \
-  --file "$envfile:/home/sprite/.cursor-worker.env" \
-  -- bash -c '
-    set -euo pipefail
-    export PATH="$HOME/.local/bin:$PATH"
-    chmod 700 ~/cursor-worker.sh; chmod 600 ~/.cursor-worker.env
-    if ! command -v agent >/dev/null; then
-      curl https://cursor.com/install -fsS | bash >/dev/null
-    fi
-    if [ -n "${REPO_URL:-}" ] && [ ! -e ~/workspace/.git ]; then
-      git clone -q "$REPO_URL" ~/workspace
-    fi
-    if [ -n "${DESKTOP:-}" ]; then
-      if ! command -v Xtigervnc >/dev/null; then
-        # Desktop packages for computer use (Cursor does not install them).
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-          dbus-x11 ffmpeg tigervnc-standalone-server x11-utils x11-xserver-utils xdotool \
-          xfce4 xfce4-terminal adwaita-icon-theme xfonts-base >/dev/null
-      fi
-      # GTK loads images through bubblewrap, and bubblewrap refuses to start
-      # from a process that carries Linux capabilities, which every process in
-      # a Sprite does. Put a wrapper in front of it that drops them first, so
-      # Xfce and any GTK app the agent launches can render.
-      if [ ! -e /usr/bin/bwrap.real ]; then
-        sudo dpkg-divert --quiet --rename --divert /usr/bin/bwrap.real /usr/bin/bwrap
-        printf "#!/bin/sh\nexec setpriv --ambient-caps=-all --inh-caps=-all --bounding-set=-all /usr/bin/bwrap.real \"\$@\"\n" \
-          | sudo tee /usr/bin/bwrap >/dev/null
-        sudo chmod 755 /usr/bin/bwrap
-      fi
-      if [ -n "${INSTALL_CHROME:-}" ]; then
-      # Google Chrome for computer use. Chromium and Firefox from apt are snap stubs.
-      if [ ! -x /opt/google/chrome/google-chrome ]; then
-        curl -sSL -o /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq /tmp/chrome.deb >/dev/null
-        rm -f /tmp/chrome.deb
-      fi
-      mkdir -p ~/.config/google-chrome && touch "$HOME/.config/google-chrome/First Run"
-      # Agents launch browsers every way imaginable, and the Cursor shell tool kills
-      # the process group of each command when it returns. Put a wrapper in front of
-      # the chrome commands that always detaches and skips the dialogs that hide the
-      # browser window (first run, default browser, crash restore).
-      sudo tee /usr/local/bin/chrome-detached >/dev/null <<"WRAP"
-      #!/bin/sh
-      exec setsid -f /opt/google/chrome/google-chrome --no-first-run --no-default-browser-check \
-        --hide-crash-restore-bubble --disable-gpu "$@" </dev/null >/dev/null 2>&1
-      WRAP
-      sudo chmod 755 /usr/local/bin/chrome-detached
-      for alt in google-chrome x-www-browser gnome-www-browser; do
-        sudo update-alternatives --quiet --install /usr/bin/$alt $alt /usr/local/bin/chrome-detached 500
-      done
-      if [ ! -e /usr/bin/google-chrome-stable.real ]; then
-        sudo dpkg-divert --quiet --rename --divert /usr/bin/google-chrome-stable.real /usr/bin/google-chrome-stable
-        sudo ln -sf /usr/local/bin/chrome-detached /usr/bin/google-chrome-stable
-      fi
-      fi
-      # The Cursor shell tool kills the whole process group of a command when
-      # the command returns, so a browser started as a background job dies
-      # with it. Tell the agent how this desktop works, as a user-level rule.
-      mkdir -p ~/.cursor/rules
-      cat > ~/.cursor/rules/sprite-desktop.mdc <<"RULE"
----
-description: How to use the desktop on this Sprite worker
-alwaysApply: true
----
-
-# Desktop on this machine
-
-This worker has an X11 desktop for computer use. Take a screenshot to see it.
-
-Your shell tool kills the whole process group when a command returns, so any
-GUI program started as a normal background job dies immediately. Start GUI
-programs fully detached, exactly like this, then wait 5 seconds and screenshot:
-
-    setsid -f google-chrome --no-first-run --no-default-browser-check --disable-gpu https://example.com >/dev/null 2>&1 </dev/null
-
-- Keep `--no-first-run --no-default-browser-check`. Without them Chrome shows a
-  small "Welcome to Google Chrome" dialog instead of a browser window, and it
-  looks like nothing opened. Do not use a fresh `--user-data-dir`.
-- Use the DISPLAY already set in your shell. Do not start another X server.
-- Google Chrome is `google-chrome`. Its sandbox works here; add `--no-sandbox`
-  only if a detached launch still exits at once. Chromium and Firefox from apt
-  are snap stubs on this machine and do not run.
-- Do not pipe a GUI program to `head` or run it in the foreground: it is killed
-  when the tool call ends.
-- To record the screen, run ffmpeg the same detached way and stop it with
-  `pkill -INT -x ffmpeg`.
-RULE
-    fi
-    if sprite-env services get cursor-worker >/dev/null 2>&1; then
-      # Stopped after idle release, or still running from an earlier start:
-      # either way, come back up with the environment just uploaded.
-      sprite-env services restart cursor-worker >/dev/null
-    else
-      sprite-env services create cursor-worker --cmd /home/sprite/cursor-worker.sh --no-stream >/dev/null
-    fi
-  '
-log "worker service started"
-```
-</ExpandableCode>
-
-### cursor-worker.sh
-
-The service command inside the Sprite. If the worker dies without cleaning up, the task expires within five minutes and the Sprite pauses on its own. Because `sprite-env services stop` is sticky, the runtime does not bring the worker back on the next wake; `spawn.sh` starts it, with a fresh copy of the environment, when you or the controller ask for it.
-
-<ExpandableCode label="cursor-worker.sh" client:load>
-```bash
-#!/usr/bin/env bash
-# Runs inside the Sprite as the `cursor-worker` service. Started by spawn.sh.
-#
-# Sources the environment the spawn hook uploaded, holds the Sprite active with
-# a Tasks heartbeat while the worker is connected, and stops its own service when
-# the worker exits so the Sprite can pause with its workspace intact.
-set -uo pipefail
-
-ENV_FILE="$HOME/.cursor-worker.env"
-if [ ! -f "$ENV_FILE" ]; then
-  echo "cursor-worker: $ENV_FILE missing; spawn.sh uploads it on every start" >&2
-  sprite-env services stop cursor-worker >/dev/null 2>&1
-  exit 1
-fi
-set -a; . "$ENV_FILE"; set +a
-rm -f "$ENV_FILE"   # the API key lives only in this process from here on
-
-export PATH="$HOME/.local/bin:$PATH"
-WORKSPACE="$HOME/workspace"
-mkdir -p "$WORKSPACE"
-
-# A pool worker joins the pool the controller named. A personal worker
-# (My Machines) registers under a machine name instead.
-if [ -n "${CURSOR_POOL:-}" ]; then
-  mode=(--pool "$CURSOR_POOL")
-else
-  mode=(--name "${CURSOR_WORKER_NAME:-sprite}")
-fi
-
-# Displays left behind by a worker that was killed rather than shut down would
-# block the next one from starting its own.
-pkill -u "$(id -u)" -x Xtigervnc 2>/dev/null; pkill -u "$(id -u)" -x xfwm4 2>/dev/null
-
-# A worker only opens an outbound connection, which does not count as Sprite
-# activity. Register a task and heartbeat it so the Sprite stays active for the
-# length of the session. If this script dies, the task expires and the Sprite pauses.
-sprite-env curl -s -X POST /v1/tasks -d '{"name":"cursor-worker","expire":"5m"}' >/dev/null 2>&1
-( while true; do
-    sleep 60
-    sprite-env curl -s -X PUT /v1/tasks/cursor-worker -d '{"expire":"5m"}' >/dev/null 2>&1
-  done ) &
-heartbeat=$!
-
-# When the runtime stops or restarts this service it sends TERM. In that case
-# the runtime owns the service state, so skip the self-stop below: otherwise a
-# restart's outgoing instance would stop the incoming one.
-stopped_by_runtime=0
-trap 'stopped_by_runtime=1' TERM
-
-echo "cursor-worker: starting worker ${mode[*]} id=${CURSOR_AGENT_WORKER_ID:-<new>}"
-agent worker \
-  "${mode[@]}" \
-  --worker-dir "$WORKSPACE" \
-  --idle-release-timeout "${CURSOR_WORKER_IDLE_RELEASE_TIMEOUT:-600}" \
-  ${CURSOR_WORKER_EXTRA_ARGS:-} \
-  start --verbose
-rc=$?
-
-kill "$heartbeat" 2>/dev/null
-sprite-env curl -s -X DELETE /v1/tasks/cursor-worker >/dev/null 2>&1
-if [ "$stopped_by_runtime" = 0 ]; then
-  echo "cursor-worker: worker exited with code $rc; stopping service so the Sprite can pause"
-  # `stop` is sticky: the runtime will not restart this service on the next wake.
-  # spawn.sh starts it again explicitly when the worker is wanted.
-  sprite-env services stop cursor-worker >/dev/null 2>&1
-fi
-exit "$rc"
-```
-</ExpandableCode>
-
-## Run a personal machine
-
-This is Cursor's [My Machines](https://cursor.com/docs/cloud-agent/self-hosted/my-machines) mode: a worker tied to your user, selectable from the environment dropdown when you start an agent. Give it a name and, if you want the agent to start with code, a repository to clone:
-
-```bash
-export CURSOR_WORKER_NAME=my-sprite
-export CURSOR_REPO_URL=https://github.com/your-org/your-repo
-./spawn.sh
-```
-
-The Sprite is named `cursor-my-sprite`. A few seconds later the worker log shows it registered:
-
-```bash
-sprite exec -s cursor-my-sprite -- tail -f /.sprite/logs/services/cursor-worker.log
-```
-
-```output
-cursor-worker: starting worker --name my-sprite id=<new>
-INFO  Authenticated with API key ctx=worker-mode meta={fromEnv: true}
-INFO  Derived repo label from git origin ctx=worker-mode meta={repo: "your-org/your-repo"}
-Worker is now running
-Run agents: https://cursor.com/agents#workerId=…
-```
-
-Open [cursor.com/agents](https://cursor.com/agents), pick `my-sprite` under **My Machines**, and send a task. Something that proves where it ran is a good first prompt: ask for the hostname and the contents of `/.sprite`. Every command the agent runs appears in that log.
-
-My Machines routes by repository: the machine appears under the repo its workspace has as a git remote, so clone the repo the agent will work on. Without `CURSOR_REPO_URL` the workspace is an empty directory and the machine is not tied to a repo.
-
-When you stop sending messages, the worker stays connected for `CURSOR_WORKER_IDLE_RELEASE_TIMEOUT` seconds (600 by default in the script), then exits. The Sprite pauses about 30 seconds after that. To pick the conversation back up, run `spawn.sh` again with the same name: the Sprite wakes, the worker registers again, and the workspace is exactly as the agent left it. The clone is skipped because it already exists.
-
-## Scale out with a team pool
-
-A pool is a named queue that any agent on the team can target. Cursor's `agent worker controller` watches the queue from a host you run, claims each request, and runs `spawn.sh` for it, so every request gets its own Sprite and the worker id becomes the Sprite's identity. Pools need a **Cursor Enterprise plan**: a team admin enables Self-Hosted Machines under **Dashboard** › **Cloud Agents** › **Self-Hosted**, and workers authenticate with an agent-scoped [service account API key](https://cursor.com/docs/account/enterprise/service-accounts) rather than a user key.
-
-### Set up the controller host
-
-The controller host needs the Cursor CLI as well as the Sprites CLI, and holds both credentials:
-
-```bash
-curl https://cursor.com/install -fsS | bash
-export PATH="$HOME/.local/bin:$PATH"
-agent --version
-
-export CURSOR_API_KEY="<service account API key>"
-export SPRITE_TOKEN="<org-slug/org-id/token-id/token-value>"
-```
-
-### Register the pool with a reconnect window
-
-`workerReadyTimeoutSeconds` is how long Cursor holds a follow-up for a worker that is offline before handing the request to a fresh machine. The default is `0`, which disables hibernation entirely. A Sprite keeps its workspace for as long as the Sprite exists, so use a generous window:
-
-```bash
-curl --request POST \
-  --url "https://api.cursor.com/v0/private-workers/pools" \
-  -u "$CURSOR_API_KEY:" \
-  --header 'Content-Type: application/json' \
-  --data '{
-    "scope": "team",
-    "poolName": "sprites",
-    "workerReadyTimeoutSeconds": 3600
-  }'
-```
-
-This is an any-repo pool: it has no repository attached, and it shows up under **Any repo** on [cursor.com/agents](https://cursor.com/agents).
-
-### Run the controller
-
-From the directory holding the two scripts:
-
-```bash
-agent worker controller --spawn ./spawn.sh --pool sprites
-```
-
-The controller claims each request and runs the hook once per claim with `CURSOR_POOL` and `CURSOR_AGENT_WORKER_ID` set. Leave it running under `systemd`, `tmux`, or your own supervisor. It needs only outbound HTTPS.
-
-### Start an agent
-
-In [cursor.com/agents](https://cursor.com/agents), pick the **Any repo** group and choose the `sprites` pool, or use `pool=sprites` from a Slack, GitHub, or Linear trigger. From the API:
-
-```bash
-curl --request POST \
-  --url https://api.cursor.com/v1/agents \
-  --header "Authorization: Bearer $CURSOR_API_KEY" \
-  --header "Content-Type: application/json" \
-  --data '{
-    "prompt": { "text": "What operating system and CPU architecture is this machine?" },
-    "env": { "type": "pool", "name": "sprites" }
-  }'
-```
-
-While the agent runs, `sprite list` shows a `cursor-<worker id>` Sprite, and inside it `sprite-env curl /v1/tasks` shows the `cursor-worker` task with a future `expires_at`.
-
-### Repositories
-
-The pool above is an any-repo pool, so the worker starts in an empty workspace and source control is up to you. Two ways to give the agent code:
-
-**Let the worker clone.** Ask a team admin to enable GitHub token minting for team pool workers, then pass `--clone-git-repos` to the worker. It clones the agent's repositories on claim with a short-lived token Cursor mints for the run; nothing long-lived lands in the Sprite. Set it on the controller host before starting the controller; the hook forwards it:
-
-```bash
-export CURSOR_WORKER_EXTRA_ARGS="--clone-git-repos"
-```
-
-**Clone in the hook.** When a request targets a repository, the controller passes `CURSOR_REPO_URL` and the hook clones it into the workspace on the fresh-claim path, exactly as it does for a personal machine. This needs the Sprite to be able to reach the repo: public, or with git credentials you add to the setup command. Once the workspace has a git remote, the worker registers a `repo=` label and the request is routed as repo-bound.
-
-### Hibernation and wake
-
-Putting the lifecycle together for one agent:
-
-1. **Claim.** The controller claims the request and runs the hook. The Sprite is created and the worker connects with worker id `W`.
-2. **Session.** Tool calls execute in the Sprite. The heartbeat keeps it active.
-3. **Idle release.** The agent finishes, and after the idle release timeout the worker exits with code 0. The script drops the task and stops the service. About 30 seconds later the Sprite pauses.
-4. **Follow-up.** A user replies. Cursor sees `W` is offline and, because the pool has a reconnect window, emits a `claimed_offline` event. The controller runs the hook with `CURSOR_WAKE=1` and `CURSOR_AGENT_WORKER_ID=W`.
-5. **Wake.** The hook's `sprite exec` wakes the Sprite and starts the service. The worker reconnects as `W` and the follow-up resumes in the same workspace.
-
-If the Sprite was destroyed in between, the hook exits non-zero. The wake window lapses, Cursor re-advertises the request, and the next claim provisions a fresh Sprite. If you want that to happen immediately instead, [release the claim](https://cursor.com/docs/cloud-agent/api/endpoints#release-a-claim).
-
-To shorten how long a Sprite stays active after the agent goes quiet, lower the idle release timeout on the controller host; the hook forwards it:
-
-```bash
-export CURSOR_WORKER_IDLE_RELEASE_TIMEOUT=120
-```
+A worker that no agent uses for 10 minutes stops by itself, exactly as if you had pressed Stop.
 
 ## Computer use
 
-Cursor's [computer use](https://cursor.com/docs/cloud-agent/self-hosted/computer-use) lets the agent click, type, and take screenshots on the worker, and `--share-desktop` lets people watch or take over that desktop from Cursor. On Linux the worker needs an X11 display and a few desktop packages. Pass the flags through `CURSOR_WORKER_EXTRA_ARGS` and `spawn.sh` takes care of the rest on first start:
+With **Computer use** ticked, the dashboard installs an Xfce desktop, Google Chrome, and Cursor's [computer use](https://cursor.com/docs/cloud-agent/self-hosted/computer-use) support on the Sprite, so the agent can click, type, and take screenshots. Setup takes a few minutes longer. Ask the agent to take a screenshot to confirm the desktop is up.
 
-```bash
-export CURSOR_WORKER_EXTRA_ARGS="--computer-use"
-./spawn.sh
-```
+Two details are handled for you. Cursor's shell tool kills a command's whole process group when the command returns, so a browser started as a normal background job dies at once; a wrapper in front of `google-chrome` always starts it detached and skips the first-run and crash-restore dialogs that would otherwise hide the browser window. And a rule written to `~/.cursor/rules` on the Sprite explains the same to the agent for any other GUI program. Edit that file if your desktop needs other instructions.
 
-The install adds a few minutes to the first start of a Sprite. After that, the worker log reports the display:
-
-```output
-INFO  Computer-use display is ready ctx=worker-mode meta={display: ":0", source: "tigervnc", …}
-Worker is now running
-```
-
-Ask the agent to take a screenshot to confirm.
-
-<Callout type="warning" title="Leave desktop sharing off for now">
-Adding `--share-desktop` lets people watch the agent's desktop from Cursor, but with the current CLI (2026.08) it splits the worker across two displays: the agent's shell opens windows on the shared desktop while the screenshot tool keeps capturing the first display. The agent then sees an empty desktop, concludes its browser crashed, and loops. Until Cursor fixes that, run computer use without desktop sharing. If you do enable it, give the mode explicitly (`--share-desktop view_and_control`), since the bare flag swallows the `start` subcommand.
-</Callout>
-
-For browsing, have `spawn.sh` install Google Chrome as well. Chromium and Firefox from apt are snap stubs on this image and do not run:
-
-```bash
-export CURSOR_WORKER_EXTRA_ARGS="--computer-use"
-export CURSOR_INSTALL_CHROME=1
-./spawn.sh
-```
-
-Besides installing the package, the script puts a small wrapper in front of the `google-chrome`, `google-chrome-stable`, and `x-www-browser` commands. Agents launch browsers every way imaginable, and Cursor's shell tool kills a command's whole process group when the command returns, so a browser started as a background job dies immediately. The wrapper always starts Chrome detached, and passes the flags that skip the first-run welcome dialog and the crash-restore bubble, both of which otherwise open instead of a browser window and leave the agent convinced that Chrome failed. A user-level [rule](https://cursor.com/docs/rules) written to `~/.cursor/rules` on the Sprite explains the same things to the agent for any other GUI program. Edit that file if your desktop needs other instructions.
-
-<Callout type="info" title="Why spawn.sh wraps bubblewrap">
-GTK loads images through bubblewrap, and bubblewrap refuses to start from a process that carries Linux capabilities, which every process in a Sprite does. Without a fix, Xfce's window manager and any GTK application the agent launches abort on their first icon. `spawn.sh` diverts `/usr/bin/bwrap` behind a one-line wrapper that drops capabilities before running the real binary. The desktop and the agent's applications then render normally, and the agent keeps `sudo`.
+<Callout type="warning" title="Desktop sharing is off">
+Cursor's `--share-desktop` option lets people watch the agent's desktop, but with the current Cursor CLI it puts the agent's shell and its screenshot tool on different displays, so the agent sees an empty desktop and loops. The dashboard runs computer use without desktop sharing.
 </Callout>
 
 ## Network access
 
-A worker needs outbound HTTPS to `api2.cursor.sh` and `api2direct.cursor.sh`, plus `downloads.cursor.com` for the CLI install and `cloud-agent-artifacts.s3.us-east-1.amazonaws.com` for artifact uploads. The default Sprite [network policy](/concepts/networking) allows all of these. If you restrict egress for worker Sprites, keep those hosts and whatever git hosts, package registries, and internal services your agents need.
-
-## Clean up
-
-Worker Sprites outlive their sessions on purpose: that is what makes coming back cheap. A paused Sprite stops compute billing but keeps its filesystem, so a busy pool accumulates `cursor-*` Sprites over time. Destroy the ones you no longer need, for example anything older than the pool's reconnect window:
-
-```bash
-sprite list | grep '^cursor-' | while read -r name; do
-  sprite destroy --force "$name"
-done
-```
-
-A destroyed Sprite can't be woken; a follow-up for it falls through to a fresh claim as described above.
+A worker needs outbound HTTPS to `api2.cursor.sh` and `api2direct.cursor.sh`, plus `cloud-agent-artifacts.s3.us-east-1.amazonaws.com` for artifact uploads. The default Sprite [network policy](/concepts/networking) allows all of these. If you restrict egress, keep those hosts and whatever git hosts, package registries, and internal services your agents need.
 
 ## Troubleshooting
 
-| Symptom | Likely cause | Check / fix |
+| Symptom | Likely cause | Fix |
 |---|---|---|
-| Worker logs `Worker is now running`, then `Starting bridge connection attempt` with a rising `retryCount` every few seconds, and Cursor says the worker is not found | The account that owns the key is on legacy privacy mode. `agent worker … debug` shows `Visibility … [invalid_argument]`. | Switch that account to the current privacy setting (or off), then run `spawn.sh` again. The worker reads privacy mode only at startup. |
-| Machine not in the My Machines dropdown | The dashboard is signed in as a different user than the one who owns the key | `agent worker debug` prints the key's identity. Sign in as that user. |
-| Agent stays queued in a pool, no Sprite appears | The controller isn't running, `CURSOR_API_KEY` isn't a service account key, or `--pool` doesn't match the pool name in the dashboard (names are case-sensitive) | Run the controller in the foreground and watch its output. A `401` means the wrong kind of key. |
-| Sprite is created, worker exits within seconds | The key inside the Sprite is invalid, or the CLI install failed | `sprite exec -s <name> -- cat /.sprite/logs/services/cursor-worker.log`. "The provided API key is invalid" means Cursor rejected the key. |
-| `--clone-git-repos` exits with an error | The flag only works on named any-repo pools, and needs token minting enabled by a team admin | Use a pool name other than `default`, keep the workspace free of a git remote, and confirm minting is enabled. |
-| A long session stalls mid-turn | The keep-alive task is missing or expired, so the Sprite paused | Inside the Sprite, `sprite-env curl /v1/tasks` should list `cursor-worker` with a future `expires_at`. If it doesn't, check that the heartbeat loop in `cursor-worker.sh` is running. |
-| Pool follow-ups always land on a fresh Sprite | The pool has no reconnect window | Re-register the pool with `workerReadyTimeoutSeconds` greater than zero. |
-| With `--computer-use`, the worker exits with `Timed out waiting for XFCE window manager`, or the agent's screenshots show a black desktop and GUI apps exit at once | The bubblewrap wrapper is missing, or displays from a killed worker are still running | Run `spawn.sh` again with the flags in `CURSOR_WORKER_EXTRA_ARGS`; it installs the wrapper and the worker script clears stale displays. Inside the Sprite, `bwrap --ro-bind / / true` must succeed and `agent worker --computer-use debug` prints the X11 preflight. |
-| The agent launches a browser, its screenshots never show it, and it reports the window "isn't visible" | `--share-desktop` is on, so the shell and the screenshot tool use different displays | Drop `--share-desktop` from `CURSOR_WORKER_EXTRA_ARGS` and run `spawn.sh` again. |
-| Service shows `failed (exit 143)` after a session | Expected. That's the self-stop at the end of `cursor-worker.sh`. | Nothing to fix. |
+| "Cursor rejected the API key" when you create a machine | The key is wrong, revoked, or not a user API key | Create a user API key under [API keys](https://cursor.com/dashboard/api) and try again. |
+| The dashboard waits on "Waiting for Cursor to accept the machine" and then reports that Cursor hasn't accepted it | The account that owns the key is on legacy privacy mode | Switch that account to the current privacy setting, then create the machine again with the same name. Setup resumes on the existing Sprite. |
+| The machine is not under My Machines in Cursor | Cursor is signed in as a different user than the one who owns the key | Sign in to Cursor as the key's owner. |
+| A machine you did not touch shows **Paused** | Nobody used it for 10 minutes, so the worker stopped and the Sprite paused | Press **Start**. |
+| A row shows **setup incomplete** | Setup did not finish, or the Sprite was set up outside the dashboard | Create a machine with the same name. Setup is safe to repeat. |
+| With computer use, the agent says its browser "isn't visible" | The agent started the browser its own way and the window closed | Ask it to launch `google-chrome` again; the wrapper detaches it. The rule in `~/.cursor/rules` on the Sprite tells it how. |
 
 ## Related documentation
 
@@ -491,7 +87,7 @@ A destroyed Sprite can't be woken; a follow-up for it falls through to a fresh c
   <LinkCard
     href="https://cursor.com/docs/cloud-agent/self-hosted"
     title="Cursor: Self-Hosted Machines"
-    description="Cursor's reference for My Machines, pools, the worker controller, and hibernation"
+    description="Cursor's reference for My Machines and self-hosted workers"
     icon="book-open"
     client:load
   />
@@ -505,7 +101,7 @@ A destroyed Sprite can't be woken; a follow-up for it falls through to a fresh c
   <LinkCard
     href="/keeping-sprites-running"
     title="Keeping a Sprite running"
-    description="The Tasks API and the heartbeat pattern the worker script uses"
+    description="The Tasks API hold the worker uses while it is connected"
     icon="zap"
     client:load
   />
