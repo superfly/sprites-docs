@@ -32,6 +32,14 @@ The Cursor account that owns the key must be on the current privacy setting, not
 4. Tick **Computer use** if the agent should have a desktop and a browser. See [Computer use](#computer-use) for what that adds.
 5. Click **Create Cursor machine**.
 
+<img
+  src="/images/integrations/cursor-cloud-agents-create.webp"
+  alt="The Cursor Cloud Agents page in the Sprites dashboard, with the Create a Cursor machine form and the What happens steps"
+  width="1600"
+  height="1156"
+  style="border-radius: 0.75rem; margin-block: 1.5rem;"
+/>
+
 The dashboard creates the Sprite, installs the worker service, starts it, and waits for Cursor to accept the machine. It takes about a minute, or a few minutes with computer use. When it is done, the machine appears in the **Cursor machines** table below the form.
 
 ## Use it in Cursor
@@ -39,6 +47,14 @@ The dashboard creates the Sprite, installs the worker service, starts it, and wa
 Each row in the table has **Open in Cursor**, which opens Cursor's agents page with that machine selected. Or start a Cloud Agent in Cursor and pick the machine under **My Machines**. Either way, the agent's tool calls now run in the Sprite, and whatever repository the task names is cloned into `~/workspace` on it.
 
 The machine keeps its workspace between sessions. A follow-up on the same machine finds the files where the last agent left them.
+
+<img
+  src="/images/integrations/cursor-cloud-agents-session.webp"
+  alt="A Cursor Cloud Agent session on a Sprites machine, answering a question about the Sprite it runs in"
+  width="1600"
+  height="1156"
+  style="border-radius: 0.75rem; margin-block: 1.5rem;"
+/>
 
 ## Manage machines
 
