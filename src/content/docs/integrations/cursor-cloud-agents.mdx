@@ -29,7 +29,7 @@ The Cursor account that owns the key must be on the current privacy setting, not
 1. In the Fly.io dashboard, open your organization's **Sprites** page and choose the **Integrations** tab.
 2. Open **Cursor Cloud Agents**.
 3. Paste your **Cursor API key** and give the machine a **name**. That name is what Cursor shows under My Machines; the Sprite is named `cursor-<name>`.
-4. Tick **Computer use** if the agent should have a desktop and a browser. See [Computer use](#computer-use) for what that adds.
+4. Check **Computer use** if the agent should have a desktop and a browser. See [Computer use](#computer-use) for what that adds.
 5. Click **Create Cursor machine**.
 
 <div class="doc-screenshot">
@@ -66,7 +66,7 @@ A worker that no agent uses for 10 minutes stops by itself, exactly as if you ha
 
 ## Computer use
 
-With **Computer use** ticked, the dashboard installs an Xfce desktop, Google Chrome, and Cursor's [computer use](https://cursor.com/docs/cloud-agent/self-hosted/computer-use) support on the Sprite, so the agent can click, type, and take screenshots. Setup takes a few minutes longer. Ask the agent to take a screenshot to confirm the desktop is up.
+With **Computer use** checked, the dashboard installs an Xfce desktop, Google Chrome, and Cursor's [computer use](https://cursor.com/docs/cloud-agent/self-hosted/computer-use) support on the Sprite, so the agent can click, type, and take screenshots. Setup takes a few minutes longer. Ask the agent to take a screenshot to confirm the desktop is up.
 
 Two details are handled for you. Cursor's shell tool kills a command's whole process group when the command returns, so a browser started as a normal background job dies at once; a wrapper in front of `google-chrome` always starts it detached and skips the first-run and crash-restore dialogs that would otherwise hide the browser window. And a rule written to `~/.cursor/rules` on the Sprite explains the same to the agent for any other GUI program. Edit that file if your desktop needs other instructions.
 
