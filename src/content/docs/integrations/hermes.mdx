@@ -1,0 +1,133 @@
+---
+title: Hermes Agent
+description: Run Hermes Agent terminal commands in persistent Fly.io Sprites using the Nous Research plugin
+---
+
+import { Callout } from '@/components/react';
+
+[Hermes Agent](https://github.com/NousResearch/hermes-agent) can run its terminal commands in [Fly.io Sprites](https://sprites.dev) through the [Nous Research Sprites plugin](https://github.com/NousResearch/hermes-plugin-sprites). Hermes and its agent loop stay on your machine; the plugin creates or resumes a Sprite for shell execution. You do not need to host a second agent in the Sprite.
+
+## Before you begin
+
+You need a working Hermes installation, a configured model provider, and a Sprites API token for the organization that will own the sandboxes. Sprites usage and model-provider usage are billed separately.
+
+<Callout type="warning" title="Plugin compatibility">
+The original plugin revision `a4881e0` has startup failures on Hermes `v2026.9.7`: an environment-module import moved, and `terminal.sprites` is no longer a built-in lazy dependency. Use a plugin revision containing both compatibility fixes before following this guide. The setup below targets Hermes `v2026.9.7` and `sprites-py` `0.5.1`; `hermes doctor` alone does not prove commands can execute.
+</Callout>
+
+## Create a dedicated profile
+
+A named profile lets you choose Sprites for one invocation without changing your default terminal backend. Start with an empty profile so you can choose which credentials and skills it contains:
+
+```bash
+hermes profile create sprites --no-alias --no-skills
+```
+
+Configure your model provider in this profile with `hermes -p sprites setup`. A fresh profile has its own configuration and secrets file; do not assume it has copied your default profile's settings.
+
+The paths below assume the standard `~/.hermes` installation. If you use a custom Hermes home, use the profile directory reported by the create command.
+
+## Install the plugin and SDK
+
+Install the compatible plugin revision in the **selected profile's** plugin directory:
+
+```bash
+mkdir -p ~/.hermes/profiles/sprites/plugins
+git clone https://github.com/NousResearch/hermes-plugin-sprites.git \
+  ~/.hermes/profiles/sprites/plugins/sprites
+```
+
+Install the SDK in the Python environment that runs Hermes, not an unrelated system Python. Replace the interpreter path below with the one for your Hermes installation:
+
+```bash
+uv pip install --python /absolute/path/to/hermes/venv/bin/python \
+  'sprites-py>=0.5.0,<0.6'
+```
+
+The plugin currently pins the SDK below `0.6`. Do not override that requirement when troubleshooting.
+
+## Add the Sprites token
+
+Create a Sprites API token for your organization in the [Fly.io dashboard](https://fly.io/dashboard), under the organization's Sprites token settings. Save it in `~/.hermes/profiles/sprites/.env` using your editor:
+
+```dotenv
+SPRITES_TOKEN=your-sprites-api-token
+```
+
+Protect the file and keep it out of source control:
+
+```bash
+chmod 600 ~/.hermes/profiles/sprites/.env
+```
+
+Use `SPRITES_TOKEN` (plural) for Hermes. Logging in with the `sprite` CLI does not automatically supply this token to the plugin. Do not put the actual token in a shell command, chat prompt, or screenshot.
+
+<Callout type="warning" title="Review what the profile shares">
+The plugin uses Hermes's remote-file sync, which uploads selected credential files, skills, and cache files to the Sprite. The Sprites token variables are excluded from subprocess environments, but that is not a guarantee that all other credentials stay on your host. Review the profile's contents and limit credentials to what the remote workload needs. Sprites persist by default.
+</Callout>
+
+## Select the backend
+
+```bash
+hermes -p sprites plugins enable sprites
+hermes -p sprites config set terminal.backend sprites
+hermes -p sprites config set terminal.cwd /root
+hermes -p sprites config set terminal.container_persistent true
+hermes -p sprites doctor
+```
+
+`/root` is a remote path, not your local repository directory. For a project directory, first create it inside the Sprite, then use that remote path for subsequent commands.
+
+Start a session:
+
+```bash
+hermes -p sprites chat
+```
+
+Ask Hermes to use its terminal tool to run a small check:
+
+```text
+Run uname -s, pwd, and python3 -c 'print(6 * 7)' in the terminal.
+```
+
+Check the tool result, not just the model's response. You should see Linux, a remote working directory, and `42`. The first terminal command creates a billable Sprite. If discovery or environment creation fails, fix that error before giving the agent real work.
+
+## Switch by invocation or repository
+
+Use `hermes -p sprites chat` when you want the Sprites backend, and `hermes -p default chat` to return to your default profile's configured backend. These invocations do not change the sticky default profile.
+
+For separate projects, repeat the setup with different profile names, such as `sprites-project-a` and `sprites-project-b`. Install and enable the plugin in each profile and select the matching profile when launching Hermes.
+
+Changing your local directory does not automatically choose a backend or copy a repository. Avoid relying on `TERMINAL_ENV=sprites hermes` as an unconditional override: an explicit `terminal.backend` in the selected profile's configuration takes precedence. Hermes's `--provider` flag selects the model provider, not the terminal backend.
+
+## Work with repositories and files
+
+The plugin does **not** upload your current checkout or sync remote edits back to it. Clone the repository inside the Sprite, or explicitly transfer the files you need using the [Sprites CLI](/cli/commands). Arrange any private-repository credentials deliberately; your host's Git authentication is not an automatic remote checkout mechanism.
+
+Ask Hermes to create a remote project directory and clone or prepare the repository there. Keep using that remote directory for editing and tests. Retrieve changes explicitly when ready; any push from inside the Sprite is still a GitHub write and should follow your normal review and permission process.
+
+## Persistence and cleanup
+
+With `terminal.container_persistent: true`, ending a Hermes session leaves the Sprite and its filesystem intact. CLI sessions in the same profile can reuse the profile-default Sprite; do not treat each new chat as a fresh sandbox. Named profiles produce different Sprite names.
+
+To request disposable sandboxes for subsequent sessions, exit the current session and set:
+
+```bash
+hermes -p sprites config set terminal.container_persistent false
+```
+
+Non-persistent runs create unique Sprites and attempt deletion during normal cleanup. A crash or failed cleanup can leave a Sprite behind. Switching this setting does not delete previously created persistent Sprites.
+
+Use the Sprites dashboard or CLI to inspect resources in the correct organization. Before manually destroying a leftover Sprite, verify its exact name and that its files are no longer needed. Deletion discards the sandbox; [checkpoints](/concepts/checkpoints) are a separate recovery mechanism.
+
+<Callout type="warning" title="Timeout and interrupt limits">
+A Hermes timeout or interrupt is not a guarantee that the remote command stopped. The plugin has no explicit remote-kill hook; live checks observed bounded commands continue after the client returned. Avoid unattended unbounded commands, and inspect or stop the workload explicitly before assuming it is no longer running or consuming resources.
+</Callout>
+
+## Troubleshooting
+
+- **Plugin missing:** check that it is installed and enabled in the profile selected with `-p`, not only in the default profile.
+- **Token or SDK unavailable:** check that profile's `.env` and Hermes's actual Python environment. Do not print the token to debug it.
+- **`_ThreadedProcessHandle` import error or `terminal.sprites` allowlist error:** the plugin needs the compatibility fixes described above. Reinstalling the SDK alone will not fix these errors.
+- **Local files missing remotely:** expected; transfer or clone the repository explicitly and use a remote working directory.
+- **Doctor passes but execution fails:** doctor checks token and SDK presence. Repeat the small terminal check and inspect the actual error before continuing.

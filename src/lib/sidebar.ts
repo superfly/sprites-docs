@@ -158,6 +158,7 @@ export const sidebarConfig: SidebarGroup[] = [
     label: 'Integrations',
     items: [
       { label: 'Remote MCP Server', slug: 'integrations/remote-mcp' },
+      { label: 'Hermes Agent', slug: 'integrations/hermes' },
       {
         label: 'Claude Managed Agents',
         slug: 'integrations/claude-managed-agents',
