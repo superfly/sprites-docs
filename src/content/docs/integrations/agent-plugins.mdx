@@ -1,6 +1,6 @@
 ---
 title: Agent plugins
-description: Use Sprites from Codex, Cursor, Antigravity, Grok Build, DeepSeek Harness, OpenCode, Pi, and Herdr
+description: Use Sprites from Codex, Cursor, Antigravity, Grok Build, DeepSeek Harness, OpenCode, Pi, Herdr, and Hermes Agent
 ---
 
 import { Callout } from '@/components/react';
@@ -11,7 +11,7 @@ Agent plugins let an existing coding agent create and operate Sprites without re
 
 - Install the coding agent you want to use. Check its section below for any version or runtime requirements.
 - Have a Fly.io account with access to the intended Sprites organization.
-- For OAuth-based plugins, have a browser available for authorization. For Pi, [create a Sprites API token](https://sprites.dev/account) and use the storage method in its setup instructions.
+- For OAuth-based plugins, have a browser available for authorization. For Pi and Hermes Agent, [create a Sprites API token](https://sprites.dev/account) and use the storage method in their setup instructions.
 - For Herdr, authenticate the Sprites CLI and review the agent login handoff described below.
 
 Run plugin installation commands on your local machine, not inside a Sprite. Keep API tokens out of prompts and committed configuration files.
@@ -226,6 +226,49 @@ herdr plugin action invoke pull --plugin sprites
 The initial upload includes eligible uncommitted worktree files but excludes local Git history, ignored files, and common credential files. Review source files for embedded secrets before uploading. Changes are not automatically synchronized: Pull refuses overlapping local edits, and Reconnect does not upload new local changes. See [worktree transfer](https://github.com/superfly/herdr-sprites-plugin#worktree-transfer) for exclusions and size limits.
 
 Stop preserves the Sprite and checkpoints; it does not delete them. See the [plugin actions](https://github.com/superfly/herdr-sprites-plugin#actions) for reconnecting and confirmed cleanup.
+
+## Hermes Agent
+
+The [Sprites plugin for Hermes Agent](https://github.com/NousResearch/hermes-plugin-sprites) adds a terminal backend. Hermes stays on its existing host, while its shell commands execute in persistent Sprites. It uses the Sprites Python SDK and an API token, not hosted MCP or browser OAuth.
+
+Use a current [Hermes installation](https://github.com/NousResearch/hermes-agent) that includes the pluggable terminal-backend extension ([Hermes PR #94400](https://github.com/NousResearch/hermes-agent/pull/94400)). The commands below assume the standard macOS/Linux installation and default `~/.hermes` home. For a custom installation or profile, use its plugin directory, secrets file, and Python environment.
+
+Clone the plugin and install its supported SDK version into **Hermes's Python environment**, not your system Python:
+
+```sh
+git clone https://github.com/NousResearch/hermes-plugin-sprites.git ~/.hermes/plugins/sprites
+uv pip install --python ~/.hermes/hermes-agent/venv/bin/python 'sprites-py>=0.5.0,<0.6'
+```
+
+[Create a Sprites API token](https://sprites.dev/account) for the intended organization. Edit `~/.hermes/.env` locally and add the token, replacing this placeholder. Keep existing settings in the file:
+
+```dotenv
+SPRITES_TOKEN=your-sprites-api-token
+```
+
+Do not paste the token into an agent prompt, a shell command saved in history, or a committed file. Enable the plugin and select its backend:
+
+```sh
+hermes plugins enable sprites
+hermes config set terminal.backend sprites
+hermes doctor
+```
+
+`hermes doctor` checks whether the token and SDK are present. It does **not** prove that the token can authenticate to Sprites. Restart any running Hermes session or gateway, then start a new session and ask:
+
+```text
+Use the terminal tool to run uname -a and pwd.
+```
+
+Inspect the actual tool result and confirm the Sprite appears in your [Sprites dashboard](https://sprites.dev/). The first terminal call creates or resumes a Sprite and can incur usage charges. If the backend is unavailable, check plugin loading, the Hermes version, and whether the SDK was installed in the Python environment Hermes actually uses. For an authorization failure, check the token and organization access.
+
+Sprites persist by default. Gateway and WebUI sessions get separate Sprites; CLI and cron flows without a session key share the profile-default Sprite. Remote edits are **not automatically copied back** to the host. Bring project files into the Sprite explicitly rather than assuming your local working directory is mirrored.
+
+<Callout type="warning" title="Review what Hermes uploads">
+The backend uses Hermes's file-sync mechanism to upload configured credential files, skills, and caches. Review that configuration before use: these files can remain in the persistent Sprite and its checkpoints. This upload is separate from syncing your project or copying remote edits back to your machine.
+</Callout>
+
+See the [plugin's behavior notes](https://github.com/NousResearch/hermes-plugin-sprites#behavior) for naming, session sharing, and ephemeral mode. Setting `terminal.container_persistent` to `false` creates disposable Sprites that are deleted on cleanup, so do not use that mode for work you need to retain.
 
 ## Cortex Code
 
