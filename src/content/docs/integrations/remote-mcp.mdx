@@ -133,6 +133,23 @@ Open Continue in **Agent** mode. Continue starts the OAuth flow when it first co
 See [the MCP documentation for Continue](https://docs.continue.dev/customize/deep-dives/mcp).
 
 </TabItem>
+<TabItem label="Mistral Studio">
+
+Mistral Studio documents custom MCP connectors and browser OAuth. The direct Sprites MCP server URL is:
+
+```text
+https://sprites.dev/mcp
+```
+
+Follow [Mistral's connector management guide](https://docs.mistral.ai/studio/connectors/management) for registration, OAuth client configuration, and authorization in Studio. Authenticate the connector before listing or calling its tools. A Sprites API token is not a substitute for the OAuth client credentials described in that guide.
+
+<Callout type="info">
+This is a connection reference, not a verified end-to-end Sprites walkthrough for Mistral Studio.
+</Callout>
+
+Mistral Connectors are a public-preview feature. A private connector is available only to its creator; organization-shared connectors require an organization administrator.
+
+</TabItem>
 <TabItem label="JetBrains AI Assistant">
 
 JetBrains AI Assistant supports the `Streamable HTTP` transport. Its MCP documentation does not include the browser OAuth flow that Sprites requires, so use `mcp-remote` as a local stdio bridge.
@@ -166,6 +183,17 @@ List my Sprites.
 ```
 
 An empty list is still a successful authenticated response.
+
+## Registry and discovery
+
+The hosted server can also be discovered through MCP directories:
+
+| Directory | Listing | Connection URL |
+| --- | --- | --- |
+| Official MCP Registry | [`dev.sprites/mcp`](https://registry.modelcontextprotocol.io/v0.1/servers/dev.sprites%2Fmcp/versions/latest) | `https://sprites.dev/mcp` |
+| Smithery | [`alex-0qvu/sprites`](https://smithery.ai/servers/alex-0qvu/sprites) | `https://sprites--alex-0qvu.run.tools` |
+
+Direct connections to `https://sprites.dev/mcp` use Fly.io browser OAuth. The Smithery listing advertises its own connection URL and a separate Smithery authorization service; follow the listing's connection flow instead of assuming it uses the direct Sprites flow. The permissions below describe the direct Sprites connection.
 
 ## Permissions
 
