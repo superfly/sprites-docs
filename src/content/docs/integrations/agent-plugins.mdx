@@ -1,6 +1,6 @@
 ---
 title: Agent plugins
-description: Use Sprites from Codex, Cursor, Antigravity, Grok Build, DeepSeek Harness, OpenCode, Pi, and OpenClaw
+description: Use Sprites from Codex, Cursor, Antigravity, Grok Build, DeepSeek Harness, OpenCode, Pi, OpenClaw, and Herdr
 ---
 
 import { Callout } from '@/components/react';
@@ -12,8 +12,9 @@ Agent plugins let an existing coding agent create and operate Sprites without re
 - Install the coding agent you want to use. Check its section below for any version or runtime requirements.
 - Have a Fly.io account with access to the intended Sprites organization.
 - For OAuth-based plugins, have a browser available for authorization. For Pi and OpenClaw, [create a Sprites API token](https://sprites.dev/account) and use the storage method in their setup instructions.
+- For Herdr, authenticate the Sprites CLI and review the agent login handoff described below.
 
-Run installation commands on the machine where your coding agent runs, not inside a Sprite. Keep API tokens out of prompts and committed configuration files.
+Run plugin installation commands on your local machine, not inside a Sprite. Keep API tokens out of prompts and committed configuration files.
 
 ## Codex
 
@@ -215,6 +216,58 @@ Trigger an agent command before checking `openclaw sprites status`; the plugin c
 <Callout type="info">
 The workspace is copied into the Sprite the first time it is used. Later edits in the Sprite are not automatically synchronized back to the Gateway host. With the per-agent scope above, files and installed packages persist across conversations.
 </Callout>
+
+## Herdr
+
+The [Sprites plugin for Herdr](https://github.com/superfly/herdr-sprites-plugin), listed in the [Herdr plugin marketplace](https://herdr.dev/plugins/), runs a coding agent inside a persistent Sprite controlled from a local Herdr pane. Each agent pane gets its own Sprite. Unlike the hosted-MCP plugins above, the agent itself runs remotely.
+
+On your local machine, install Herdr 0.9.0 or newer, Node.js 22 or newer, Git, and the Sprites CLI. The CLI must support `exec --tty`, `sessions`, `checkpoint create`, `restore`, and `api`.
+
+Authenticate and install the plugin; no npm install or build step is required:
+
+```sh
+sprite login
+herdr plugin install superfly/herdr-sprites-plugin
+herdr plugin config-dir sprites
+```
+
+Create `config.json` in the directory printed by the last command, replacing the organization placeholder:
+
+```json
+{
+  "org": "your-sprites-organization",
+  "agent": "claude"
+}
+```
+
+Choose `claude`, `codex`, or `opencode` for `agent`.
+
+<Callout type="warning" title="Agent authentication is separate">
+By default, the plugin hands off an available local Claude or Codex login to the Sprite. Those credentials remain in the Sprite and its checkpoints and use your provider account. To sign in manually instead, add `"auth": "none"` to `config.json` before creating a Sprite. This does not revoke credentials already transferred. OpenCode requires manual authentication. See [agent login handoff](https://github.com/superfly/herdr-sprites-plugin#agent-login-handoff) for supported credential sources and limitations.
+</Callout>
+
+From a Git worktree in Herdr, launch the configured agent. For a new project, run `git init` first; no commit is required.
+
+```sh
+herdr plugin action invoke start-agent --plugin sprites
+```
+
+The new split pane shows setup progress followed by the agent terminal. Sign in there if needed. A `setup-launched` response only means setup started; check the pane and run Info to confirm the Sprite mapping and remote session, or see setup errors:
+
+```sh
+herdr plugin action invoke info --plugin sprites
+```
+
+To bring remote edits back, stop the agent before pulling:
+
+```sh
+herdr plugin action invoke stop --plugin sprites
+herdr plugin action invoke pull --plugin sprites
+```
+
+The initial upload includes eligible uncommitted worktree files but excludes local Git history, ignored files, and common credential files. Review source files for embedded secrets before uploading. Changes are not automatically synchronized: Pull refuses overlapping local edits, and Reconnect does not upload new local changes. See [worktree transfer](https://github.com/superfly/herdr-sprites-plugin#worktree-transfer) for exclusions and size limits.
+
+Stop preserves the Sprite and checkpoints; it does not delete them. See the [plugin actions](https://github.com/superfly/herdr-sprites-plugin#actions) for reconnecting and confirmed cleanup.
 
 ## Cortex Code
 
