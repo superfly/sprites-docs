@@ -157,7 +157,15 @@ export const sidebarConfig: SidebarGroup[] = [
   {
     label: 'Integrations',
     items: [
+      { label: 'Overview', slug: 'integrations' },
       { label: 'Remote MCP Server', slug: 'integrations/remote-mcp' },
+      { label: 'Agent plugins', slug: 'integrations/agent-plugins' },
+      { label: 'SDKs and frameworks', slug: 'integrations/agent-sdks' },
+      {
+        label: 'Platform integrations',
+        slug: 'integrations/platform-integrations',
+      },
+      { label: 'Cortex Code', slug: 'integrations/cortex-code' },
       {
         label: 'Claude Managed Agents',
         slug: 'integrations/claude-managed-agents',

@@ -1,0 +1,227 @@
+---
+title: Agent plugins
+description: Use Sprites from Codex, Cursor, Antigravity, Grok Build, DeepSeek Harness, OpenCode, Pi, and OpenClaw
+---
+
+import { Callout } from '@/components/react';
+
+Agent plugins let an existing coding agent create and operate Sprites without replacing the agent itself. Unless a section says otherwise, the agent stays on your machine and sends remote work to Sprites through the [hosted MCP server](/integrations/remote-mcp/).
+
+## Before you begin
+
+- Install the coding agent you want to use. Check its section below for any version or runtime requirements.
+- Have a Fly.io account with access to the intended Sprites organization.
+- For OAuth-based plugins, have a browser available for authorization. For Pi and OpenClaw, [create a Sprites API token](https://sprites.dev/account) and use the storage method in their setup instructions.
+
+Run installation commands on the machine where your coding agent runs, not inside a Sprite. Keep API tokens out of prompts and committed configuration files.
+
+## Codex
+
+The [Sprites plugin for Codex](https://github.com/superfly/sprites-codex-plugin) adds the hosted MCP server and Sprites workflow guidance.
+
+Install **Sprites** from the Codex plugin marketplace. On first use, follow the plugin's browser authentication flow, choose the intended Fly.io organization, and review the connector access policy.
+
+For local installation from a checkout of the repository:
+
+```sh
+git clone https://github.com/superfly/sprites-codex-plugin.git
+cd sprites-codex-plugin
+codex plugin marketplace add .
+```
+
+Restart Codex, open its plugin directory, choose the **Sprites** marketplace, and install **Sprites**. Then ask:
+
+```text
+List my Sprites.
+```
+
+An empty list still confirms that authentication succeeded. Your local Codex workspace and a Sprite's filesystem remain separate.
+
+## Cursor
+
+Install **Sprites** from the Cursor Marketplace. The [Sprites plugin for Cursor](https://github.com/superfly/sprites-cursor-plugin) bundles the hosted MCP server and Sprites workflow guidance. Cursor starts browser OAuth on the first Sprites request.
+
+Verify it by asking:
+
+```text
+List my Sprites.
+```
+
+If you only need the MCP tools, you can add the server directly to `~/.cursor/mcp.json` or a project's `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "sprites": {
+      "url": "https://sprites.dev/mcp"
+    }
+  }
+}
+```
+
+The direct MCP entry does not include the plugin's bundled workflow guidance.
+
+## Antigravity
+
+Install the [Sprites plugin for Antigravity](https://github.com/superfly/sprites-antigravity-plugin) from GitHub:
+
+```sh
+agy plugin install https://github.com/superfly/sprites-antigravity-plugin
+```
+
+Open `/mcp`, authenticate the `sprites` server in your browser, and use restricted connector access unless the workflow intentionally needs organization-wide control. Verify the connection with:
+
+```text
+/sprites:list
+```
+
+The plugin also provides commands for creating Sprites, running commands, managing checkpoints and services, and cleaning up environments.
+
+## Grok Build
+
+Install and enable the [Sprites plugin for Grok Build](https://github.com/superfly/sprites-grok-plugin):
+
+```sh
+grok plugin install superfly/sprites-grok-plugin --trust
+grok plugin enable sprites
+```
+
+Reload plugins with `/plugins` and `r`, or restart Grok. Then run `/sprites-status` or ask Grok to list your Sprites and complete browser OAuth.
+
+An empty Sprite list means the connection is authenticated. For a fuller check, run `/sprites-smoke`; it lists Sprites, creates a test Sprite, runs a command, and asks before destroying it.
+
+<Callout type="warning">
+The `--trust` flag lets the plugin start its MCP connection. Review the repository before installing it, and prefer the restricted OAuth policy unless Grok needs access to every Sprite in the organization.
+</Callout>
+
+## DeepSeek Harness
+
+The [Sprites bundle for DeepSeek Harness](https://github.com/superfly/sprites-deepseek-plugin) requires Node.js 20.19 or newer and the DeepSeek Harness developer preview.
+
+Install the bundle into the built-in Web profile, then start that profile:
+
+```sh
+npx @deepseek-ai/dsh plugin --profile web add github:superfly/sprites-deepseek-plugin
+npx @deepseek-ai/dsh --profile web
+```
+
+Complete browser OAuth on the first connection. If the initial tool synchronization times out while you authorize, finish the browser flow and restart Harness once.
+
+Verify the installed composition:
+
+```sh
+npx @deepseek-ai/dsh --profile web --dump-config
+```
+
+The output should include `dsh-sprites-plugin`, `sprites-mcp`, and `sprites-skill-filesystem`. The bundle uses `mcp-remote` because Harness's current remote HTTP transport does not complete MCP OAuth itself; you do not need a Sprites API token.
+
+Then ask Harness to list your Sprites and check that the tool returns successfully. The configuration dump confirms installation; it does not by itself confirm an authenticated connection.
+
+## OpenCode
+
+The [Sprites plugin for OpenCode](https://github.com/superfly/sprites-opencode-plugin) supports OpenCode 1.18.23 or newer and OpenCode 2 beta.
+
+<Callout type="warning" title="Source installation for now">
+The package `@flydotio/sprites-opencode-plugin` is not currently published to npm. Clone the repository and use the checkout path instead of the package name until it is published.
+</Callout>
+
+```sh
+git clone https://github.com/superfly/sprites-opencode-plugin.git
+```
+
+For OpenCode 1, add the absolute package URL to `opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["file:///absolute/path/to/sprites-opencode-plugin"]
+}
+```
+
+OpenCode 2 uses the `plugins` key and accepts either a path or a `file://` URL. Restart OpenCode after changing the configuration.
+
+Run `/sprites-status` or ask OpenCode to list your Sprites. If the browser does not open, start authorization explicitly:
+
+```sh
+opencode mcp auth sprites
+```
+
+Use `opencode2 mcp auth sprites` for OpenCode 2. No Sprites CLI or pasted API token is required.
+
+## Pi
+
+The [Pi extension for Sprites](https://github.com/superfly/pi-sprites) requires Node.js 24 or newer. It is not published to npm, so install it directly from GitHub:
+
+```sh
+pi install git:github.com/superfly/pi-sprites
+```
+
+Set the Sprites token in the environment that launches Pi:
+
+```sh
+export SPRITES_TOKEN='...'
+```
+
+`SPRITE_TOKEN` is also accepted. The token stays in the local Pi process and is not copied into remote commands or the Sprite.
+
+Select or create a Sprite, then bootstrap the workspace:
+
+```text
+/sprite list
+/sprite new pi-my-project
+/sprite-bootstrap
+```
+
+While a Sprite is selected, Pi's normal file and shell tools operate in the remote workspace. Use `/sprite-local` to return them to your local machine.
+
+## OpenClaw
+
+The [OpenClaw Sprites plugin](https://github.com/superfly/openclaw-sprites) runs an agent's commands and file tools in a persistent Sprite while the OpenClaw Gateway stays on its existing host. It requires OpenClaw 2026.8.1 or newer and a Sprites API token.
+
+<Callout type="warning" title="Public package not available yet">
+The repository's intended install command uses `npm:openclaw-sprites`, but that package is not currently published to npm. Do not run the npm install command until the package exists. For evaluation, use the repository's documented local-development link workflow below.
+</Callout>
+
+```sh
+git clone https://github.com/superfly/openclaw-sprites.git
+cd openclaw-sprites
+npm ci --ignore-scripts
+npm run build
+openclaw plugins install --link /absolute/path/to/openclaw-sprites
+```
+
+Store the token through OpenClaw's hidden prompt, then point the plugin at the protected secret:
+
+```sh
+openclaw secrets store set SPRITES_TOKEN --kind secret
+openclaw config set plugins.entries.sprites.config.token \
+  --ref-provider default --ref-source store --ref-id SPRITES_TOKEN
+```
+
+Enable Sprites as the sandbox backend and restart the Gateway:
+
+```sh
+openclaw config set agents.defaults.sandbox.mode all
+openclaw config set agents.defaults.sandbox.backend sprites
+openclaw config set agents.defaults.sandbox.scope agent
+openclaw config set agents.defaults.sandbox.workspaceAccess rw
+openclaw plugins enable sprites
+openclaw config validate
+openclaw gateway restart
+```
+
+Trigger an agent command before checking `openclaw sprites status`; the plugin creates the first Sprite lazily when a command or file tool is used.
+
+<Callout type="info">
+The workspace is copied into the Sprite the first time it is used. Later edits in the Sprite are not automatically synchronized back to the Gateway host. With the per-agent scope above, files and installed packages persist across conversations.
+</Callout>
+
+## Cortex Code
+
+Cortex Code has a focused guide because its plugin includes Snowflake-specific workflows, long-running task support, and explicit authorization steps. Continue with [Cortex Code](/integrations/cortex-code/).
+
+## If setup gets stuck
+
+- **OAuth fails or repeats:** see [authentication troubleshooting](/integrations/remote-mcp/#authentication-loops-or-fails).
+- **An expected Sprite is missing:** check the selected organization and connector access policy. A successful empty list is different from an authentication error; see [Sprite visibility](/integrations/remote-mcp/#a-sprite-is-not-found).
+- **A package cannot be found:** check the integration's source-installation notice above before trying another package with a similar name.
