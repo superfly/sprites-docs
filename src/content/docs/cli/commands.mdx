@@ -276,6 +276,7 @@ sprite exec [flags] -- <command> [args...]
 - `--tty` - Allocate pseudo-TTY
 - `--env <vars>` - Environment variables (KEY=value,KEY2=value2)
 - `--http-post` - Use HTTP/1.1 POST instead of WebSockets (non-TTY only)
+- `--no-stdin` - Do not read or forward stdin (non-TTY only)
 - `--no-port-forward` - Disable automatic local port forwarding for ports opened by the command
 - `--file <source:dest>` - Upload file before exec (repeatable)
 - `-h, --help` - Show this help message
@@ -287,6 +288,7 @@ sprite exec [flags] -- <command> [args...]
 **Examples:**
 ```bash
 sprite exec -- ls -la
+sprite exec --no-stdin -- sh -c 'run-output-only-job'
 sprite exec --dir /app -- echo hello world
 sprite exec --env KEY=value,FOO=bar -- env
 sprite exec --tty -- /bin/bash
