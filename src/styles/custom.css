@@ -2177,3 +2177,26 @@ main .sl-markdown-content a:has(> code),
 [data-theme='dark'] .theme-image--dark {
   display: block;
 }
+
+/* Screenshot frame: a quiet light gradient behind product screenshots, so a
+   window with rounded corners sits on something rather than on the page. */
+.doc-screenshot {
+  margin-block: 1.5rem;
+  padding: clamp(1rem, 4%, 2.25rem);
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #f3efff 0%, #fbf5fb 55%, #eef3ff 100%);
+  border: 1px solid rgba(124, 58, 237, 0.08);
+}
+.doc-screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 0.6rem;
+  box-shadow:
+    0 1px 2px rgba(30, 27, 51, 0.08),
+    0 18px 40px -18px rgba(76, 29, 149, 0.35);
+}
+:root[data-theme='dark'] .doc-screenshot {
+  background: linear-gradient(135deg, #221c34 0%, #1c1a2a 55%, #1a2033 100%);
+  border-color: rgba(182, 155, 255, 0.12);
+}
