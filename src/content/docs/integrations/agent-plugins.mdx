@@ -1,6 +1,6 @@
 ---
 title: Agent plugins
-description: Use Sprites from Codex, Cursor, Antigravity, Grok Build, DeepSeek Harness, OpenCode, Pi, OpenClaw, and Herdr
+description: Use Sprites from Codex, Cursor, Antigravity, Grok Build, DeepSeek Harness, OpenCode, Pi, and Herdr
 ---
 
 import { Callout } from '@/components/react';
@@ -11,7 +11,7 @@ Agent plugins let an existing coding agent create and operate Sprites without re
 
 - Install the coding agent you want to use. Check its section below for any version or runtime requirements.
 - Have a Fly.io account with access to the intended Sprites organization.
-- For OAuth-based plugins, have a browser available for authorization. For Pi and OpenClaw, [create a Sprites API token](https://sprites.dev/account) and use the storage method in their setup instructions.
+- For OAuth-based plugins, have a browser available for authorization. For Pi, [create a Sprites API token](https://sprites.dev/account) and use the storage method in its setup instructions.
 - For Herdr, authenticate the Sprites CLI and review the agent login handoff described below.
 
 Run plugin installation commands on your local machine, not inside a Sprite. Keep API tokens out of prompts and committed configuration files.
@@ -174,48 +174,6 @@ Select or create a Sprite, then bootstrap the workspace:
 ```
 
 While a Sprite is selected, Pi's normal file and shell tools operate in the remote workspace. Use `/sprite-local` to return them to your local machine.
-
-## OpenClaw
-
-The [OpenClaw Sprites plugin](https://github.com/superfly/openclaw-sprites) runs an agent's commands and file tools in a persistent Sprite while the OpenClaw Gateway stays on its existing host. It requires OpenClaw 2026.8.1 or newer and a Sprites API token.
-
-<Callout type="warning" title="Public package not available yet">
-The repository's intended install command uses `npm:openclaw-sprites`, but that package is not currently published to npm. Do not run the npm install command until the package exists. For evaluation, use the repository's documented local-development link workflow below.
-</Callout>
-
-```sh
-git clone https://github.com/superfly/openclaw-sprites.git
-cd openclaw-sprites
-npm ci --ignore-scripts
-npm run build
-openclaw plugins install --link /absolute/path/to/openclaw-sprites
-```
-
-Store the token through OpenClaw's hidden prompt, then point the plugin at the protected secret:
-
-```sh
-openclaw secrets store set SPRITES_TOKEN --kind secret
-openclaw config set plugins.entries.sprites.config.token \
-  --ref-provider default --ref-source store --ref-id SPRITES_TOKEN
-```
-
-Enable Sprites as the sandbox backend and restart the Gateway:
-
-```sh
-openclaw config set agents.defaults.sandbox.mode all
-openclaw config set agents.defaults.sandbox.backend sprites
-openclaw config set agents.defaults.sandbox.scope agent
-openclaw config set agents.defaults.sandbox.workspaceAccess rw
-openclaw plugins enable sprites
-openclaw config validate
-openclaw gateway restart
-```
-
-Trigger an agent command before checking `openclaw sprites status`; the plugin creates the first Sprite lazily when a command or file tool is used.
-
-<Callout type="info">
-The workspace is copied into the Sprite the first time it is used. Later edits in the Sprite are not automatically synchronized back to the Gateway host. With the per-agent scope above, files and installed packages persist across conversations.
-</Callout>
 
 ## Herdr
 
