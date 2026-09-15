@@ -19,6 +19,7 @@ While the worker is connected, the service holds the Sprite active through the [
 
 - A **Sprites organization** with Sprites active.
 - A **Cursor user API key**, created under [API keys in the Cursor dashboard](https://cursor.com/dashboard/api). The dashboard verifies the key with Cursor before it builds anything, and never stores it: the key lives only in the worker's environment on the Sprite.
+- **Self-hosted machines enabled** for the Cursor account that owns the key: open [Cloud Agents settings](https://cursor.com/dashboard/cloud-agents#self-hosted) in the Cursor dashboard and turn on **Enable Self-hosted Machines**.
 
 <Callout type="info" title="Privacy mode">
 The Cursor account that owns the key must be on the current privacy setting, not legacy privacy mode. Legacy privacy mode blocks Cloud Agents, and a self-hosted worker is still a Cloud Agent from Cursor's side: it connects and reports it is running, but Cursor never lists it. Check under **Settings › Privacy** in Cursor.
