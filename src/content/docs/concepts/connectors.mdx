@@ -39,7 +39,13 @@ Some providers, such as Slack, are enabled per organization. If a provider you e
 
 Connector management lives in the Fly.io dashboard. Open your organization, go to **Sprites**, then the **Connectors** tab. Connections are grouped into **Managed by Sprites** (keys Sprites provisions for you) and **Your connections** (everything you added yourself). An **Available services** strip below lists managed connectors you haven't enabled yet.
 
-Click **Add connector** to pick a provider. What happens next depends on the provider:
+Click **Add connector** to pick a provider.
+
+<div class="doc-screenshot">
+  <img src="/images/concepts/connectors-add-connector.webp" alt="The Add connector page in the Sprites dashboard, showing a grid of providers: Fly.io Machines, Slack, GitHub, Discourse, OpenRouter, Ollama, Anthropic, S3-compatible Object Store, and Custom API" width="1600" height="1213" />
+</div>
+
+What happens next depends on the provider:
 
 - **GitHub** — click **Continue with GitHub**. You're sent through GitHub's OAuth consent screen, then returned to your connectors list.
 - **OpenRouter** — either **Enable OpenRouter** for the managed connector, or **Use your own key instead** and paste an OpenRouter API key.
