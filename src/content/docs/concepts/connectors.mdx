@@ -28,7 +28,7 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 | Slack (Bot) | OAuth | Sprites act as a bot user. Same default scopes as Slack (User) minus `search:read`. |
 | OpenRouter | API key (BYOK) **or** managed | Bring your own OpenRouter key, or enable the managed connector and pay with prepaid credits. See [Managed OpenRouter](#managed-openrouter). |
 | Anthropic | API key (BYOK) | Calls to `/v1/messages` and the rest of the Anthropic API. The gateway forwards your `anthropic-version` and `anthropic-beta` headers. |
-| Meta | API key (BYOK) | Muse Spark models through the Meta Model API. Forwards the OpenAI-compatible `/v1/chat/completions` and `/v1/responses` routes, the Anthropic-compatible `/v1/messages` route, and `/v1/models`; every other Meta path is rejected. See [Meta](#meta). |
+| Meta | API key (BYOK) | Muse Spark models through the Meta Model API. Forwards the OpenAI-compatible `/v1/chat/completions` and `/v1/responses` routes, the Anthropic-compatible `/v1/messages` route, and `/v1/models`; every other Meta path is rejected with `403`. |
 | Discourse | Forum-issued user API key | You approve access on the forum itself. The connector only ever gets your own forum permissions. |
 | S3-compatible object store | Access key ID + secret | AWS S3, Cloudflare R2, Backblaze B2, MinIO, and other S3-compatible services. Requests are signed with SigV4. |
 | Fly.io Machines | Fly.io token | A Custom API preset for `api.machines.dev`. The dashboard mints a read-only or read-write token scoped to your organization. |
@@ -127,7 +127,15 @@ curl -X POST "https://api.sprites.dev/v1/gateway/anthropic/<connection_id>/v1/me
   -d '{"model": "claude-opus-5", "max_tokens": 1024, "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
 
-A Meta connector accepts the same request shapes as the provider it emulates. The OpenAI SDK pointed at `.../v1/gateway/meta/<connection_id>/v1` and the Anthropic SDK pointed at the same base URL both work with any placeholder API key, because the gateway replaces whatever key the SDK sends with the stored one. See [Meta](#meta) for details.
+A Meta connector accepts the same request shapes as the APIs it emulates: OpenAI-style `/v1/chat/completions` and `/v1/responses`, Anthropic-style `/v1/messages`, plus `/v1/models`. Point the OpenAI or Anthropic SDK's base URL at `https://api.sprites.dev/v1/gateway/meta/<connection_id>/v1` with any placeholder API key; the gateway swaps in the stored one. Streaming and tool calls pass through unchanged. Any other Meta path is rejected with `403` before the request leaves the gateway.
+
+```bash
+curl -X POST "https://api.sprites.dev/v1/gateway/meta/<connection_id>/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "muse-spark-1.3", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
+
+Model availability is set per Meta developer team, so `GET /v1/models` through the connector is the authoritative list.
 
 The **API Usage** card on each connector's detail page shows a ready-to-run example for that provider, so you don't need to construct the URL by hand.
 
@@ -164,53 +172,6 @@ There's no mid-string globbing or regular expressions. Two lists work together:
 <Callout type="warning" title="Block rules win">
 If a path matches both blocked and allowed rules, the request is denied. Use blocks for an explicit deny-list inside a broad allow rule (for example, allow `/*` but block `/admin/*`).
 </Callout>
-
-## Meta
-
-The Meta connector gives Sprites access to Meta's Muse Spark models through the [Meta Model API](https://dev.meta.ai). It's bring-your-own-key: create an API key in the Meta developer console (keys start with `LLM_`), paste it into **Add connector → Meta**, and the gateway validates it against Meta's model list before saving it.
-
-Meta serves three inference surfaces with the same key, and the connector forwards all of them:
-
-| Path | Compatible with |
-| --- | --- |
-| `/v1/chat/completions` | OpenAI Chat Completions API and SDKs |
-| `/v1/responses` | OpenAI Responses API and SDKs |
-| `/v1/messages` | Anthropic Messages API and SDKs. `anthropic-version` and `anthropic-beta` headers are forwarded when you send them. |
-| `/v1/models` | Model discovery |
-
-Anything else under Meta's API returns `403 endpoint is not supported by the Meta connector`, before the request leaves the gateway and regardless of the connector's access policy. That keeps an organization-level credential from becoming general account access.
-
-Point an SDK at the connector by setting its base URL to the gateway and giving it any placeholder key:
-
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    base_url="https://api.sprites.dev/v1/gateway/meta/<connection_id>/v1",
-    api_key="sprites-gateway",  # replaced by the stored credential
-)
-
-response = client.chat.completions.create(
-    model="muse-spark-1.3",
-    messages=[{"role": "user", "content": "Hello!"}],
-)
-```
-
-The same works with the Anthropic SDK against `/v1/messages`, and with `curl`:
-
-```bash
-curl -X POST "https://api.sprites.dev/v1/gateway/meta/<connection_id>/v1/chat/completions" \
-  -H "Content-Type: application/json" \
-  -d '{"model": "muse-spark-1.3", "messages": [{"role": "user", "content": "Hello!"}]}'
-```
-
-Streaming (`"stream": true`) and tool calling pass through unchanged on both the OpenAI-compatible and Anthropic-compatible routes, and Meta's `x-ratelimit-*`, `x-request-id`, and `retry-after` response headers come back to the Sprite.
-
-A few Meta-specific notes:
-
-- **Check which models your key can use.** Model availability is set per Meta developer team, so `GET /v1/models` through the connector is the authoritative list. `muse-spark-1.3` is Meta's documented default; if it's missing from your list, the key's team doesn't have access to it yet.
-- **Muse Spark is a reasoning model.** Reasoning tokens count against `max_tokens`, so very small budgets can return an empty message with usage recorded. Give it room.
-- **Point coding agents at the gateway, not at Meta.** Muse Code and other agents that read an OpenAI- or Anthropic-style base URL from configuration can use the connector URL with a placeholder key, so the Meta key never has to be written into an agent config file inside the Sprite.
 
 ## Managed OpenRouter
 
