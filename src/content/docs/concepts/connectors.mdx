@@ -45,7 +45,7 @@ Connector management lives in the Fly.io dashboard. Open your organization, go t
 Click **Add connector** to pick a provider.
 
 <div class="doc-screenshot">
-  <img src="/images/concepts/connectors-add-connector.webp" alt="The Add connector page in the Sprites dashboard, showing a grid of providers: Fly.io Machines, Slack, GitHub, Discourse, OpenRouter, Ollama, Anthropic, S3-compatible Object Store, and Custom API" width="1600" height="1213" />
+  <img src="/images/concepts/connectors-add-connector.webp" alt="The Add connector page in the Sprites dashboard, showing a grid of providers: Fly.io Machines, Slack, GitHub, Discourse, OpenRouter, Anthropic, S3-compatible Object Store, and Custom API" width="1600" height="1213" />
 </div>
 
 What happens next depends on the provider:
@@ -279,7 +279,7 @@ curl -X POST "https://api.sprites.dev/v1/oauth/connections/api_key" \
   -d '{ "provider": "anthropic", "api_key": "sk-ant-...", "access_policy": { "allow_all": true } }'
 ```
 
-Works for `openrouter`, `anthropic`, `ollama`, and `meta`. The key is validated against the provider before it's stored. Rotate it later with `PUT /v1/oauth/connections/<id>/api_key`.
+Works for `openrouter`, `anthropic`, and `meta`. The key is validated against the provider before it's stored. Rotate it later with `PUT /v1/oauth/connections/<id>/api_key`.
 
 ### Create a Custom API connector
 
