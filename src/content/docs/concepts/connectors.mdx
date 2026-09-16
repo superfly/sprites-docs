@@ -24,6 +24,8 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 | Provider | Credential style | Notes |
 | --- | --- | --- |
 | GitHub | OAuth | You approve access on GitHub. Default scopes are `repo` and `read:org`; add more later from the connector's Scopes editor. |
+| Slack (User) | OAuth | Sprites act as you in your workspace. Default scopes cover posting, reading channels and history, users, team info, and search. |
+| Slack (Bot) | OAuth | Sprites act as a bot user. Same default scopes as Slack (User) minus `search:read`. |
 | OpenRouter | API key (BYOK) **or** managed | Bring your own OpenRouter key, or enable the managed connector and pay with prepaid credits. See [Managed OpenRouter](#managed-openrouter). |
 | Anthropic | API key (BYOK) | Calls to `/v1/messages` and the rest of the Anthropic API. The gateway forwards your `anthropic-version` and `anthropic-beta` headers. |
 | Discourse | Forum-issued user API key | You approve access on the forum itself. The connector only ever gets your own forum permissions. |
@@ -32,7 +34,7 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 | Custom API | Token + base URL | Wraps any token-authenticated HTTP API. You choose where the token goes. |
 
 <Callout type="info" title="Gradual rollouts">
-Some providers, such as Slack, are enabled per organization. If a provider you expect isn't in the **Add connector** picker, it isn't switched on for your organization yet. Existing connections keep working regardless.
+New providers are sometimes enabled per organization before general release. If a provider you expect isn't in the **Add connector** picker, it isn't switched on for your organization yet. Existing connections keep working regardless.
 </Callout>
 
 ## Setting up a connector
@@ -48,6 +50,7 @@ Click **Add connector** to pick a provider.
 What happens next depends on the provider:
 
 - **GitHub** — click **Continue with GitHub**. You're sent through GitHub's OAuth consent screen, then returned to your connectors list.
+- **Slack (User)** or **Slack (Bot)** — click **Continue with Slack** and approve the requested scopes in your workspace. Pick **User** when the Sprite should post and read as you, and **Bot** when it should show up as its own bot user. You can connect both.
 - **OpenRouter** — either **Enable OpenRouter** for the managed connector, or **Use your own key instead** and paste an OpenRouter API key.
 - **Anthropic and other API-key providers** — paste the key. It's validated against the provider before it's saved, encrypted at rest, and never shown again.
 - **Discourse** — enter the forum URL and choose **Read-only** or **Read & write**. Approve access on the forum in a new tab, then paste the code the forum displays back into the form.
@@ -63,6 +66,10 @@ For Custom API connectors, the **Authentication method** decides where the token
 | URL path | A path template such as `/bot{token}` inserted between the base URL and the request path. `{token}` is replaced at request time. |
 | Query param | The token appended as a query parameter (default name `api_key`). |
 | Custom header | The token as the value of a header you name (default `X-Api-Key`). |
+
+A few guardrails apply to Custom API connectors. The base URL must resolve to a public address, so you can't point a connector at a private network, a loopback address, or the Sprites API itself. Header names starting with `fly-`, `x-fly-`, `sprites-`, `x-sprite`, or `x-ui-ex-` are reserved and rejected. Requests that trip these checks fail with a `403 blocked: …` error.
+
+You can also give a Custom API connector an **Icon** (JPG, PNG, SVG, or WebP, up to 512 KB) by choosing a file or pasting an image into the form. It shows up in the connectors list and on the detail page.
 
 The optional **Description** on a Custom API connector isn't just a label. It's surfaced to coding agents through the gateway's list endpoint, so a line like "Use /v1/chat/completions for chat" tells an agent how to use the API.
 
@@ -89,6 +96,7 @@ Other actions on the detail page:
 - **Edit API key** rotates a BYOK key in place. The new key is validated before it replaces the old one.
 - **Edit connection** and **Clone connection** on Custom API and object-store connectors. Cloning prefills a new form with everything except the secrets.
 - **Reauthorize** on Discourse connectors. Forum-issued keys expire after a period of disuse (180 days by default), and the gateway returns `403` once that happens.
+- **Enable for this org** and **Disable for this org** on platform-provided connectors, which Sprites operates for every organization. Disabling one cuts off your Sprites without deleting anything.
 - **Remove connection** asks you to type the connector's name. Deleting a connector destroys the credential and immediately cuts off every Sprite using it.
 
 ## Calling a connector from a Sprite
@@ -124,8 +132,9 @@ A few things to know about the gateway:
 
 - **Responses are buffered.** The gateway reads the whole provider response before returning it, so streaming doesn't stream. Leave `stream` off (or set it to `false`) on OpenAI-compatible and Anthropic requests, otherwise you get the whole event stream back in one buffered response.
 - **Request headers are mostly not forwarded.** The gateway sets `Content-Type` and its own `User-Agent`. Only provider-specific headers the connector opts into (such as Anthropic's version headers, or the standard S3 request headers) pass through.
-- **Rate-limit headers do come back.** GitHub, OpenRouter, and Anthropic connectors forward their `*-ratelimit-*` and `retry-after` response headers.
-- **Object-store requests keep their raw body.** Uploads through an S3 connector can be up to 64 MB per request.
+- **Rate-limit headers do come back.** GitHub, OpenRouter, Anthropic, and Slack connectors forward their `*-ratelimit-*` and `retry-after` response headers. Slack connectors also return `x-slack-req-id`, `x-oauth-scopes`, and `x-accepted-oauth-scopes`, which is handy for diagnosing a missing scope.
+- **Object-store requests keep their raw body.** Uploads through an S3 connector can be up to 64 MB per request. `Range`, the `If-*` conditional headers, `Content-MD5`, `Content-Type`, and any `x-amz-*` request header pass through, so ranged downloads and object metadata work as they do against the bucket directly.
+- **OAuth tokens refresh themselves.** When a provider token is within five minutes of expiring, the gateway refreshes it before forwarding the request. You don't need to handle refresh in the Sprite.
 - **Upstream timeout is 120 seconds.**
 
 ## Endpoint allow- and block-lists
@@ -141,6 +150,8 @@ Patterns are exact paths or trailing-wildcard prefixes:
 - `/repos/acme/website/issues` — exactly that path.
 - `/repos/*` — anything starting with `/repos/`.
 - `/*` — everything (use sparingly).
+
+Slack's API uses dotted method names rather than nested paths, so a Slack pattern looks like `/chat.postMessage` for one method or `/chat.*` for the whole `chat` family.
 
 There's no mid-string globbing or regular expressions. Two lists work together:
 
@@ -220,6 +231,9 @@ The gateway couldn't connect to the provider. Retry, and check the provider's st
 **`403` with `"credits_exhausted"`** or **`402` with `"credits_insufficient"`** from an OpenRouter connector
 Your managed OpenRouter credits are used up, or too low for this request. Buy more credits from the connector page.
 
+**`403 blocked: base URL resolves to a non-public address`** or **`403 blocked: connector may not set the reserved header …`**
+A Custom API connector points at a private or loopback address, or uses a reserved header name. See the guardrails under [Setting up a connector](#setting-up-a-connector).
+
 **OAuth callback returns `failed to exchange authorization code`**
 The authorization code was already used or has expired. Restart the connection from the dashboard.
 
@@ -243,7 +257,7 @@ curl -X GET "https://api.sprites.dev/v1/oauth/github/authorize?scopes=repo,read:
   -H "Authorization: Bearer $SPRITES_TOKEN"
 ```
 
-Returns an `authorize_url` and a `state`. Send the user to the URL; on consent, GitHub redirects back to the Sprites callback and the connector is created. Pass `add_scopes` instead of `scopes` to merge new scopes into an existing connection's grant.
+Returns an `authorize_url` and a `state`. Send the user to the URL; on consent, GitHub redirects back to the Sprites callback and the connector is created. The same flow works with `slack` and `slack_bot` in place of `github`. Pass `add_scopes` instead of `scopes` to merge new scopes into an existing connection's grant.
 
 ### Create an API-key (BYOK) connector
 
@@ -301,7 +315,7 @@ curl -X POST "https://api.sprites.dev/v1/oauth/connections/provision" \
   -d '{ "provider": "openrouter" }'
 ```
 
-Credits are purchased from the dashboard. `GET /v1/oauth/connections/<id>/balance` returns the current limit, usage, and remaining balance, and `GET /v1/oauth/connections/<id>/usage` returns daily, weekly, and monthly spend with a per-model breakdown.
+Credits are purchased from the dashboard. `GET /v1/oauth/connections/<id>/balance` returns the current limit, usage, and remaining balance, and `GET /v1/oauth/connections/<id>/usage` returns daily, weekly, and monthly spend with a per-model breakdown. Both require an unrestricted API token; a scoped token gets a `403`.
 
 ### Update the access policy
 
