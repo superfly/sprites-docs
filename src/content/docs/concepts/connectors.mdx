@@ -5,7 +5,7 @@ description: Give Sprites access to external APIs without putting provider crede
 
 import { Callout } from '@/components/react';
 
-A Sprite that needs to talk to GitHub, Anthropic, OpenRouter, an S3 bucket, or any other HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
+A Sprite that needs to talk to GitHub, Anthropic, OpenRouter, Meta, an S3 bucket, or any other HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
 
 Connectors solve this by storing the credential once, in your organization, and routing API calls through the Sprites gateway. Sprites never see the token. You decide which Sprites can use a connector and which provider endpoints they can reach.
 
@@ -28,6 +28,7 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 | Slack (Bot) | OAuth | Sprites act as a bot user. Same default scopes as Slack (User) minus `search:read`. |
 | OpenRouter | API key (BYOK) **or** managed | Bring your own OpenRouter key, or enable the managed connector and pay with prepaid credits. See [Managed OpenRouter](#managed-openrouter). |
 | Anthropic | API key (BYOK) | Calls to `/v1/messages` and the rest of the Anthropic API. The gateway forwards your `anthropic-version` and `anthropic-beta` headers. |
+| Meta | API key (BYOK) | Muse Spark models through the Meta Model API. Forwards the OpenAI-compatible `/v1/chat/completions` and `/v1/responses` routes, the Anthropic-compatible `/v1/messages` route, and `/v1/models`; every other Meta path is rejected. See [Meta](#meta). |
 | Discourse | Forum-issued user API key | You approve access on the forum itself. The connector only ever gets your own forum permissions. |
 | S3-compatible object store | Access key ID + secret | AWS S3, Cloudflare R2, Backblaze B2, MinIO, and other S3-compatible services. Requests are signed with SigV4. |
 | Fly.io Machines | Fly.io token | A Custom API preset for `api.machines.dev`. The dashboard mints a read-only or read-write token scoped to your organization. |
@@ -52,7 +53,7 @@ What happens next depends on the provider:
 - **GitHub** — click **Continue with GitHub**. You're sent through GitHub's OAuth consent screen, then returned to your connectors list.
 - **Slack (User)** or **Slack (Bot)** — click **Continue with Slack** and approve the requested scopes in your workspace. Pick **User** when the Sprite should post and read as you, and **Bot** when it should show up as its own bot user. You can connect both.
 - **OpenRouter** — either **Enable OpenRouter** for the managed connector, or **Use your own key instead** and paste an OpenRouter API key.
-- **Anthropic and other API-key providers** — paste the key. It's validated against the provider before it's saved, encrypted at rest, and never shown again.
+- **Anthropic, Meta, and other API-key providers** — paste the key. It's validated against the provider before it's saved, encrypted at rest, and never shown again.
 - **Discourse** — enter the forum URL and choose **Read-only** or **Read & write**. Approve access on the forum in a new tab, then paste the code the forum displays back into the form.
 - **S3-compatible object store** — enter the bucket, endpoint URL, region, access key ID, and secret access key. Click **Test connection** (a `HEAD` request against the bucket) before you can save.
 - **Fly.io Machines** — choose a read-only or read-write token scope and click **Generate token**. The token is created under your account and named `Sprite connector (…)` so you can find it later under **Tokens**.
@@ -126,13 +127,15 @@ curl -X POST "https://api.sprites.dev/v1/gateway/anthropic/<connection_id>/v1/me
   -d '{"model": "claude-opus-5", "max_tokens": 1024, "messages": [{"role": "user", "content": "Hello!"}]}'
 ```
 
+A Meta connector accepts the same request shapes as the provider it emulates. The OpenAI SDK pointed at `.../v1/gateway/meta/<connection_id>/v1` and the Anthropic SDK pointed at the same base URL both work with any placeholder API key, because the gateway replaces whatever key the SDK sends with the stored one. See [Meta](#meta) for details.
+
 The **API Usage** card on each connector's detail page shows a ready-to-run example for that provider, so you don't need to construct the URL by hand.
 
 A few things to know about the gateway:
 
-- **Responses are buffered.** The gateway reads the whole provider response before returning it, so streaming doesn't stream. Leave `stream` off (or set it to `false`) on OpenAI-compatible and Anthropic requests, otherwise you get the whole event stream back in one buffered response.
+- **Server-sent events stream through.** When a provider answers with `text/event-stream`, the gateway relays events as they arrive, so `"stream": true` on OpenAI-compatible and Anthropic requests works as it does against the provider directly. Other responses are read in full before they're returned.
 - **Request headers are mostly not forwarded.** The gateway sets `Content-Type` and its own `User-Agent`. Only provider-specific headers the connector opts into (such as Anthropic's version headers, or the standard S3 request headers) pass through.
-- **Rate-limit headers do come back.** GitHub, OpenRouter, Anthropic, and Slack connectors forward their `*-ratelimit-*` and `retry-after` response headers. Slack connectors also return `x-slack-req-id`, `x-oauth-scopes`, and `x-accepted-oauth-scopes`, which is handy for diagnosing a missing scope.
+- **Rate-limit headers do come back.** GitHub, OpenRouter, Anthropic, Meta, and Slack connectors forward their `*-ratelimit-*` and `retry-after` response headers. Slack connectors also return `x-slack-req-id`, `x-oauth-scopes`, and `x-accepted-oauth-scopes`, which is handy for diagnosing a missing scope.
 - **Object-store requests keep their raw body.** Uploads through an S3 connector can be up to 64 MB per request. `Range`, the `If-*` conditional headers, `Content-MD5`, `Content-Type`, and any `x-amz-*` request header pass through, so ranged downloads and object metadata work as they do against the bucket directly.
 - **OAuth tokens refresh themselves.** When a provider token is within five minutes of expiring, the gateway refreshes it before forwarding the request. You don't need to handle refresh in the Sprite.
 - **Upstream timeout is 120 seconds.**
@@ -161,6 +164,53 @@ There's no mid-string globbing or regular expressions. Two lists work together:
 <Callout type="warning" title="Block rules win">
 If a path matches both blocked and allowed rules, the request is denied. Use blocks for an explicit deny-list inside a broad allow rule (for example, allow `/*` but block `/admin/*`).
 </Callout>
+
+## Meta
+
+The Meta connector gives Sprites access to Meta's Muse Spark models through the [Meta Model API](https://dev.meta.ai). It's bring-your-own-key: create an API key in the Meta developer console (keys start with `LLM_`), paste it into **Add connector → Meta**, and the gateway validates it against Meta's model list before saving it.
+
+Meta serves three inference surfaces with the same key, and the connector forwards all of them:
+
+| Path | Compatible with |
+| --- | --- |
+| `/v1/chat/completions` | OpenAI Chat Completions API and SDKs |
+| `/v1/responses` | OpenAI Responses API and SDKs |
+| `/v1/messages` | Anthropic Messages API and SDKs. `anthropic-version` and `anthropic-beta` headers are forwarded when you send them. |
+| `/v1/models` | Model discovery |
+
+Anything else under Meta's API returns `403 endpoint is not supported by the Meta connector`, before the request leaves the gateway and regardless of the connector's access policy. That keeps an organization-level credential from becoming general account access.
+
+Point an SDK at the connector by setting its base URL to the gateway and giving it any placeholder key:
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.sprites.dev/v1/gateway/meta/<connection_id>/v1",
+    api_key="sprites-gateway",  # replaced by the stored credential
+)
+
+response = client.chat.completions.create(
+    model="muse-spark-1.3",
+    messages=[{"role": "user", "content": "Hello!"}],
+)
+```
+
+The same works with the Anthropic SDK against `/v1/messages`, and with `curl`:
+
+```bash
+curl -X POST "https://api.sprites.dev/v1/gateway/meta/<connection_id>/v1/chat/completions" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "muse-spark-1.3", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
+
+Streaming (`"stream": true`) and tool calling pass through unchanged on both the OpenAI-compatible and Anthropic-compatible routes, and Meta's `x-ratelimit-*`, `x-request-id`, and `retry-after` response headers come back to the Sprite.
+
+A few Meta-specific notes:
+
+- **Check which models your key can use.** Model availability is set per Meta developer team, so `GET /v1/models` through the connector is the authoritative list. `muse-spark-1.3` is Meta's documented default; if it's missing from your list, the key's team doesn't have access to it yet.
+- **Muse Spark is a reasoning model.** Reasoning tokens count against `max_tokens`, so very small budgets can return an empty message with usage recorded. Give it room.
+- **Point coding agents at the gateway, not at Meta.** Muse Code and other agents that read an OpenAI- or Anthropic-style base URL from configuration can use the connector URL with a placeholder key, so the Meta key never has to be written into an agent config file inside the Sprite.
 
 ## Managed OpenRouter
 
@@ -268,7 +318,7 @@ curl -X POST "https://api.sprites.dev/v1/oauth/connections/api_key" \
   -d '{ "provider": "anthropic", "api_key": "sk-ant-...", "access_policy": { "allow_all": true } }'
 ```
 
-Works for `openrouter` and `anthropic`. The key is validated against the provider before it's stored. Rotate it later with `PUT /v1/oauth/connections/<id>/api_key`.
+Works for `openrouter`, `anthropic`, `ollama`, and `meta`. The key is validated against the provider before it's stored. Rotate it later with `PUT /v1/oauth/connections/<id>/api_key`.
 
 ### Create a Custom API connector
 
