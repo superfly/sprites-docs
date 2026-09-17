@@ -5,7 +5,7 @@ description: Give Sprites access to external APIs without putting provider crede
 
 import { Callout } from '@/components/react';
 
-A Sprite that needs to talk to GitHub, Anthropic, OpenRouter, Meta, an S3 bucket, or any other HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
+A Sprite that needs to talk to GitHub, Anthropic, OpenAI, OpenRouter, Meta, an S3 bucket, or any other HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
 
 Connectors solve this by storing the credential once, in your organization, and routing API calls through the Sprites gateway. Sprites never see the token. You decide which Sprites can use a connector and which provider endpoints they can reach.
 
@@ -29,6 +29,7 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 | OpenRouter | API key (BYOK) **or** managed | Bring your own OpenRouter key, or enable the managed connector and pay with prepaid credits. See [Managed OpenRouter](#managed-openrouter). |
 | Anthropic | API key (BYOK) | Calls to `/v1/messages` and the rest of the Anthropic API. The gateway forwards your `anthropic-version` and `anthropic-beta` headers. |
 | Meta | API key (BYOK) | Muse Spark models through the Meta Model API. Forwards the OpenAI-compatible `/v1/chat/completions` and `/v1/responses` routes, the Anthropic-compatible `/v1/messages` route, and `/v1/models`; every other Meta path is rejected with `403`. |
+| OpenAI | API key (BYOK) | GPT models through the OpenAI API. Forwards `/v1/responses`, `/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`, and `/v1/models`. The OpenAI SDKs work unchanged with `OPENAI_BASE_URL` set to the connector URL; the Codex CLI needs a `model_provider` entry. Files, fine-tuning, batches, and organization endpoints are rejected with `403`. |
 | Discourse | Forum-issued user API key | You approve access on the forum itself. The connector only ever gets your own forum permissions. |
 | S3-compatible object store | Access key ID + secret | AWS S3, Cloudflare R2, Backblaze B2, MinIO, and other S3-compatible services. Requests are signed with SigV4. |
 | Fly.io Machines | Fly.io token | A Custom API preset for `api.machines.dev`. The dashboard mints a read-only or read-write token scoped to your organization. |
@@ -53,7 +54,7 @@ What happens next depends on the provider:
 - **GitHub** — click **Continue with GitHub**. You're sent through GitHub's OAuth consent screen, then returned to your connectors list.
 - **Slack (User)** or **Slack (Bot)** — click **Continue with Slack** and approve the requested scopes in your workspace. Pick **User** when the Sprite should post and read as you, and **Bot** when it should show up as its own bot user. You can connect both.
 - **OpenRouter** — either **Enable OpenRouter** for the managed connector, or **Use your own key instead** and paste an OpenRouter API key.
-- **Anthropic, Meta, and other API-key providers** — paste the key. It's validated against the provider before it's saved, encrypted at rest, and never shown again.
+- **Anthropic, Meta, OpenAI, and other API-key providers** — paste the key. It's validated against the provider before it's saved, encrypted at rest, and never shown again.
 - **Discourse** — enter the forum URL and choose **Read-only** or **Read & write**. Approve access on the forum in a new tab, then paste the code the forum displays back into the form.
 - **S3-compatible object store** — enter the bucket, endpoint URL, region, access key ID, and secret access key. Click **Test connection** (a `HEAD` request against the bucket) before you can save.
 - **Fly.io Machines** — choose a read-only or read-write token scope and click **Generate token**. The token is created under your account and named `Sprite connector (…)` so you can find it later under **Tokens**.
@@ -137,13 +138,39 @@ curl -X POST "https://api.sprites.dev/v1/gateway/meta/<connection_id>/v1/chat/co
 
 Model availability is set per Meta developer team, so `GET /v1/models` through the connector is the authoritative list.
 
+An OpenAI connector forwards the inference surface of the OpenAI API: `/v1/responses` (including retrieving, cancelling, and deleting a response and listing its input items), `/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`, and `/v1/models`. The gateway swaps the caller's `Authorization` header for the stored key and forwards `OpenAI-Organization`, `OpenAI-Project`, and `OpenAI-Beta` when the SDK sets them. Streaming and tool calls pass through unchanged, and so do OpenAI's error bodies and `x-ratelimit-*` headers. Files, fine-tuning, batches, vector stores, and organization endpoints are rejected with `403` before the request leaves the gateway.
+
+```bash
+curl -X POST "https://api.sprites.dev/v1/gateway/openai/<connection_id>/v1/responses" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gpt-5-mini", "input": "Hello!"}'
+```
+
+The official SDKs read `OPENAI_BASE_URL`, so no code changes are needed (the Codex CLI does not; see [Running Codex CLI through an OpenAI connector](#running-codex-cli-through-an-openai-connector)). Set it to the connector URL, ending in `/v1`, and give `OPENAI_API_KEY` any non-empty placeholder; the gateway supplies the real key:
+
+```bash
+export OPENAI_BASE_URL="https://api.sprites.dev/v1/gateway/openai/<connection_id>/v1"
+export OPENAI_API_KEY="sprites"
+```
+
+```python
+from openai import OpenAI
+
+client = OpenAI()  # picks up OPENAI_BASE_URL and OPENAI_API_KEY
+
+response = client.responses.create(model="gpt-5-mini", input="Hello!")
+print(response.output_text)
+```
+
+Model availability depends on the OpenAI project the key belongs to, so `GET /v1/models` through the connector is the authoritative list.
+
 The **API Usage** card on each connector's detail page shows a ready-to-run example for that provider, so you don't need to construct the URL by hand.
 
 A few things to know about the gateway:
 
 - **Server-sent events stream through.** When a provider answers with `text/event-stream`, the gateway relays events as they arrive, so `"stream": true` on OpenAI-compatible and Anthropic requests works as it does against the provider directly. Other responses are read in full before they're returned.
 - **Request headers are mostly not forwarded.** The gateway sets `Content-Type` and its own `User-Agent`. Only provider-specific headers the connector opts into (such as Anthropic's version headers, or the standard S3 request headers) pass through.
-- **Rate-limit headers do come back.** GitHub, OpenRouter, Anthropic, Meta, and Slack connectors forward their `*-ratelimit-*` and `retry-after` response headers. Slack connectors also return `x-slack-req-id`, `x-oauth-scopes`, and `x-accepted-oauth-scopes`, which is handy for diagnosing a missing scope.
+- **Rate-limit headers do come back.** GitHub, OpenRouter, Anthropic, Meta, OpenAI, and Slack connectors forward their `*-ratelimit-*` and `retry-after` response headers. Slack connectors also return `x-slack-req-id`, `x-oauth-scopes`, and `x-accepted-oauth-scopes`, which is handy for diagnosing a missing scope.
 - **Object-store requests keep their raw body.** Uploads through an S3 connector can be up to 64 MB per request. `Range`, the `If-*` conditional headers, `Content-MD5`, `Content-Type`, and any `x-amz-*` request header pass through, so ranged downloads and object metadata work as they do against the bucket directly.
 - **OAuth tokens refresh themselves.** When a provider token is within five minutes of expiring, the gateway refreshes it before forwarding the request. You don't need to handle refresh in the Sprite.
 - **Upstream timeout is 120 seconds.**
@@ -200,6 +227,8 @@ Ask in plain language:
 > "Open a GitHub issue in my repo titled 'flaky test'."
 >
 > "Summarize this file with Claude through our Anthropic connector."
+>
+> "Write a haiku with GPT through our OpenAI connector."
 
 The agent discovers what's available by calling the gateway list endpoint from inside the Sprite:
 
@@ -214,6 +243,31 @@ The agent picks the right connector, builds the call against the gateway, and ne
 If an OAuth connector exists but is missing scopes the agent needs, the connection's `request_scopes_url` points you at the re-authorization flow. A Sprite can also start that flow itself with `GET /v1/gateway/authorize?provider=github&add_scopes=…`, which returns an `authorize_url` for you to open. If no connector exists for the provider, the agent will ask you to add one from the dashboard.
 
 The practical effect: once an organization admin has set up a GitHub connector and granted access to the right Sprites, anyone using a coding agent inside one of those Sprites can use the integration in natural language, with no API knowledge required.
+
+### Running Codex CLI through an OpenAI connector
+
+The Codex CLI is itself an OpenAI client, so it can run inside a Sprite against an OpenAI connector with no OpenAI key in the Sprite. Current Codex releases ignore `OPENAI_BASE_URL` for the built-in `openai` provider, so declare the connector as its own model provider in `~/.codex/config.toml`:
+
+```toml
+model_provider = "sprites"
+
+[model_providers.sprites]
+name = "OpenAI via Sprites"
+base_url = "https://api.sprites.dev/v1/gateway/openai/<connection_id>/v1"
+env_key = "OPENAI_API_KEY"
+wire_api = "responses"
+```
+
+Then give Codex a placeholder key and run it as usual:
+
+```bash
+export OPENAI_API_KEY="sprites"   # any non-empty value; the gateway supplies the real key
+codex "Explain what this repository does"
+```
+
+The same settings work as one-off flags: `codex exec -c model_provider=sprites -c model_providers.sprites.base_url=... -c model_providers.sprites.env_key=OPENAI_API_KEY -c model_providers.sprites.wire_api=responses "..."`.
+
+Codex uses the Responses API, which the connector forwards. Sign-in with ChatGPT is not available through a connector; it needs an API key on the OpenAI side.
 
 <Callout type="tip" title="Where the skill lives">
 The skill is installed at `~/.sprite-shared/skills/sprite-api-gateway/` inside every Sprite, with `~/.claude/skills/`, `~/.cursor/skills/`, `~/.codex/skills/`, and `~/.gemini/skills/` linked to it. It's part of the Sprite base image, so there's nothing to install.
@@ -279,7 +333,7 @@ curl -X POST "https://api.sprites.dev/v1/oauth/connections/api_key" \
   -d '{ "provider": "anthropic", "api_key": "sk-ant-...", "access_policy": { "allow_all": true } }'
 ```
 
-Works for `openrouter`, `anthropic`, and `meta`. The key is validated against the provider before it's stored. Rotate it later with `PUT /v1/oauth/connections/<id>/api_key`.
+Works for `openrouter`, `anthropic`, `ollama`, `meta`, and `openai`. The key is validated against the provider before it's stored. Rotate it later with `PUT /v1/oauth/connections/<id>/api_key`.
 
 ### Create a Custom API connector
 
