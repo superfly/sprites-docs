@@ -18,7 +18,7 @@
     "cy:open": "cypress open"
   },
   "dependencies": {
-    "@astrojs/react": "^4.4.2",
+    "@astrojs/react": "^6.0.0",
     "@astrojs/sitemap": "^3.6.0",
     "@astrojs/starlight": "^0.37.1",
     "@fontsource/inter": "^5.2.8",
