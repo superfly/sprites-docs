@@ -1,0 +1,73 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "maple",
+  "name": "Sprites",
+  "colors": {
+    "primary": "#7C3BED",
+    "light": "#A78BFA",
+    "dark": "#5B21B6"
+  },
+  "logo": {
+    "dark": "/images/favicon.svg",
+    "light": "/images/favicon.svg"
+  },
+  "favicon": "/images/favicon.svg",
+  "api": {
+    "examples": {
+      "languages": [
+        "curl",
+        "node",
+        "go",
+        "python"
+      ]
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Sprite docs",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "index",
+              "quickstart",
+              "working-with-sprites",
+              "keeping-sprites-running",
+              "sprite-maintenance"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/checkpoints",
+              "concepts/connectors",
+              "concepts/lifecycle",
+              "concepts/networking",
+              "concepts/services"
+            ]
+          },
+          {
+            "group": "CLI Reference",
+            "pages": [
+              "cli/installation",
+              "cli/authentication",
+              "cli/commands"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/remote-mcp",
+              "integrations/claude-managed-agents"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Sprites API",
+        "openapi": "https://api.sprites.dev/openapi.json"
+      }
+    ]
+  }
+}

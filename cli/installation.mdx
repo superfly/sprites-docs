@@ -1,0 +1,176 @@
+---
+title: CLI Installation
+sidebarTitle: Installation
+og:description: "Install the Sprites CLI on macOS, Linux, or Windows"
+---
+
+import CliDownloads from '/snippets/CliDownloads.mdx';
+
+<Frame>![A round green creature connected by a cable to a laptop displaying the word Install](/images/install-cli.png)</Frame>
+
+The Sprites CLI (`sprite`) is available for macOS, Linux, and Windows.
+
+## Quick Install (Recommended)
+
+The easiest way to install the CLI is with our install script:
+
+```bash
+curl -fsSL https://sprites.dev/install.sh | sh
+```
+
+The install script automatically:
+- Detects your operating system and architecture
+- Downloads the latest release binary
+- Verifies the SHA256 checksum
+- Installs to `~/.local/bin`
+
+<Info>
+After installation, you may need to add `~/.local/bin` to your PATH if it's not already included. The script will provide instructions if needed.
+</Info>
+
+## Manual Installation
+
+<CliDownloads />
+
+## Verify Installation
+
+```bash
+sprite --help
+```
+
+You should see the help output with available commands.
+
+## Upgrading
+
+If you installed from the direct download links, upgrade to the latest version:
+
+```bash
+sprite upgrade
+```
+
+To check for updates without installing:
+
+```bash
+sprite upgrade --check
+```
+
+## Configuration
+
+The CLI stores configuration in `~/.sprites/sprites.json`. This includes:
+
+- Organization tokens
+- Current organization selection
+- Current sprite selection
+
+### Config File Location
+
+| Platform | Location |
+|----------|----------|
+| macOS/Linux | `~/.sprites/sprites.json` |
+| Windows | `%USERPROFILE%\.sprites\sprites.json` |
+
+> **Note:** `config.json` is kept for backward compatibility with older clients, but current versions read/write `sprites.json`.
+
+## Optional: Local Directory Context
+
+The CLI supports a `.sprite` file in your project directory to remember which sprite to use:
+
+```bash
+# Set the sprite for current directory
+sprite use my-project-sprite
+```
+
+This creates a `.sprite` file that the CLI reads automatically. Add `.sprite` to your `.gitignore` as it's user-specific.
+
+## Optional: Install Shell Completions
+
+The CLI provides completion scripts for various shells. Run `sprite help completion` for more information.
+
+### bash
+
+Install the bash completion script by adding it to your `.bashrc`:
+
+```bash
+echo 'eval "$(sprite completion bash)"' >> ~/.bashrc
+```
+
+### zsh
+
+If you haven't enabled completions in your `.zshrc` yet:
+
+```bash
+echo "autoload -U compinit; compinit -i" >> ~/.zshrc
+```
+
+Install the zsh completion script by adding it to your local functions:
+
+```bash
+sprite completion zsh > ~/.local/share/zsh/site-functions/_sprite
+
+# If the local functions directory isn't in your fpath
+echo "fpath=(\"$HOME/.local/share/zsh/site-functions\" \$fpath)" >> ~/.zshrc
+```
+
+### fish
+
+Install the fish completion script:
+
+```bash
+sprite completion fish > ~/.config/fish/completions/sprite.fish
+```
+
+### PowerShell
+
+Install the PowerShell completion script by appending it to your profile:
+
+```powershell
+Add-Content $PROFILE "`nsprite completion powershell | Out-String | Invoke-Expression"
+```
+
+## Troubleshooting
+
+### Permission Denied
+
+If you get a permission denied error on macOS or Linux:
+
+```bash
+chmod +x sprite
+sudo mv sprite /usr/local/bin/
+```
+
+### Command Not Found
+
+Ensure the binary is in your PATH:
+
+```bash
+# Check if sprite is in PATH
+which sprite
+
+# If not, add /usr/local/bin to PATH
+export PATH="/usr/local/bin:$PATH"
+```
+
+### macOS Security Warning
+
+On macOS, you may see a security warning when first running the CLI. To allow it:
+
+1. Open System Preferences > Security & Privacy
+2. Click "Allow Anyway" next to the message about `sprite`
+3. Run `sprite` again and click "Open"
+
+Or use the command line:
+
+```bash
+xattr -d com.apple.quarantine /usr/local/bin/sprite
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="gear" href="/cli/authentication">
+  Set up your Fly.io account and manage tokens
+</Card>
+  <Card title="Commands Reference" icon="terminal" href="/cli/commands">
+  Full CLI documentation and examples
+</Card>
+</CardGroup>
