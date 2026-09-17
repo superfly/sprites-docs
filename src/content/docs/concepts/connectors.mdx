@@ -5,7 +5,7 @@ description: Give Sprites access to external APIs without putting provider crede
 
 import { Callout } from '@/components/react';
 
-A Sprite that needs to talk to GitHub, Anthropic, OpenAI, OpenRouter, Meta, an S3 bucket, or any other HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
+A Sprite that needs to talk to GitHub, Anthropic, OpenAI, TypeSafeAI, OpenRouter, Meta, an S3 bucket, or any other HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
 
 Connectors solve this by storing the credential once, in your organization, and routing API calls through the Sprites gateway. Sprites never see the token. You decide which Sprites can use a connector and which provider endpoints they can reach.
 
@@ -30,6 +30,7 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 | Anthropic | API key (BYOK) | Calls to `/v1/messages` and the rest of the Anthropic API. The gateway forwards your `anthropic-version` and `anthropic-beta` headers. |
 | Meta | API key (BYOK) | Muse Spark models through the Meta Model API. Forwards the OpenAI-compatible `/v1/chat/completions` and `/v1/responses` routes, the Anthropic-compatible `/v1/messages` route, and `/v1/models`; every other Meta path is rejected with `403`. |
 | OpenAI | API key (BYOK) | GPT models through the OpenAI API. Forwards `/v1/responses`, `/v1/chat/completions`, `/v1/completions`, `/v1/embeddings`, and `/v1/models`. The OpenAI SDKs work unchanged with `OPENAI_BASE_URL` set to the connector URL; the Codex CLI needs a `model_provider` entry. Files, fine-tuning, batches, and organization endpoints are rejected with `403`. |
+| TypeSafeAI | API key (BYOK) | Jev, a decision model that answers typed questions (yes/no, one of N, score) with calibrated probabilities. Forwards `POST /v1/systemone` and `GET /v1/models` only. The Python and JavaScript SDKs and the TypeSafeAI agent skill work unchanged with `TYPESAFE_BASE_URL` set to the connector URL. |
 | Discourse | Forum-issued user API key | You approve access on the forum itself. The connector only ever gets your own forum permissions. |
 | S3-compatible object store | Access key ID + secret | AWS S3, Cloudflare R2, Backblaze B2, MinIO, and other S3-compatible services. Requests are signed with SigV4. |
 | Fly.io Machines | Fly.io token | A Custom API preset for `api.machines.dev`. The dashboard mints a read-only or read-write token scoped to your organization. |
@@ -54,7 +55,7 @@ What happens next depends on the provider:
 - **GitHub** — click **Continue with GitHub**. You're sent through GitHub's OAuth consent screen, then returned to your connectors list.
 - **Slack (User)** or **Slack (Bot)** — click **Continue with Slack** and approve the requested scopes in your workspace. Pick **User** when the Sprite should post and read as you, and **Bot** when it should show up as its own bot user. You can connect both.
 - **OpenRouter** — either **Enable OpenRouter** for the managed connector, or **Use your own key instead** and paste an OpenRouter API key.
-- **Anthropic, Meta, OpenAI, and other API-key providers** — paste the key. It's validated against the provider before it's saved, encrypted at rest, and never shown again.
+- **Anthropic, Meta, OpenAI, TypeSafeAI, and other API-key providers** — paste the key. It's validated against the provider before it's saved, encrypted at rest, and never shown again.
 - **Discourse** — enter the forum URL and choose **Read-only** or **Read & write**. Approve access on the forum in a new tab, then paste the code the forum displays back into the form.
 - **S3-compatible object store** — enter the bucket, endpoint URL, region, access key ID, and secret access key. Click **Test connection** (a `HEAD` request against the bucket) before you can save.
 - **Fly.io Machines** — choose a read-only or read-write token scope and click **Generate token**. The token is created under your account and named `Sprite connector (…)` so you can find it later under **Tokens**.
@@ -164,13 +165,64 @@ print(response.output_text)
 
 Model availability depends on the OpenAI project the key belongs to, so `GET /v1/models` through the connector is the authoritative list.
 
+A TypeSafeAI connector forwards Jev's two routes: `POST /v1/systemone` for typed decisions and `GET /v1/models` for discovery. Jev is not a chat model. A request sends a `state` and a map of typed questions, and the answer carries a probability and confidence per question, plus token usage. There is no text generation and no streaming. `422`, `429` and `529` responses and the `retry-after` header pass through, so the SDKs' retry logic works as it does against the API directly. Any other path or method is rejected with `403`.
+
+```bash
+curl -X POST "https://api.sprites.dev/v1/gateway/typesafe/<connection_id>/v1/systemone" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "jev-latest",
+    "state": "Hi, my Stripe connection has failed for 3 days. I am losing sales. Please help ASAP.",
+    "questions": {
+      "is_urgent":   {"type": "noul",   "instructions": "Does this message express urgency?"},
+      "department":  {"type": "choice", "instructions": "Which team should handle this?",
+                      "criteria": {"billing": "Payments and refunds", "technical": "Bugs and integrations", "sales": "Pricing and upgrades"}},
+      "frustration": {"type": "score",  "instructions": "How frustrated is the customer?",
+                      "criteria": ["Calm", "Frustrated but civil", "Very angry"]}
+    }
+  }'
+```
+
+Both SDKs read `TYPESAFE_BASE_URL`. Set it to the connector URL, without a trailing `/v1`, and give `TYPESAFE_API_KEY` any non-empty placeholder; the gateway supplies the real key:
+
+```bash
+export TYPESAFE_BASE_URL="https://api.sprites.dev/v1/gateway/typesafe/<connection_id>"
+export TYPESAFE_API_KEY="sprites"
+```
+
+```python
+from typesafe_sdk import Noul, TypeSafeClient
+
+client = TypeSafeClient()  # picks up TYPESAFE_BASE_URL and TYPESAFE_API_KEY
+
+response = client.system_one(
+    state="Hi, my Stripe connection has failed for 3 days. Please help ASAP.",
+    questions={"is_urgent": Noul(instructions="Does this message express urgency?")},
+)
+print(response.answers["is_urgent"].noul)  # e.g. 0.95
+```
+
+```javascript
+import { noul, TypeSafeClient } from "@typesafe-ai/sdk";
+
+const client = new TypeSafeClient(); // picks up TYPESAFE_BASE_URL and TYPESAFE_API_KEY
+
+const response = await client.systemOne({
+  state: "Hi, my Stripe connection has failed for 3 days. Please help ASAP.",
+  questions: { is_urgent: noul({ instructions: "Does this message express urgency?" }) },
+});
+console.log(response.answers.is_urgent.noul); // e.g. 0.95
+```
+
+`GET /v1/models` through the connector lists the aliases your account can use, such as `jev-latest`. The response's `model` field reports the versioned ID that answered.
+
 The **API Usage** card on each connector's detail page shows a ready-to-run example for that provider, so you don't need to construct the URL by hand.
 
 A few things to know about the gateway:
 
 - **Server-sent events stream through.** When a provider answers with `text/event-stream`, the gateway relays events as they arrive, so `"stream": true` on OpenAI-compatible and Anthropic requests works as it does against the provider directly. Other responses are read in full before they're returned.
 - **Request headers are mostly not forwarded.** The gateway sets `Content-Type` and its own `User-Agent`. Only provider-specific headers the connector opts into (such as Anthropic's version headers, or the standard S3 request headers) pass through.
-- **Rate-limit headers do come back.** GitHub, OpenRouter, Anthropic, Meta, OpenAI, and Slack connectors forward their `*-ratelimit-*` and `retry-after` response headers. Slack connectors also return `x-slack-req-id`, `x-oauth-scopes`, and `x-accepted-oauth-scopes`, which is handy for diagnosing a missing scope.
+- **Rate-limit headers do come back.** GitHub, OpenRouter, Anthropic, Meta, OpenAI, TypeSafeAI, and Slack connectors forward their `*-ratelimit-*` and `retry-after` response headers. Slack connectors also return `x-slack-req-id`, `x-oauth-scopes`, and `x-accepted-oauth-scopes`, which is handy for diagnosing a missing scope.
 - **Object-store requests keep their raw body.** Uploads through an S3 connector can be up to 64 MB per request. `Range`, the `If-*` conditional headers, `Content-MD5`, `Content-Type`, and any `x-amz-*` request header pass through, so ranged downloads and object metadata work as they do against the bucket directly.
 - **OAuth tokens refresh themselves.** When a provider token is within five minutes of expiring, the gateway refreshes it before forwarding the request. You don't need to handle refresh in the Sprite.
 - **Upstream timeout is 120 seconds.**
@@ -229,6 +281,8 @@ Ask in plain language:
 > "Summarize this file with Claude through our Anthropic connector."
 >
 > "Write a haiku with GPT through our OpenAI connector."
+>
+> "Use the TypeSafe skill to decide whether each support ticket is urgent, through our TypeSafeAI connector."
 
 The agent discovers what's available by calling the gateway list endpoint from inside the Sprite:
 
@@ -277,6 +331,18 @@ codex exec -c model_provider=sprites \
 ```
 
 Codex uses the Responses API, which the connector forwards. Sign-in with ChatGPT is not available through a connector; it needs an API key on the OpenAI side.
+
+### Using the TypeSafeAI agent skill through a connector
+
+TypeSafeAI ships an [agent skill](https://docs.typesafe.ai/agent-skill) that teaches Claude Code, Codex and other agents how to design questions and thresholds. It runs test queries with the SDK, so it needs the same two variables. Install it in the Sprite and export the connector URL:
+
+```bash
+npx skills add typesafe-ai/skills --skill typesafe-ai
+export TYPESAFE_BASE_URL="https://api.sprites.dev/v1/gateway/typesafe/<connection_id>"
+export TYPESAFE_API_KEY="sprites"
+```
+
+Then ask the agent, for example, "Using the TypeSafe skill, run some experiments against `TYPESAFE_API_KEY`." The key never leaves your organization; the Sprite only holds the placeholder.
 
 <Callout type="tip" title="Where the skill lives">
 The skill is installed at `~/.sprite-shared/skills/sprite-api-gateway/` inside every Sprite, with `~/.claude/skills/`, `~/.cursor/skills/`, `~/.codex/skills/`, and `~/.gemini/skills/` linked to it. It's part of the Sprite base image, so there's nothing to install.
@@ -342,7 +408,7 @@ curl -X POST "https://api.sprites.dev/v1/oauth/connections/api_key" \
   -d '{ "provider": "anthropic", "api_key": "sk-ant-...", "access_policy": { "allow_all": true } }'
 ```
 
-Works for `openrouter`, `anthropic`, `ollama`, `meta`, and `openai`. The key is validated against the provider before it's stored. Rotate it later with `PUT /v1/oauth/connections/<id>/api_key`.
+Works for `openrouter`, `anthropic`, `ollama`, `meta`, `openai`, and `typesafe`. The key is validated against the provider before it's stored. Rotate it later with `PUT /v1/oauth/connections/<id>/api_key`.
 
 ### Create a Custom API connector
 
