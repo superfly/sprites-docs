@@ -265,7 +265,16 @@ export OPENAI_API_KEY="sprites"   # any non-empty value; the gateway supplies th
 codex "Explain what this repository does"
 ```
 
-The same settings work as one-off flags: `codex exec -c model_provider=sprites -c model_providers.sprites.base_url=... -c model_providers.sprites.env_key=OPENAI_API_KEY -c model_providers.sprites.wire_api=responses "..."`.
+The same settings work as one-off flags. Codex requires the `name` field, so pass all four:
+
+```bash
+codex exec -c model_provider=sprites \
+  -c 'model_providers.sprites.name="OpenAI via Sprites"' \
+  -c 'model_providers.sprites.base_url="https://api.sprites.dev/v1/gateway/openai/<connection_id>/v1"' \
+  -c 'model_providers.sprites.env_key="OPENAI_API_KEY"' \
+  -c 'model_providers.sprites.wire_api="responses"' \
+  "Explain what this repository does"
+```
 
 Codex uses the Responses API, which the connector forwards. Sign-in with ChatGPT is not available through a connector; it needs an API key on the OpenAI side.
 
