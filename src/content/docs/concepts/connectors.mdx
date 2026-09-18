@@ -24,7 +24,7 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 | Provider | Credential style | Notes |
 | --- | --- | --- |
 | GitHub | OAuth | You approve access on GitHub. Default scopes are `repo` and `read:org`; add more later from the connector's Scopes editor. The token reaches every repository you can see. |
-| GitHub App | GitHub App | Install the Sprites GitHub App on your account or organization, choose the repositories it may reach, then authorize. Sprites reach only those repositories, with the App's fine-grained permissions. There are no scopes. Tokens rotate every eight hours. |
+| GitHub App | GitHub App | You choose an account and the repositories on GitHub's install screen, which also authorizes. Sprites reach only those repositories, with the App's fine-grained permissions. There are no scopes. Tokens rotate every eight hours. |
 | Slack (User) | OAuth | Sprites act as you in your workspace. Default scopes cover posting, reading channels and history, users, team info, and search. |
 | Slack (Bot) | OAuth | Sprites act as a bot user. Same default scopes as Slack (User) minus `search:read`. |
 | OpenRouter | API key (BYOK) **or** managed | Bring your own OpenRouter key, or enable the managed connector and pay with prepaid credits. See [Managed OpenRouter](#managed-openrouter). |
@@ -54,7 +54,7 @@ Click **Add connector** to pick a provider.
 What happens next depends on the provider:
 
 - **GitHub** — click **Continue with GitHub**. You're sent through GitHub's OAuth consent screen, then returned to your connectors list.
-- **GitHub App** — first click **Install on GitHub** and choose the repositories the App may reach, then click **Continue with GitHub** to authorize. If the App is not installed on any account you can reach, the connector is refused with a link to the install page. The connector page lists each installation with its repositories and permissions. Change the selection on GitHub and it applies at once; click **Reconnect** to refresh the list.
+- **GitHub App** — click **Continue with GitHub**. GitHub's install screen asks for the account and the repositories the App may reach, authorizes, and returns you to your connectors. The connector page lists each installation with its repositories and permissions. Change the selection on GitHub and it applies at once; click **Reconnect** to refresh the list.
 - **Slack (User)** or **Slack (Bot)** — click **Continue with Slack** and approve the requested scopes in your workspace. Pick **User** when the Sprite should post and read as you, and **Bot** when it should show up as its own bot user. You can connect both.
 - **OpenRouter** — either **Enable OpenRouter** for the managed connector, or **Use your own key instead** and paste an OpenRouter API key.
 - **Anthropic, Meta, OpenAI, TypeSafeAI, and other API-key providers** — paste the key. It's validated against the provider before it's saved, encrypted at rest, and never shown again.
@@ -399,7 +399,7 @@ curl -X GET "https://api.sprites.dev/v1/oauth/github/authorize?scopes=repo,read:
   -H "Authorization: Bearer $SPRITES_TOKEN"
 ```
 
-Returns an `authorize_url` and a `state`. Send the user to the URL; on consent, GitHub redirects back to the Sprites callback and the connector is created. The same flow works with `slack` and `slack_bot` in place of `github`. Pass `add_scopes` instead of `scopes` to merge new scopes into an existing connection's grant. For `github_app`, omit `scopes`: a GitHub App has none, and the user must have installed the App before the callback succeeds.
+Returns an `authorize_url` and a `state`. Send the user to the URL; on consent, GitHub redirects back to the Sprites callback and the connector is created. The same flow works with `slack` and `slack_bot` in place of `github`. Pass `add_scopes` instead of `scopes` to merge new scopes into an existing connection's grant. For `github_app`, omit `scopes`: a GitHub App has none. The URL returned is the App's install page, which handles repository selection and authorization together.
 
 ### Create an API-key (BYOK) connector
 
