@@ -66,7 +66,8 @@
       },
       {
         "tab": "Sprites API",
-        "openapi": "https://api.sprites.dev/openapi.json"
+        "openapi": "api/openapi.json",
+      "asyncapi": "api/asyncapi.json"
       }
     ]
   }
