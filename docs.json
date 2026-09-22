@@ -66,8 +66,14 @@
       },
       {
         "tab": "Sprites API",
-        "openapi": "api/openapi.json",
-        "asyncapi": "api/asyncapi.json"
+        "openapi": {
+          "source": "api/openapi.json",
+          "directory": "api"
+        },
+        "asyncapi": {
+          "source": "api/asyncapi.json",
+          "directory": "api"
+        }
       }
     ]
   }
