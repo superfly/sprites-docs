@@ -1,0 +1,59 @@
+---
+title: Platform integrations
+og:description: Connect Claude and QM to Sprites
+---
+
+These integrations make Sprites available inside another platform rather than through a standalone SDK in your application.
+
+## Anthropic Connectors Directory
+
+The [Sprites listing in Anthropic's Connectors Directory](https://claude.ai/directory/sprites) connects Claude directly to the hosted Sprites MCP server.
+
+Before starting, sign in to Claude with access to connectors and have a Fly.io account with access to the Sprites organization you want to use.
+
+1. Open the Sprites listing in the directory.
+2. Select **Connect to Claude**.
+3. Complete the Fly.io browser OAuth flow.
+4. Choose the intended Fly.io organization and review the connector's name prefix, creation limit, and access level.
+5. Ask Claude to list your Sprites.
+
+An empty list still confirms that the connector authenticated successfully. You do not need to install the Sprites CLI or paste an API token into Claude.
+
+If you cannot use the directory listing, add `https://sprites.dev/mcp` as a custom remote MCP connector instead. See [Remote MCP Server](/integrations/remote-mcp/) for the permission model.
+
+<Info>
+The Anthropic Connectors Directory integration is separate from [Claude Managed Agents](/integrations/claude-managed-agents/). The directory lets Claude call the hosted Sprites MCP tools; Managed Agents run a self-hosted per-session tool environment inside a Sprite.
+</Info>
+
+## QM by Y Combinator
+
+[QM](https://github.com/yc-software/qm) is an open-source agent platform with a Sprites sandbox backend. QM's control plane and UI stay in the deployment you manage; agent commands run in Sprites when the backend is selected. Its published CLI requires Node.js 24 or newer.
+
+Before starting, have access to your chosen deployment infrastructure, the model credentials required by your QM configuration, and a [Sprites API token](https://sprites.dev/account). See [QM's deployment guide](https://github.com/yc-software/qm/blob/main/deployment.md) for the full prerequisites.
+
+Start with QM's deployment initializer. Replace `<slug>` with your organization slug and `<fly-or-aws>` with `fly` or `aws`:
+
+```sh
+npm exec --yes --package=@yc-software/qm@latest -- \
+  qm init . --org <slug> --target <fly-or-aws>
+npm install
+```
+
+In the generated deployment configuration, select the Sprites backend and name the Fly app in which QM's agents execute:
+
+```json
+{
+  "sandbox": {
+    "backend": "sprites",
+    "app": "your-sandbox-app"
+  }
+}
+```
+
+Provide `SPRITES_TOKEN` through QM's deployment secret workflow. The initializer walks through infrastructure, credentials, deployment, and live verification for the selected target.
+
+After deployment, follow the [QM CLI's live checks](https://github.com/yc-software/qm/blob/main/cli/README.md), then ask QM to run `pwd` in its sandbox. Verify a successful sandbox tool result; loading QM's UI alone does not confirm that the Sprites backend works.
+
+<Warning>
+QM is a complete platform deployment, not a one-click connector. Follow QM's current deployment guide and run its generated checks before treating a deployment as production-ready.
+</Warning>

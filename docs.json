@@ -58,8 +58,14 @@
           {
             "group": "Integrations",
             "pages": [
+              "integrations/index",
               "integrations/remote-mcp",
-              "integrations/claude-managed-agents"
+              "integrations/agent-plugins",
+              "integrations/agent-sdks",
+              "integrations/claude-managed-agents",
+              "integrations/cursor-cloud-agents",
+              "integrations/cortex-code",
+              "integrations/platform-integrations"
             ]
           }
         ]
