@@ -67,7 +67,7 @@
       {
         "tab": "Sprites API",
         "openapi": "api/openapi.json",
-      "asyncapi": "api/asyncapi.json"
+        "asyncapi": "api/asyncapi.json"
       }
     ]
   }
