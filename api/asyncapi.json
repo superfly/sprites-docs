@@ -1,0 +1,774 @@
+{
+  "asyncapi": "3.0.0",
+  "info": {
+    "title": "Sprites API: WebSocket",
+    "version": "v0.0.1-rc48",
+    "description": "WebSocket surface of the Sprites API: exec sessions, TCP port tunnelling,\nfilesystem watching, port watching, and the multiplexed control channel.\n\n## Perspective\n\nOperations are documented from the perspective of the **Sprites API server**:\n\n* `action: receive` for messages the server receives from the client.\n* `action: send` for messages the server sends to the client.\n\n## Authentication\n\nConnections authenticate with `Authorization: Bearer <token>` on the HTTP upgrade\nrequest. Tokens have the form `<org>/<id>/<secret>`. A successful upgrade returns\n`101 Switching Protocols`.\n\n## Framing\n\nChannels carry a mix of JSON control messages and binary data frames. Binary\nframes on exec channels are prefixed with a single stream byte\n(`0x00` stdin, `0x01` stdout, `0x02` stderr, `0x03` exit code, `0x04` stdin EOF).\nThe proxy channel forwards raw TCP bytes with no framing after its init message.\n\n---\n\nTranslated from sprite-environment schema `v0.0.1-rc48` (generated `2026-08-14T23:33:28.44474263Z`).\n",
+    "contact": {
+      "name": "Fly.io",
+      "url": "https://sprites.dev"
+    }
+  },
+  "defaultContentType": "application/json",
+  "servers": {
+    "production": {
+      "host": "api.sprites.dev",
+      "protocol": "wss",
+      "description": "Production",
+      "security": [
+        {
+          "$ref": "#/components/securitySchemes/bearerAuth"
+        }
+      ]
+    }
+  },
+  "channels": {
+    "exec": {
+      "address": "/v1/sprites/{name}/exec",
+      "title": "Execute Command",
+      "description": "Execute a command in the sprite environment via WebSocket. Commands continue running after disconnect; use `max_run_after_disconnect` to control timeout. Supports TTY and non-TTY modes.",
+      "parameters": {
+        "name": {
+          "description": "Sprite name within the organization."
+        }
+      },
+      "messages": {
+        "ResizeMessage": {
+          "$ref": "#/components/messages/ResizeMessage"
+        },
+        "SessionInfoMessage": {
+          "$ref": "#/components/messages/SessionInfoMessage"
+        },
+        "ExitMessage": {
+          "$ref": "#/components/messages/ExitMessage"
+        },
+        "PortNotificationMessage": {
+          "$ref": "#/components/messages/PortNotificationMessage"
+        },
+        "execStdinData": {
+          "$ref": "#/components/messages/execStdinData"
+        },
+        "execStdoutData": {
+          "$ref": "#/components/messages/execStdoutData"
+        },
+        "execStderrData": {
+          "$ref": "#/components/messages/execStderrData"
+        },
+        "execExitCode": {
+          "$ref": "#/components/messages/execExitCode"
+        },
+        "execStdinEofSignal": {
+          "$ref": "#/components/messages/execStdinEofSignal"
+        }
+      }
+    },
+    "execBySessionId": {
+      "address": "/v1/sprites/{name}/exec/{session_id}",
+      "title": "Attach to Exec Session",
+      "description": "Attach to an existing exec session via WebSocket.",
+      "parameters": {
+        "name": {
+          "description": "Sprite name within the organization."
+        },
+        "session_id": {
+          "description": "Exec session identifier."
+        }
+      },
+      "messages": {
+        "ResizeMessage": {
+          "$ref": "#/components/messages/ResizeMessage"
+        },
+        "SessionInfoMessage": {
+          "$ref": "#/components/messages/SessionInfoMessage"
+        },
+        "ExitMessage": {
+          "$ref": "#/components/messages/ExitMessage"
+        }
+      }
+    },
+    "proxy": {
+      "address": "/v1/sprites/{name}/proxy",
+      "title": "TCP Proxy",
+      "description": "Establish a WebSocket tunnel to a port inside the sprite environment.",
+      "parameters": {
+        "name": {
+          "description": "Sprite name within the organization."
+        }
+      },
+      "messages": {
+        "ProxyInitMessage": {
+          "$ref": "#/components/messages/ProxyInitMessage"
+        },
+        "proxyRawTcpData": {
+          "$ref": "#/components/messages/proxyRawTcpData"
+        }
+      }
+    },
+    "control": {
+      "address": "/v1/sprites/{name}/control",
+      "title": "Control Channel",
+      "description": "Multiplexed control channel for sequential operations (exec, proxy) over a single persistent WebSocket connection. Reduces connection overhead for clients sending many operations.",
+      "parameters": {
+        "name": {
+          "description": "Sprite name within the organization."
+        }
+      }
+    },
+    "portsWatch": {
+      "address": "/v1/sprites/{name}/ports/watch",
+      "title": "Watch Ports",
+      "description": "Watch for port open/close events across all processes in the sprite namespace. On connect, sends a snapshot of all currently listening ports as a port_list message, then streams incremental port_opened/port_closed events.",
+      "parameters": {
+        "name": {
+          "description": "Sprite name within the organization."
+        }
+      },
+      "messages": {
+        "PortListMessage": {
+          "$ref": "#/components/messages/PortListMessage"
+        },
+        "PortNotificationMessage": {
+          "$ref": "#/components/messages/PortNotificationMessage"
+        }
+      }
+    },
+    "fsWatch": {
+      "address": "/v1/sprites/{name}/fs/watch",
+      "title": "Watch Filesystem",
+      "description": "Watch for filesystem changes via WebSocket.",
+      "parameters": {
+        "name": {
+          "description": "Sprite name within the organization."
+        }
+      },
+      "messages": {
+        "WatchMessage": {
+          "$ref": "#/components/messages/WatchMessage"
+        }
+      }
+    }
+  },
+  "operations": {
+    "execReceive": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/exec"
+      },
+      "title": "Execute Command: messages from client",
+      "summary": "Messages the Sprites API receives from the client.",
+      "messages": [
+        {
+          "$ref": "#/channels/exec/messages/ResizeMessage"
+        },
+        {
+          "$ref": "#/channels/exec/messages/execStdinData"
+        },
+        {
+          "$ref": "#/channels/exec/messages/execStdinEofSignal"
+        }
+      ]
+    },
+    "execSend": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/exec"
+      },
+      "title": "Execute Command: messages to client",
+      "summary": "Messages the Sprites API sends to the client.",
+      "messages": [
+        {
+          "$ref": "#/channels/exec/messages/SessionInfoMessage"
+        },
+        {
+          "$ref": "#/channels/exec/messages/ExitMessage"
+        },
+        {
+          "$ref": "#/channels/exec/messages/PortNotificationMessage"
+        },
+        {
+          "$ref": "#/channels/exec/messages/execStdoutData"
+        },
+        {
+          "$ref": "#/channels/exec/messages/execStderrData"
+        },
+        {
+          "$ref": "#/channels/exec/messages/execExitCode"
+        }
+      ]
+    },
+    "execBySessionIdReceive": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/execBySessionId"
+      },
+      "title": "Attach to Exec Session: messages from client",
+      "summary": "Messages the Sprites API receives from the client.",
+      "messages": [
+        {
+          "$ref": "#/channels/execBySessionId/messages/ResizeMessage"
+        }
+      ]
+    },
+    "execBySessionIdSend": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/execBySessionId"
+      },
+      "title": "Attach to Exec Session: messages to client",
+      "summary": "Messages the Sprites API sends to the client.",
+      "messages": [
+        {
+          "$ref": "#/channels/execBySessionId/messages/SessionInfoMessage"
+        },
+        {
+          "$ref": "#/channels/execBySessionId/messages/ExitMessage"
+        }
+      ]
+    },
+    "proxyReceive": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/proxy"
+      },
+      "title": "TCP Proxy: messages from client",
+      "summary": "Messages the Sprites API receives from the client.",
+      "messages": [
+        {
+          "$ref": "#/channels/proxy/messages/ProxyInitMessage"
+        },
+        {
+          "$ref": "#/channels/proxy/messages/proxyRawTcpData"
+        }
+      ]
+    },
+    "proxySend": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/proxy"
+      },
+      "title": "TCP Proxy: messages to client",
+      "summary": "Messages the Sprites API sends to the client.",
+      "messages": [
+        {
+          "$ref": "#/channels/proxy/messages/proxyRawTcpData"
+        }
+      ]
+    },
+    "portsWatchSend": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/portsWatch"
+      },
+      "title": "Watch Ports: messages to client",
+      "summary": "Messages the Sprites API sends to the client.",
+      "messages": [
+        {
+          "$ref": "#/channels/portsWatch/messages/PortListMessage"
+        },
+        {
+          "$ref": "#/channels/portsWatch/messages/PortNotificationMessage"
+        }
+      ]
+    },
+    "fsWatchReceive": {
+      "action": "receive",
+      "channel": {
+        "$ref": "#/channels/fsWatch"
+      },
+      "title": "Watch Filesystem: messages from client",
+      "summary": "Messages the Sprites API receives from the client.",
+      "messages": [
+        {
+          "$ref": "#/channels/fsWatch/messages/WatchMessage"
+        }
+      ]
+    },
+    "fsWatchSend": {
+      "action": "send",
+      "channel": {
+        "$ref": "#/channels/fsWatch"
+      },
+      "title": "Watch Filesystem: messages to client",
+      "summary": "Messages the Sprites API sends to the client.",
+      "messages": [
+        {
+          "$ref": "#/channels/fsWatch/messages/WatchMessage"
+        }
+      ]
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Sprites API token in the form `<org>/<id>/<secret>`, sent as `Authorization: Bearer <token>` on the upgrade request."
+      }
+    },
+    "messages": {
+      "ExitMessage": {
+        "name": "ExitMessage",
+        "title": "ExitMessage",
+        "contentType": "application/json",
+        "payload": {
+          "$ref": "#/components/schemas/ExitMessage"
+        },
+        "examples": [
+          {
+            "name": "default",
+            "payload": {
+              "exit_code": 0,
+              "type": "exit"
+            }
+          }
+        ]
+      },
+      "PortListMessage": {
+        "name": "PortListMessage",
+        "title": "PortListMessage",
+        "contentType": "application/json",
+        "payload": {
+          "$ref": "#/components/schemas/PortListMessage"
+        }
+      },
+      "PortNotificationMessage": {
+        "name": "PortNotificationMessage",
+        "title": "PortNotificationMessage",
+        "contentType": "application/json",
+        "payload": {
+          "$ref": "#/components/schemas/PortNotificationMessage"
+        },
+        "examples": [
+          {
+            "name": "default",
+            "payload": {
+              "address": "https://my-sprite.sprites.dev:3000",
+              "pid": 1847,
+              "port": 3000,
+              "type": "port_opened"
+            }
+          }
+        ]
+      },
+      "ProxyInitMessage": {
+        "name": "ProxyInitMessage",
+        "title": "ProxyInitMessage",
+        "contentType": "application/json",
+        "payload": {
+          "$ref": "#/components/schemas/ProxyInitMessage"
+        },
+        "examples": [
+          {
+            "name": "default",
+            "payload": {
+              "host": "localhost",
+              "port": 5432
+            }
+          }
+        ]
+      },
+      "ResizeMessage": {
+        "name": "ResizeMessage",
+        "title": "ResizeMessage",
+        "contentType": "application/json",
+        "payload": {
+          "$ref": "#/components/schemas/ResizeMessage"
+        },
+        "examples": [
+          {
+            "name": "default",
+            "payload": {
+              "cols": 180,
+              "rows": 50,
+              "type": "resize"
+            }
+          }
+        ]
+      },
+      "SessionInfoMessage": {
+        "name": "SessionInfoMessage",
+        "title": "SessionInfoMessage",
+        "contentType": "application/json",
+        "payload": {
+          "$ref": "#/components/schemas/SessionInfoMessage"
+        },
+        "examples": [
+          {
+            "name": "default",
+            "payload": {
+              "cols": 120,
+              "command": "bash",
+              "created": 1767609000,
+              "is_owner": true,
+              "rows": 40,
+              "session_id": "1847",
+              "tty": true,
+              "type": "session_info"
+            }
+          }
+        ]
+      },
+      "WatchMessage": {
+        "name": "WatchMessage",
+        "title": "WatchMessage",
+        "contentType": "application/json",
+        "payload": {
+          "$ref": "#/components/schemas/WatchMessage"
+        }
+      },
+      "execStdinData": {
+        "name": "execStdinData",
+        "title": "stdin data (0x00)",
+        "summary": "stdin data. Frame prefix: `0x00`.",
+        "contentType": "application/octet-stream",
+        "payload": {
+          "type": "string",
+          "format": "binary",
+          "description": "stdin data. Frame prefix: `0x00`."
+        },
+        "examples": [
+          {
+            "name": "frame",
+            "summary": "Example frame",
+            "payload": "0x00 0x6c 0x73 0x0a (sends 'ls\\n')"
+          }
+        ]
+      },
+      "execStdoutData": {
+        "name": "execStdoutData",
+        "title": "stdout data (0x01)",
+        "summary": "stdout data. Frame prefix: `0x01`.",
+        "contentType": "application/octet-stream",
+        "payload": {
+          "type": "string",
+          "format": "binary",
+          "description": "stdout data. Frame prefix: `0x01`."
+        },
+        "examples": [
+          {
+            "name": "frame",
+            "summary": "Example frame",
+            "payload": "0x01 0x66 0x6f 0x6f 0x0a (receives 'foo\\n')"
+          }
+        ]
+      },
+      "execStderrData": {
+        "name": "execStderrData",
+        "title": "stderr data (0x02)",
+        "summary": "stderr data. Frame prefix: `0x02`.",
+        "contentType": "application/octet-stream",
+        "payload": {
+          "type": "string",
+          "format": "binary",
+          "description": "stderr data. Frame prefix: `0x02`."
+        },
+        "examples": [
+          {
+            "name": "frame",
+            "summary": "Example frame",
+            "payload": "0x02 0x65 0x72 0x72 0x6f 0x72 0x0a (receives 'error\\n')"
+          }
+        ]
+      },
+      "execExitCode": {
+        "name": "execExitCode",
+        "title": "exit code (single byte) (0x03)",
+        "summary": "exit code (single byte). Frame prefix: `0x03`.",
+        "contentType": "application/octet-stream",
+        "payload": {
+          "type": "string",
+          "format": "binary",
+          "description": "exit code (single byte). Frame prefix: `0x03`."
+        },
+        "examples": [
+          {
+            "name": "frame",
+            "summary": "Example frame",
+            "payload": "0x03 0x00 (exit code 0)"
+          }
+        ]
+      },
+      "execStdinEofSignal": {
+        "name": "execStdinEofSignal",
+        "title": "stdin EOF signal (0x04)",
+        "summary": "stdin EOF signal. Frame prefix: `0x04`.",
+        "contentType": "application/octet-stream",
+        "payload": {
+          "type": "string",
+          "format": "binary",
+          "description": "stdin EOF signal. Frame prefix: `0x04`."
+        },
+        "examples": [
+          {
+            "name": "frame",
+            "summary": "Example frame",
+            "payload": "0x04 (signals end of input)"
+          }
+        ]
+      },
+      "proxyRawTcpData": {
+        "name": "proxyRawTcpData",
+        "title": "Raw TCP data forwarded without framing ((none))",
+        "summary": "Raw TCP data forwarded without framing",
+        "contentType": "application/octet-stream",
+        "payload": {
+          "type": "string",
+          "format": "binary",
+          "description": "Raw TCP data forwarded without framing"
+        },
+        "examples": [
+          {
+            "name": "frame",
+            "summary": "Example frame",
+            "payload": "After init message, raw bytes flow directly: 0x47 0x45 0x54 0x20 0x2f ... (HTTP request 'GET /')"
+          }
+        ]
+      }
+    },
+    "schemas": {
+      "PortNotificationMessage": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "port_opened",
+              "port_closed"
+            ],
+            "description": "Notification type"
+          },
+          "port": {
+            "type": "integer",
+            "description": "Port number"
+          },
+          "address": {
+            "type": "string",
+            "description": "Proxy URL for accessing the port"
+          },
+          "pid": {
+            "type": "integer",
+            "description": "Process ID that opened/closed the port"
+          }
+        },
+        "required": [
+          "type",
+          "port",
+          "address",
+          "pid"
+        ],
+        "examples": [
+          {
+            "address": "https://my-sprite.sprites.dev:3000",
+            "pid": 1847,
+            "port": 3000,
+            "type": "port_opened"
+          }
+        ]
+      },
+      "ExitMessage": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "exit"
+          },
+          "exit_code": {
+            "type": "integer",
+            "description": "Process exit code"
+          }
+        },
+        "required": [
+          "type",
+          "exit_code"
+        ],
+        "examples": [
+          {
+            "exit_code": 0,
+            "type": "exit"
+          }
+        ]
+      },
+      "PortListMessage": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "port_list"
+          },
+          "ports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PortNotificationMessage"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "ports"
+        ]
+      },
+      "ProxyInitMessage": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "Target hostname (typically \"localhost\")"
+          },
+          "port": {
+            "type": "integer",
+            "description": "Target port (1-65535)"
+          }
+        },
+        "required": [
+          "host",
+          "port"
+        ],
+        "examples": [
+          {
+            "host": "localhost",
+            "port": 5432
+          }
+        ]
+      },
+      "ResizeMessage": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "resize"
+          },
+          "cols": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535,
+            "description": "New column count"
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535,
+            "description": "New row count"
+          }
+        },
+        "required": [
+          "type",
+          "cols",
+          "rows"
+        ],
+        "examples": [
+          {
+            "cols": 180,
+            "rows": 50,
+            "type": "resize"
+          }
+        ]
+      },
+      "SessionInfoMessage": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "session_info"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Session ID"
+          },
+          "command": {
+            "type": "string",
+            "description": "Command being executed"
+          },
+          "created": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp of session creation"
+          },
+          "cols": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535,
+            "description": "Terminal columns (TTY mode only)"
+          },
+          "rows": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535,
+            "description": "Terminal rows (TTY mode only)"
+          },
+          "is_owner": {
+            "type": "boolean",
+            "description": "Whether this attachment owns the session"
+          },
+          "tty": {
+            "type": "boolean",
+            "description": "Whether session is in TTY mode"
+          }
+        },
+        "required": [
+          "type",
+          "session_id",
+          "command",
+          "created",
+          "cols",
+          "rows",
+          "is_owner",
+          "tty"
+        ],
+        "examples": [
+          {
+            "cols": 120,
+            "command": "bash",
+            "created": 1767609000,
+            "is_owner": true,
+            "rows": 40,
+            "session_id": "1847",
+            "tty": true,
+            "type": "session_info"
+          }
+        ]
+      },
+      "WatchMessage": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "workingDir": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "isDir": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      }
+    }
+  }
+}
