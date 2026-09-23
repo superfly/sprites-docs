@@ -1,0 +1,22 @@
+# Deploys the docs.sprites.dev redirect app.
+#
+# Manual only. The Astro site's fly-deploy.yml ran on every push to main, which
+# is wrong now: main is documentation content that Mintlify builds, and pushing
+# a page should not redeploy a redirect server.
+
+name: Deploy the docs.sprites.dev redirect
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    concurrency: deploy-group
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
