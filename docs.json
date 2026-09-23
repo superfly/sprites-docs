@@ -22,6 +22,11 @@
       ]
     }
   },
+  "integrations": {
+    "telemetry": {
+      "enabled": false
+    }
+  },
   "navigation": {
     "tabs": [
       {
