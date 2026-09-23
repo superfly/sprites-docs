@@ -1,0 +1,13 @@
+{
+  "name": "sprites-docs",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Tooling for the Sprites documentation. The pages are MDX rendered by Mintlify and need no build; this exists so the CLI reference generator can still be run.",
+  "scripts": {
+    "generate:cli-docs": "tsx scripts/generate-cli-docs/index.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0"
+  }
+}
