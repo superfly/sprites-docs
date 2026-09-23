@@ -1,0 +1,107 @@
+---
+title: Networking
+og:description: "How traffic reaches a Sprite and how a Sprite reaches out. The URL and proxy that get you in, and the egress policy that governs what goes out"
+---
+
+A Sprite runs your code in the cloud, but it's meant to feel close. Traffic gets in two ways, an always-on HTTPS URL and a proxy that maps a remote port onto your laptop. A network policy governs what the Sprite can reach on its way out. This page is the model for both directions: how you reach in, and what a Sprite can reach going out. The exact commands live on the pages linked throughout.
+
+## Reaching a Sprite
+
+Inbound traffic arrives one of two ways, and which you pick depends on whether you want a public endpoint or a local one.
+
+- **The Sprite URL** is how you reach an app over the Internet: a webhook target, a shared demo, an API. Every Sprite has one at `https://<sprite-name>-<org-id>.sprites.app/` (the org ID is a short generated identifier; `sprite info` prints your exact URL), and it routes HTTPS to the Sprite's HTTP service. It's always on: no CLI required.
+- **`sprite proxy`** is how you make a Sprite feel local: it maps a remote port onto your machine, so you can point a database client or a browser at a service running in the Sprite.
+
+```bash
+# Show the Sprite's URL and its auth setting
+sprite info
+
+# Map the Sprite's port 5432 onto localhost:5432 for a psql client
+sprite proxy 5432
+```
+
+| | Sprite URL | `sprite proxy` |
+|---|---|---|
+| Protocol | HTTP(S) only | Any TCP |
+| Reach | Public Internet | Your machine only |
+| Needs the CLI running | No | Yes |
+| Ports | One (the HTTP service) | As many as you forward |
+
+`sprite proxy` also remaps ports (`sprite proxy 3001:3000`) and tunnels stdin and stdout for things like SSH (`sprite proxy -W :22`). And you often don't reach for it at all: when you run `sprite exec` and your command opens a listening port, the CLI forwards that port to your laptop automatically. For the full command surface and the SSH-over-proxy setup, see [Working with Sprites](/working-with-sprites#networking-urls-and-port-forwarding) and the [CLI Commands reference](/cli/commands#networking).
+
+The HTTP service the URL routes to, including how it wakes on an incoming request and how to move it off the default port, is covered in [Services](/concepts/services).
+
+## URL authentication
+
+A Sprite URL is private by default. It's reachable only by members of your org, through the browser or with an org token, so standing up a service doesn't put it on the open Internet by accident.
+
+Make it public when you actually want that behavior, for example, a webhook that needs to be hit without a token, a demo you're sharing, or putting something quick on the Internet:
+
+```bash
+# Anyone with the URL can reach it
+sprite config update --url-auth public
+
+# Back to org-only (the default)
+sprite config update --url-auth sprite
+```
+
+<Warning>
+**A public URL is on the open Internet**
+
+Public means no authentication: anyone with the URL reaches whatever the HTTP service serves. Don't make a URL public if it exposes secrets, tokens, or internal endpoints, and put your own auth in front of anything real. Flip it back to `sprite` when you're done.
+</Warning>
+
+## Reaching out
+
+By default, a Sprite's outbound is unrestricted: it can resolve and reach any domain. Egress can be tightened with a **network policy**, a DNS-based allowlist that decides which domains a Sprite is allowed to reach. Applying one is opt-in and done from outside the Sprite. Once a policy is in force, a request to an allowed domain works normally, while a request to one that isn't gets a DNS `REFUSED` and fails fast rather than hanging.
+
+The policy is a set of rules, read-only inside the Sprite at `/.sprite/policy/network.json`:
+
+```json
+{
+  "rules": [
+    { "include": "defaults" },
+    { "domain": "example.com", "action": "allow" },
+    { "domain": "*.example.com", "action": "allow" },
+    { "domain": "blocked.com", "action": "deny" }
+  ]
+}
+```
+
+- **`{ "include": "defaults" }`** pulls in the common development domains, GitHub, npm, PyPI, Docker Hub, and the major AI APIs among them, so package installs and model calls work without listing every host yourself.
+- **Domain rules** match an exact host (`example.com`), a subdomain wildcard (`*.example.com`), or everything (`*`). More specific rules win: an exact match beats a subdomain wildcard, which beats the global wildcard.
+- **`{ "rules": [] }`** means no enforcement. The Sprite runs unrestricted.
+
+When a policy is enforced, a few behaviors follow from its DNS-based design:
+
+- **Raw IP connections are blocked** unless the IP was resolved from an allowed domain. You can't route around the allowlist by dialing an address directly.
+- **Private IPs are always blocked**, so a Sprite can't reach into private network ranges.
+- **Changes reload live.** When a policy tightens, existing connections to newly-blocked domains are dropped rather than left open.
+
+The policy is read-only from inside: a Sprite can't rewrite its own egress rules. Changes are made from outside through the [Sprites API](https://sprites.dev/api). To test what the current policy allows, resolve a domain and watch for `REFUSED`:
+
+```bash
+dig github.com        # an allowed domain resolves
+dig blocked.com       # a denied domain returns REFUSED
+```
+
+For calling external APIs without handing the Sprite a long-lived credential, [Connectors](/concepts/connectors) route the request through a gateway that holds the token for you. That's a separate mechanism from the egress policy: the policy decides what a Sprite may reach, Connectors decide what it may reach *as*.
+
+That's the shape of networking on Sprites: the URL and proxy control how you reach a Sprite, the egress policy controls how far it reaches back. You're in control of both, so it's worth opening each only as far as your work actually needs.
+
+## Related documentation
+
+<CardGroup cols={2}>
+  <Card title="Working with Sprites" icon="book-open" href="/working-with-sprites#networking-urls-and-port-forwarding">
+  Port forwarding, URL auth, and SSH over the proxy in practice
+</Card>
+  <Card title="Services" icon="gear" href="/concepts/services">
+  The HTTP service the URL routes to, and waking on a request
+</Card>
+  <Card title="Connectors" icon="arrow-up-right" href="/concepts/connectors">
+  Reach external APIs with credentials brokered for you
+</Card>
+  <Card title="CLI Commands" icon="terminal" href="/cli/commands#networking">
+  Full reference for the URL and proxy commands
+</Card>
+</CardGroup>

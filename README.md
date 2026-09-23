@@ -1,49 +1,45 @@
-# Starlight Starter Kit: Basics
+# Fly.io Sprites docs
 
-[![Built with Starlight](https://astro.badg.es/v2/built-with-starlight/tiny.svg)](https://starlight.astro.build)
+Source for the Sprites documentation published at https://docs.fly.io/sprites
 
-```
-npm create astro@latest -- --template starlight
-```
+This repository is one of the sources behind `docs.fly.io`. The rest of the site
+is built from [superfly/docs](https://github.com/superfly/docs).
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## The format changed on 23 September 2026
 
-## 🚀 Project Structure
+These docs moved from Astro and Starlight to Mintlify. If you have a branch, a
+fork or an open pull request from before that date, it targets a tree that no
+longer exists here.
 
-Inside of your Astro + Starlight project, you'll see the following folders and files:
+What changed:
 
-```
-.
-├── public/
-├── src/
-│   ├── assets/
-│   ├── content/
-│   │   └── docs/
-│   └── content.config.ts
-├── astro.config.mjs
-├── package.json
-└── tsconfig.json
-```
+- Pages are Mintlify MDX at the repository root, not Starlight MDX under
+  `src/content/docs/`. `quickstart.mdx` is now the top level file it looks like.
+- Navigation lives in `docs.json` rather than `src/lib/sidebar.ts`.
+- Mintlify's components are built in, so pages should not import
+  `{ Callout, LinkCard, CardGrid }` from `@/components/react`. That import
+  breaks the build.
+- There is no Astro project. `astro.config.mjs`, the React components and the
+  npm build are gone.
 
-Starlight looks for `.md` or `.mdx` files in the `src/content/docs/` directory. Each file is exposed as a route based on its file name.
+Rewriting a page as Mintlify MDX is usually quicker than rebasing. Find the
+equivalent `.mdx` file, apply your change there, and open a fresh pull request.
+If yours was closed during the migration, the diff is still on it.
 
-Images can be added to `src/assets/` and embedded in Markdown with a relative link.
+## Where things live
 
-Static assets, like favicons, can be placed in the `public/` directory.
+| | |
+| --- | --- |
+| Pages | `.mdx` files at the root and under `concepts/`, `integrations/`, `cli/` |
+| Navigation | `docs.json` |
+| Shared snippets | `snippets/` |
+| Images | `images/` |
+| Prose linting | `.vale.ini` |
 
-## 🧞 Commands
+The API reference is generated from the published OpenAPI document rather than
+from files here.
 
-All commands are run from the root of the project, from a terminal:
+## The old site
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [Starlight’s docs](https://starlight.astro.build/), read [the Astro documentation](https://docs.astro.build), or jump into the [Astro Discord server](https://astro.build/chat).
+`docs.sprites.dev` served this content before the move. The Astro source remains
+in this repository's history.

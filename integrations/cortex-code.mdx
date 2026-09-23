@@ -1,0 +1,77 @@
+---
+title: Cortex Code
+og:description: Use Sprites from Snowflake Cortex Code for persistent builds, tests, and previews
+---
+
+The [Sprites plugin for Cortex Code](https://github.com/superfly/sprites-cortex-plugin) gives Snowflake Cortex Code persistent, isolated Linux environments for builds, tests, previews, and Snowflake development workflows.
+
+The plugin connects to the hosted Sprites MCP server using browser OAuth. It also includes skills, commands, safety hooks, and a runner for long builds and tests.
+
+## Before you begin
+
+You need:
+
+- [Cortex Code CLI](https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code-cli) with plugin and remote HTTP MCP support.
+- A Fly.io account with access to a Sprites organization.
+- A browser for the first authorization flow.
+
+<Info>
+You don't need to install the Sprites CLI or paste a Sprites API token into Cortex Code.
+</Info>
+
+## Install the plugin
+
+Install the plugin from GitHub, then enable it:
+
+```sh
+cortex plugin install superfly/sprites-cortex-plugin
+cortex plugin enable sprites
+```
+
+Reload plugins inside an existing Cortex Code session:
+
+```text
+/plugin reload
+```
+
+You can restart Cortex Code instead. See Snowflake's [Cortex Code plugin guide](https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code-plugins#managing-plugins) for more about managing plugins.
+
+## Authorize Sprites
+
+When Cortex Code requests authorization:
+
+1. Open `/mcp`.
+2. Select the Sprites server and complete browser OAuth.
+3. Choose the Fly.io organization you intend to use.
+4. Review the connector's name prefix, creation limit, and access settings before approving it.
+
+Restricted access is the safer default unless Cortex Code must manage Sprites outside the connector's name prefix.
+
+## Verify the connection
+
+Run:
+
+```text
+/sprites-status
+```
+
+An empty Sprite list still means authentication succeeded. It only means that the selected organization and connector policy don't currently expose any Sprites.
+
+## What the plugin provides
+
+- Sprites tools for commands, files, services, checkpoints, and network policy.
+- A runner for long builds and tests with bounded output.
+- Safety hooks for destructive operations, checkpoint restores, network changes, and public exposure.
+- Snowflake-aware guidance for development workflows without treating the local Cortex Code shell as a Sprite.
+
+For example, ask Cortex Code to:
+
+> Create a Sprite for this dbt Core project and run compilation and unit tests.
+
+> Run this Streamlit project as a Sprite preview without copying production data.
+
+## Snowflake credentials stay separate
+
+The plugin doesn't automatically copy your Snowflake credentials or session into a Sprite. If code running in a Sprite must connect to Snowflake, configure a separate, least-privileged identity intentionally and keep governed data in Snowflake.
+
+For the plugin's complete command list, safety model, troubleshooting steps, and enterprise deployment notes, see the [Sprites for Cortex Code repository](https://github.com/superfly/sprites-cortex-plugin). For the hosted MCP server's permission model, see [Remote MCP Server](/integrations/remote-mcp/).

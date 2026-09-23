@@ -54,7 +54,7 @@ function getConfig(): Config {
     skipTests: process.env.SKIP_CLI_TESTS === 'true',
     verbose:
       process.env.VERBOSE === 'true' || process.argv.includes('--verbose'),
-    outputPath: resolve(PROJECT_ROOT, 'src/content/docs/cli/commands.mdx'),
+    outputPath: resolve(PROJECT_ROOT, 'cli/commands.mdx'),
   };
 }
 

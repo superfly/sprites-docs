@@ -28,11 +28,10 @@ export function generateCommandsMdx(
 
   // Frontmatter and imports
   sections.push(`---
+sidebarTitle: Commands
 title: CLI Commands Reference
-description: Complete reference for all Sprites CLI commands
+og:description: Complete reference for all Sprites CLI commands
 ---
-
-import { Callout, LinkCard, CardGrid } from '@/components/react';
 
 Complete reference for all \`sprite\` CLI commands.
 

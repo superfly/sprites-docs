@@ -1,0 +1,4445 @@
+{
+  "components": {
+    "schemas": {
+      "OAuthCallbackRequest": {
+        "description": "OAuth callback request",
+        "properties": {
+          "access_policy": {
+            "$ref": "#/components/schemas/AccessPolicy",
+            "description": "Initial access policy. Empty or missing policies deny sprite use until updated.",
+            "example": {
+              "allow_all": true
+            }
+          },
+          "code": {
+            "description": "Authorization code returned by the provider.",
+            "example": "oauth-code",
+            "type": "string"
+          },
+          "redirect_uri": {
+            "description": "Redirect URI used to create the authorization URL.",
+            "example": "https://api.sprites.dev/v1/oauth/slack/callback",
+            "type": "string"
+          },
+          "state": {
+            "description": "State value from the authorize response.",
+            "example": "opaque-state",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "CopyResponse": {
+        "properties": {
+          "copied": {
+            "items": {
+              "$ref": "#/components/schemas/CopyResult"
+            },
+            "type": "array"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "totalBytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "copied",
+          "count",
+          "totalBytes"
+        ],
+        "type": "object"
+      },
+      "ChmodResult": {
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "mode"
+        ],
+        "type": "object"
+      },
+      "StreamCompleteEvent": {
+        "example": {
+          "data": "Checkpoint v3 created successfully",
+          "time": "2026-01-05T10:30:00Z",
+          "type": "complete"
+        },
+        "properties": {
+          "data": {
+            "description": "Completion message",
+            "type": "string"
+          },
+          "time": {
+            "description": "Timestamp",
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "const": "complete",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data",
+          "time"
+        ],
+        "type": "object"
+      },
+      "ServiceLogCompleteEvent": {
+        "example": {
+          "log_files": {
+            "combined": "/.sprite/logs/services/webapp.log",
+            "stderr": "/.sprite/logs/services/webapp.log",
+            "stdout": "/.sprite/logs/services/webapp.log"
+          },
+          "timestamp": 1767609000000,
+          "type": "complete"
+        },
+        "properties": {
+          "timestamp": {
+            "description": "Unix milliseconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "complete",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "ExecKillCompleteEvent": {
+        "example": {
+          "exit_code": 0,
+          "type": "complete"
+        },
+        "properties": {
+          "exit_code": {
+            "description": "Process exit code",
+            "type": "integer"
+          },
+          "type": {
+            "const": "complete",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "exit_code"
+        ],
+        "type": "object"
+      },
+      "ServiceRequest": {
+        "example": {
+          "args": [
+            "-m",
+            "http.server",
+            "8000"
+          ],
+          "cmd": "python",
+          "http_port": 8000,
+          "needs": [
+            "postgres"
+          ]
+        },
+        "properties": {
+          "args": {
+            "description": "Command arguments",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cmd": {
+            "description": "Command to execute",
+            "type": "string"
+          },
+          "dir": {
+            "description": "Working directory for the service",
+            "type": "string"
+          },
+          "env": {
+            "description": "Environment variables to add to the base service environment",
+            "type": "object"
+          },
+          "http_port": {
+            "description": "HTTP port for proxy routing",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "needs": {
+            "description": "Service dependencies (started first)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "cmd",
+          "args",
+          "needs"
+        ],
+        "type": "object"
+      },
+      "ServiceLogStdoutEvent": {
+        "example": {
+          "data": "Server listening on port 3000\n",
+          "timestamp": 1767609000000,
+          "type": "stdout"
+        },
+        "properties": {
+          "data": {
+            "description": "Log line content",
+            "type": "string"
+          },
+          "timestamp": {
+            "description": "Unix milliseconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "stdout",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "UpdateSpriteRequest": {
+        "description": "Update sprite request",
+        "properties": {
+          "url_settings": {
+            "$ref": "#/components/schemas/UrlSettingsRequest",
+            "description": "URL access configuration to update",
+            "example": {
+              "auth": "public"
+            }
+          }
+        },
+        "required": [
+          "url_settings"
+        ],
+        "type": "object"
+      },
+      "ServiceState": {
+        "example": {
+          "name": "webapp",
+          "pid": 1567,
+          "started_at": "2026-01-05T08:01:00Z",
+          "status": "running"
+        },
+        "properties": {
+          "error": {
+            "description": "Error message if failed",
+            "type": "string"
+          },
+          "name": {
+            "description": "Service name",
+            "type": "string"
+          },
+          "pid": {
+            "description": "Process ID when running",
+            "type": "integer"
+          },
+          "started_at": {
+            "description": "ISO 8601 timestamp",
+            "type": "string"
+          },
+          "status": {
+            "description": "`stopped`, `starting`, `running`, `stopping`, or `failed`",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status"
+        ],
+        "type": "object"
+      },
+      "UpdateConnectionRequest": {
+        "description": "Update connector request",
+        "properties": {
+          "access_policy": {
+            "$ref": "#/components/schemas/AccessPolicy",
+            "description": "Replacement access policy.",
+            "example": {
+              "sprite_labels": [
+                "api-access"
+              ],
+              "allowed_endpoints": [
+                "/chat.*"
+              ]
+            }
+          }
+        },
+        "required": [
+          "access_policy"
+        ],
+        "type": "object"
+      },
+      "CreateSpriteRequest": {
+        "description": "Create sprite request",
+        "properties": {
+          "name": {
+            "description": "Unique name for the sprite within the organization",
+            "example": "my-sprite",
+            "type": "string"
+          },
+          "url_settings": {
+            "$ref": "#/components/schemas/UrlSettingsRequest",
+            "description": "URL access configuration",
+            "example": {
+              "auth": "public"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "ServiceLogErrorEvent": {
+        "example": {
+          "data": "Failed to start service: command not found",
+          "timestamp": 1767609000000,
+          "type": "error"
+        },
+        "properties": {
+          "data": {
+            "description": "Error message",
+            "type": "string"
+          },
+          "timestamp": {
+            "description": "Unix milliseconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "error",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "ServiceLogExitEvent": {
+        "example": {
+          "exit_code": 0,
+          "timestamp": 1767609000000,
+          "type": "exit"
+        },
+        "properties": {
+          "exit_code": {
+            "description": "Process exit code",
+            "type": "integer"
+          },
+          "timestamp": {
+            "description": "Unix milliseconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "exit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "exit_code",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "ChownRequest": {
+        "properties": {
+          "asRoot": {
+            "type": "boolean"
+          },
+          "gid": {
+            "type": "object"
+          },
+          "path": {
+            "type": "string"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "uid": {
+            "type": "object"
+          },
+          "workingDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "workingDir",
+          "uid",
+          "gid",
+          "recursive",
+          "asRoot"
+        ],
+        "type": "object"
+      },
+      "DeleteRequest": {
+        "properties": {
+          "asRoot": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "workingDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "workingDir",
+          "recursive",
+          "asRoot"
+        ],
+        "type": "object"
+      },
+      "ConnectionResponse": {
+        "description": "Connector response",
+        "properties": {
+          "connection": {
+            "$ref": "#/components/schemas/Connection",
+            "description": "Sanitized connector. Secrets and encrypted token fields are never returned.",
+            "example": {
+              "id": "conn_abc123",
+              "provider": "slack"
+            }
+          }
+        },
+        "required": [
+          "connection"
+        ],
+        "type": "object"
+      },
+      "ChownResponse": {
+        "properties": {
+          "affected": {
+            "items": {
+              "$ref": "#/components/schemas/ChownResult"
+            },
+            "type": "array"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "affected",
+          "count"
+        ],
+        "type": "object"
+      },
+      "SpriteListResponse": {
+        "description": "Paginated sprite list",
+        "properties": {
+          "cold": {
+            "description": "Number of returned sprites currently cold.",
+            "example": 3,
+            "type": "integer"
+          },
+          "has_more": {
+            "description": "Whether more results are available",
+            "example": true,
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Organization slug.",
+            "example": "my-org",
+            "type": "string"
+          },
+          "next_continuation_token": {
+            "description": "Token for fetching the next page of results",
+            "example": "eyJsYXN0IjoibXktZGV2LXNwcml0ZSJ9",
+            "type": "string"
+          },
+          "running": {
+            "description": "Number of returned sprites currently running.",
+            "example": 1,
+            "type": "integer"
+          },
+          "running_limit": {
+            "description": "Organization-wide active sprite limit.",
+            "example": 10,
+            "type": "integer"
+          },
+          "sprites": {
+            "description": "List of sprite resources",
+            "example": [
+              {
+                "id": "sprite-abc123",
+                "name": "my-dev-sprite",
+                "status": "running"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/SpriteResponse"
+            },
+            "type": "array"
+          },
+          "warm": {
+            "description": "Number of returned sprites currently warm.",
+            "example": 2,
+            "type": "integer"
+          },
+          "warm_limit": {
+            "description": "Organization-wide warm sprite limit.",
+            "example": 10,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "sprites",
+          "has_more",
+          "running",
+          "warm",
+          "cold",
+          "name"
+        ],
+        "type": "object"
+      },
+      "ListConnectionsRequest": {
+        "description": "List connectors query parameters",
+        "properties": {
+          "provider": {
+            "description": "Optional provider filter.",
+            "example": "slack",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "ApiKeyConnectionRequest": {
+        "description": "API-key connector request",
+        "properties": {
+          "access_policy": {
+            "$ref": "#/components/schemas/AccessPolicy",
+            "description": "Initial access policy. Empty or missing policies deny sprite use until updated.",
+            "example": {
+              "allow_all": true
+            }
+          },
+          "api_key": {
+            "description": "Provider API key. Stored encrypted and never returned by the API.",
+            "example": "sk-or-...",
+            "type": "string"
+          },
+          "base_api_url": {
+            "description": "Required for Upstash Redis: immutable HTTPS database REST URL. Not used by fixed-host providers.",
+            "example": "https://your-database.upstash.io",
+            "type": "string"
+          },
+          "provider": {
+            "description": "API-key provider.",
+            "example": "openrouter",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "api_key"
+        ],
+        "type": "object"
+      },
+      "OAuthAuthorizeRequest": {
+        "description": "OAuth authorize query parameters",
+        "properties": {
+          "add_scopes": {
+            "description": "Comma-separated scopes to add to any scopes already granted for this provider.",
+            "example": "reactions:write,files:read",
+            "type": "string"
+          },
+          "redirect_uri": {
+            "description": "OAuth callback URI. Defaults to the Sprites API callback for the provider.",
+            "example": "https://api.sprites.dev/v1/oauth/slack/callback",
+            "type": "string"
+          },
+          "scopes": {
+            "description": "Comma-separated scopes to request. Replaces the default scope set for this authorization URL.",
+            "example": "chat:write,channels:read",
+            "type": "string"
+          },
+          "state": {
+            "description": "Optional state value. If omitted, Sprites generates one that ties the callback to the organization.",
+            "example": "opaque-state",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "Entry": {
+        "properties": {
+          "isDir": {
+            "type": "boolean"
+          },
+          "modTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "path",
+          "type",
+          "size",
+          "mode",
+          "modTime",
+          "isDir"
+        ],
+        "type": "object"
+      },
+      "ServiceLogStoppedEvent": {
+        "example": {
+          "exit_code": 0,
+          "timestamp": 1767609000000,
+          "type": "stopped"
+        },
+        "properties": {
+          "exit_code": {
+            "description": "Process exit code",
+            "type": "integer"
+          },
+          "timestamp": {
+            "description": "Unix milliseconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "stopped",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "exit_code",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "ConnectionListResponse": {
+        "description": "Connector list response",
+        "properties": {
+          "connections": {
+            "description": "Connectors configured for the organization.",
+            "example": [
+              {
+                "id": "conn_abc123",
+                "provider": "slack"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Connection"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "connections"
+        ],
+        "type": "object"
+      },
+      "StreamInfoEvent": {
+        "example": {
+          "data": "Creating checkpoint...",
+          "time": "2026-01-05T10:30:00Z",
+          "type": "info"
+        },
+        "properties": {
+          "data": {
+            "description": "Status message",
+            "type": "string"
+          },
+          "time": {
+            "description": "Timestamp",
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "const": "info",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data",
+          "time"
+        ],
+        "type": "object"
+      },
+      "NetworkPolicyRequest": {
+        "example": {
+          "rules": [
+            {
+              "action": "allow",
+              "domain": "github.com"
+            },
+            {
+              "action": "allow",
+              "domain": "*.npmjs.org"
+            }
+          ]
+        },
+        "properties": {
+          "rules": {
+            "description": "List of network policy rules",
+            "items": {
+              "$ref": "#/components/schemas/NetworkPolicyRule"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "rules"
+        ],
+        "type": "object"
+      },
+      "NetworkPolicyRule": {
+        "example": {
+          "action": "allow",
+          "domain": "*.github.com"
+        },
+        "properties": {
+          "action": {
+            "description": "`allow` or `deny`",
+            "type": "string"
+          },
+          "domain": {
+            "description": "Domain pattern (e.g., `*.github.com`)",
+            "type": "string"
+          },
+          "include": {
+            "description": "Include rules from preset",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "RenameResponse": {
+        "properties": {
+          "dest": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "dest"
+        ],
+        "type": "object"
+      },
+      "ExecKillKilledEvent": {
+        "example": {
+          "message": "Process killed",
+          "type": "killed"
+        },
+        "properties": {
+          "message": {
+            "description": "Status message",
+            "type": "string"
+          },
+          "type": {
+            "const": "killed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ExecKillTimeoutEvent": {
+        "example": {
+          "message": "Timeout after 10s, sending SIGKILL",
+          "type": "timeout"
+        },
+        "properties": {
+          "message": {
+            "description": "Status message",
+            "type": "string"
+          },
+          "type": {
+            "const": "timeout",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ServiceLogStartedEvent": {
+        "example": {
+          "timestamp": 1767609000000,
+          "type": "started"
+        },
+        "properties": {
+          "timestamp": {
+            "description": "Unix milliseconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "started",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "CopyRequest": {
+        "properties": {
+          "asRoot": {
+            "type": "boolean"
+          },
+          "dest": {
+            "type": "string"
+          },
+          "preserveAttrs": {
+            "type": "boolean"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          },
+          "workingDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "dest",
+          "workingDir",
+          "recursive",
+          "preserveAttrs",
+          "asRoot"
+        ],
+        "type": "object"
+      },
+      "ExecKillExitedEvent": {
+        "example": {
+          "message": "Process exited",
+          "type": "exited"
+        },
+        "properties": {
+          "message": {
+            "description": "Status message",
+            "type": "string"
+          },
+          "type": {
+            "const": "exited",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ChmodRequest": {
+        "properties": {
+          "asRoot": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "workingDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "workingDir",
+          "mode",
+          "recursive",
+          "asRoot"
+        ],
+        "type": "object"
+      },
+      "UrlSettingsRequest": {
+        "description": "URL settings request",
+        "properties": {
+          "auth": {
+            "description": "Authentication type (default: sprite)",
+            "enum": [
+              "sprite",
+              "public"
+            ],
+            "example": "sprite",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "ServiceResponse": {
+        "example": {
+          "args": [
+            "-m",
+            "http.server",
+            "8000"
+          ],
+          "cmd": "python",
+          "http_port": 8000,
+          "name": "webapp",
+          "needs": [
+            "postgres"
+          ],
+          "state": {
+            "name": "webapp",
+            "pid": 1567,
+            "started_at": "2026-01-05T08:01:00Z",
+            "status": "running"
+          }
+        },
+        "properties": {
+          "args": {
+            "description": "Command arguments",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cmd": {
+            "description": "Command to execute",
+            "type": "string"
+          },
+          "http_port": {
+            "description": "HTTP port for proxy routing",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "Service name",
+            "type": "string"
+          },
+          "needs": {
+            "description": "Service dependencies",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "state": {
+            "description": "Current runtime state",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ServiceState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "cmd",
+          "args",
+          "needs"
+        ],
+        "type": "object"
+      },
+      "ListSpritesRequest": {
+        "description": "List sprites query parameters",
+        "properties": {
+          "continuation_token": {
+            "description": "Token from previous response for pagination",
+            "example": "eyJsYXN0IjoibXktc3ByaXRlIn0=",
+            "type": "string"
+          },
+          "max_results": {
+            "description": "Maximum number of results (1-500, default: 50)",
+            "example": 50,
+            "type": "integer"
+          },
+          "prefix": {
+            "description": "Filter sprites by name prefix",
+            "example": "dev-",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "ChmodResponse": {
+        "properties": {
+          "affected": {
+            "items": {
+              "$ref": "#/components/schemas/ChmodResult"
+            },
+            "type": "array"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "affected",
+          "count"
+        ],
+        "type": "object"
+      },
+      "DeleteResponse": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "deleted": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "deleted",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ExecKillSignalEvent": {
+        "example": {
+          "message": "Signaling SIGTERM to process group 1847",
+          "pid": 1847,
+          "signal": "SIGTERM",
+          "type": "signal"
+        },
+        "properties": {
+          "message": {
+            "description": "Status message",
+            "type": "string"
+          },
+          "pid": {
+            "description": "Target process ID",
+            "type": "integer"
+          },
+          "signal": {
+            "description": "Signal name (e.g., `SIGTERM`)",
+            "type": "string"
+          },
+          "type": {
+            "const": "signal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message",
+          "signal",
+          "pid"
+        ],
+        "type": "object"
+      },
+      "AccessPolicy": {
+        "description": "Connector access policy",
+        "properties": {
+          "allow_all": {
+            "description": "When true, all sprites in the organization may use this connector.",
+            "example": false,
+            "type": "boolean"
+          },
+          "allowed_endpoints": {
+            "description": "Provider API paths the connector may call. Supports exact paths and trailing `*` prefix wildcards.",
+            "example": [
+              "/chat.*"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "blocked_endpoints": {
+            "description": "Provider API paths the connector may not call. Block rules are checked before allow rules.",
+            "example": [
+              "/admin.*"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name_prefix": {
+            "description": "Sprite name prefix required to use this connector.",
+            "example": "prod-",
+            "type": "string"
+          },
+          "sprite_labels": {
+            "description": "Labels the calling sprite must have. All listed labels are required.",
+            "example": [
+              "api-access"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "Connection": {
+        "description": "Connector",
+        "properties": {
+          "access_policy": {
+            "$ref": "#/components/schemas/AccessPolicy",
+            "description": "Policy controlling which sprites and provider endpoints may use this connector.",
+            "example": {
+              "allow_all": true,
+              "allowed_endpoints": [
+                "/*"
+              ]
+            }
+          },
+          "connection_type": {
+            "description": "How the connector was created.",
+            "enum": [
+              "oauth",
+              "api_key",
+              "provisioned",
+              "internal"
+            ],
+            "example": "oauth",
+            "type": "string"
+          },
+          "id": {
+            "description": "Connector ID used in gateway URLs.",
+            "example": "conn_abc123",
+            "type": "string"
+          },
+          "inserted_at": {
+            "description": "When the connector was created.",
+            "example": "2026-04-28T12:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "provider": {
+            "description": "Provider key.",
+            "enum": [
+              "slack",
+              "slack_bot",
+              "github",
+              "discourse",
+              "openrouter",
+              "ollama",
+              "exa",
+              "firecrawl",
+              "linkup",
+              "steel",
+              "parasail",
+              "fireworks",
+              "deepgram",
+              "upstash",
+              "depot",
+              "meta",
+              "openai",
+              "typesafe",
+              "anthropic",
+              "s3_object_store",
+              "custom_api",
+              "sprites_admin"
+            ],
+            "example": "slack",
+            "type": "string"
+          },
+          "provider_account_id": {
+            "description": "Provider account, workspace, or key identifier.",
+            "example": "T12345",
+            "type": "string"
+          },
+          "provider_account_name": {
+            "description": "Human-readable provider account name.",
+            "example": "Example Workspace",
+            "type": "string"
+          },
+          "provider_info": {
+            "description": "Provider-specific metadata such as workspace URLs, custom API base URLs, or icon references.",
+            "example": {
+              "team_domain": "example"
+            },
+            "type": "object"
+          },
+          "scopes": {
+            "description": "Comma-separated OAuth scopes granted to the connector.",
+            "example": "chat:write,channels:read",
+            "type": "string"
+          },
+          "token_expires_at": {
+            "description": "When the stored token expires, if the provider issues expiring tokens.",
+            "example": "2026-04-29T12:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "When the connector was last updated.",
+            "example": "2026-04-29T12:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "usage_snippet": {
+            "description": "Provider-specific curl snippet showing how to call the connector through the gateway.",
+            "example": "curl https://api.sprites.dev/v1/gateway/slack/conn_abc123/auth.test",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "Sprites user ID that created or owns the connector.",
+            "example": "user_abc123",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "provider_account_id"
+        ],
+        "type": "object"
+      },
+      "ChownResult": {
+        "properties": {
+          "gid": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "uid": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "uid",
+          "gid"
+        ],
+        "type": "object"
+      },
+      "CreateCheckpointRequest": {
+        "example": {
+          "comment": "Before deploying v2.0"
+        },
+        "properties": {
+          "comment": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "ServiceLogStoppingEvent": {
+        "example": {
+          "timestamp": 1767609000000,
+          "type": "stopping"
+        },
+        "properties": {
+          "timestamp": {
+            "description": "Unix milliseconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "stopping",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "RenameRequest": {
+        "properties": {
+          "asRoot": {
+            "type": "boolean"
+          },
+          "dest": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "workingDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "dest",
+          "workingDir",
+          "asRoot"
+        ],
+        "type": "object"
+      },
+      "PortNotificationMessage": {
+        "properties": {
+          "address": {
+            "description": "Proxy URL for accessing the port",
+            "type": "string"
+          },
+          "pid": {
+            "description": "Process ID that opened/closed the port",
+            "type": "integer"
+          },
+          "port": {
+            "description": "Port number",
+            "type": "integer"
+          },
+          "type": {
+            "description": "Notification type",
+            "enum": [
+              "port_opened",
+              "port_closed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "port",
+          "address",
+          "pid"
+        ],
+        "type": "object"
+      },
+      "ServiceLogStderrEvent": {
+        "example": {
+          "data": "Warning: deprecated API usage\n",
+          "timestamp": 1767609000000,
+          "type": "stderr"
+        },
+        "properties": {
+          "data": {
+            "description": "Log line content",
+            "type": "string"
+          },
+          "timestamp": {
+            "description": "Unix milliseconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "stderr",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "CopyResult": {
+        "properties": {
+          "dest": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "dest"
+        ],
+        "type": "object"
+      },
+      "WriteResponse": {
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "size",
+          "mode"
+        ],
+        "type": "object"
+      },
+      "StreamErrorEvent": {
+        "example": {
+          "error": "Checkpoint failed: disk full",
+          "time": "2026-01-05T10:30:00Z",
+          "type": "error"
+        },
+        "properties": {
+          "error": {
+            "description": "Error description",
+            "type": "string"
+          },
+          "time": {
+            "description": "Timestamp",
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "const": "error",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "error",
+          "time"
+        ],
+        "type": "object"
+      },
+      "ProvisionConnectionRequest": {
+        "description": "Provision connector request",
+        "properties": {
+          "provider": {
+            "description": "Provider to provision.",
+            "example": "openrouter",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "type": "object"
+      },
+      "UrlSettings": {
+        "description": "URL access settings",
+        "properties": {
+          "auth": {
+            "description": "Authentication type",
+            "enum": [
+              "sprite",
+              "public"
+            ],
+            "example": "sprite",
+            "type": "string"
+          },
+          "private_access": {
+            "description": "Who may access a sprite-authenticated URL.",
+            "enum": [
+              "admins",
+              "organization"
+            ],
+            "example": "admins",
+            "type": "string"
+          }
+        },
+        "required": [
+          "auth"
+        ],
+        "type": "object"
+      },
+      "ListResponse": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/Entry"
+            },
+            "type": "array"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "entries",
+          "count"
+        ],
+        "type": "object"
+      },
+      "SpriteResponse": {
+        "description": "Sprite resource",
+        "properties": {
+          "created_at": {
+            "description": "Creation timestamp (ISO 8601)",
+            "example": "2024-01-15T10:30:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "environment_version": {
+            "description": "Version of the sprite environment image.",
+            "example": "v0.0.1-rc48",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "Unique sprite identifier",
+            "example": "sprite-01234567-89ab-cdef-0123-456789abcdef",
+            "type": "string"
+          },
+          "labels": {
+            "description": "Labels assigned to the sprite. Omitted when empty.",
+            "example": [
+              "production"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "last_running_at": {
+            "description": "When the sprite was last observed running (ISO 8601), null if not tracked",
+            "example": "2024-01-15T14:20:00Z",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_warming_at": {
+            "description": "When the sprite was last observed warming (ISO 8601), null if not tracked",
+            "example": "2024-01-15T14:22:00Z",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "Sprite name within the organization",
+            "example": "my-dev-sprite",
+            "type": "string"
+          },
+          "organization": {
+            "description": "Organization slug",
+            "example": "my-org",
+            "type": "string"
+          },
+          "status": {
+            "description": "Runtime status",
+            "enum": [
+              "cold",
+              "warm",
+              "running"
+            ],
+            "example": "cold",
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "Last update timestamp (ISO 8601)",
+            "example": "2024-01-15T14:22:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "description": "Sprite HTTP endpoint URL",
+            "example": "https://name-random-alphanumeric.sprites.app",
+            "type": "string"
+          },
+          "url_settings": {
+            "description": "URL access configuration",
+            "example": {
+              "auth": "sprite"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/UrlSettings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "description": "Version configured for or currently running on the sprite.",
+            "example": "v0.0.1-rc48",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "organization",
+          "url",
+          "status",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "OAuthAuthorizeResponse": {
+        "description": "OAuth authorization response",
+        "properties": {
+          "authorize_url": {
+            "description": "Provider URL where the user grants access.",
+            "example": "https://slack.com/oauth/v2/authorize?client_id=...",
+            "type": "string"
+          },
+          "state": {
+            "description": "State value that must be sent back to the callback.",
+            "example": "opaque-state",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorize_url",
+          "state"
+        ],
+        "type": "object"
+      },
+      "ExecKillErrorEvent": {
+        "example": {
+          "message": "Warning: process may not have terminated",
+          "type": "error"
+        },
+        "properties": {
+          "message": {
+            "description": "Error message",
+            "type": "string"
+          },
+          "type": {
+            "const": "error",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message"
+        ],
+        "type": "object"
+      },
+      "CheckpointInfo": {
+        "example": {
+          "comment": "Before database migration",
+          "create_time": "2026-01-05T10:30:00Z",
+          "id": "v7"
+        },
+        "properties": {
+          "comment": {
+            "description": "User-provided description",
+            "type": "string"
+          },
+          "create_time": {
+            "description": "When the checkpoint was created",
+            "format": "date-time",
+            "type": "string"
+          },
+          "health": {
+            "description": "Health status (empty = healthy, \"mount_failed\" = unhealthy)",
+            "type": "string"
+          },
+          "id": {
+            "description": "Checkpoint identifier (e.g., `v7`)",
+            "type": "string"
+          },
+          "source_id": {
+            "description": "Parent checkpoint ID",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "create_time"
+        ],
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "title": "Sprites API",
+    "version": "0.1.12",
+    "x-sprite-env-version": "v0.0.1-rc48"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/oauth/connections": {
+      "get": {
+        "description": "List connectors configured for the authenticated organization.",
+        "operationId": "o_auth_connections_index_get",
+        "parameters": [
+          {
+            "description": "Optional provider filter.",
+            "in": "query",
+            "name": "provider",
+            "required": false,
+            "schema": {
+              "description": "Optional provider filter.",
+              "example": "slack",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionListResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List connectors",
+        "tags": [
+          "Connectors"
+        ]
+      }
+    },
+    "/v1/oauth/connections/api_key": {
+      "post": {
+        "description": "Create a connector from a user-provided API key for providers that support key validation.",
+        "operationId": "o_auth_connections_create_api_key_post",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create an API-key connector",
+        "tags": [
+          "Connectors"
+        ]
+      }
+    },
+    "/v1/oauth/connections/provision": {
+      "post": {
+        "description": "Provision a system-managed connector for providers that support platform-managed keys.",
+        "operationId": "o_auth_connections_provision_post",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Provision a connector",
+        "tags": [
+          "Connectors"
+        ]
+      }
+    },
+    "/v1/oauth/connections/{id}": {
+      "delete": {
+        "description": "Delete a connector and its encrypted credentials.",
+        "operationId": "o_auth_connections_delete_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          },
+          "404": {
+            "description": "Sprite not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete a connector",
+        "tags": [
+          "Connectors"
+        ]
+      },
+      "get": {
+        "description": "Get a single connector by ID.",
+        "operationId": "o_auth_connections_show_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          },
+          "404": {
+            "description": "Sprite not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get a connector",
+        "tags": [
+          "Connectors"
+        ]
+      },
+      "patch": {
+        "description": "Update a connector access policy.",
+        "operationId": "o_auth_connections_update_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          },
+          "404": {
+            "description": "Sprite not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update a connector",
+        "tags": [
+          "Connectors"
+        ]
+      },
+      "put": {
+        "description": "Update a connector access policy.",
+        "operationId": "o_auth_connections_update_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConnectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          },
+          "404": {
+            "description": "Sprite not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update a connector",
+        "tags": [
+          "Connectors"
+        ]
+      }
+    },
+    "/v1/oauth/{provider}/authorize": {
+      "get": {
+        "description": "Create an OAuth authorization URL for a provider. Use this to start a browser-based consent flow.",
+        "operationId": "o_auth_connections_authorize_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated scopes to request. Replaces the default scope set for this authorization URL.",
+            "in": "query",
+            "name": "scopes",
+            "required": false,
+            "schema": {
+              "description": "Comma-separated scopes to request. Replaces the default scope set for this authorization URL.",
+              "example": "chat:write,channels:read",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Comma-separated scopes to add to any scopes already granted for this provider.",
+            "in": "query",
+            "name": "add_scopes",
+            "required": false,
+            "schema": {
+              "description": "Comma-separated scopes to add to any scopes already granted for this provider.",
+              "example": "reactions:write,files:read",
+              "type": "string"
+            }
+          },
+          {
+            "description": "OAuth callback URI. Defaults to the Sprites API callback for the provider.",
+            "in": "query",
+            "name": "redirect_uri",
+            "required": false,
+            "schema": {
+              "description": "OAuth callback URI. Defaults to the Sprites API callback for the provider.",
+              "example": "https://api.sprites.dev/v1/oauth/slack/callback",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional state value. If omitted, Sprites generates one that ties the callback to the organization.",
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "description": "Optional state value. If omitted, Sprites generates one that ties the callback to the organization.",
+              "example": "opaque-state",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizeResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Authorize an OAuth connector",
+        "tags": [
+          "Connectors"
+        ]
+      }
+    },
+    "/v1/oauth/{provider}/callback": {
+      "post": {
+        "description": "Exchange an OAuth authorization code for an encrypted connector.",
+        "operationId": "o_auth_connections_callback_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthCallbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Complete OAuth authorization",
+        "tags": [
+          "Connectors"
+        ]
+      }
+    },
+    "/v1/sprites": {
+      "get": {
+        "description": "List all sprites for the authenticated organization",
+        "operationId": "sprites_index_get",
+        "parameters": [
+          {
+            "description": "Filter sprites by name prefix",
+            "in": "query",
+            "name": "prefix",
+            "required": false,
+            "schema": {
+              "description": "Filter sprites by name prefix",
+              "example": "dev-",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Maximum number of results (1-500, default: 50)",
+            "in": "query",
+            "name": "max_results",
+            "required": false,
+            "schema": {
+              "description": "Maximum number of results (1-500, default: 50)",
+              "example": 50,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Token from previous response for pagination",
+            "in": "query",
+            "name": "continuation_token",
+            "required": false,
+            "schema": {
+              "description": "Token from previous response for pagination",
+              "example": "eyJsYXN0IjoibXktc3ByaXRlIn0=",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpriteListResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List sprites",
+        "tags": [
+          "Sprites"
+        ]
+      },
+      "post": {
+        "description": "Create a new sprite with a unique name in your organization",
+        "operationId": "sprites_create_post",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSpriteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpriteResponse"
+                }
+              }
+            },
+            "description": "Created"
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create a sprite",
+        "tags": [
+          "Sprites"
+        ]
+      }
+    },
+    "/v1/sprites/{name}": {
+      "delete": {
+        "description": "Delete a sprite and all associated resources",
+        "operationId": "sprites_delete_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          },
+          "404": {
+            "description": "Sprite not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete a sprite",
+        "tags": [
+          "Sprites"
+        ]
+      },
+      "get": {
+        "description": "Get details for a specific sprite",
+        "operationId": "sprites_show_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpriteResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          },
+          "404": {
+            "description": "Sprite not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get a sprite",
+        "tags": [
+          "Sprites"
+        ]
+      },
+      "put": {
+        "description": "Update sprite settings such as URL authentication",
+        "operationId": "sprites_update_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSpriteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpriteResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "401": {
+            "description": "Missing or invalid authentication"
+          },
+          "404": {
+            "description": "Sprite not found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update a sprite",
+        "tags": [
+          "Sprites"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/checkpoint": {
+      "post": {
+        "description": "Create a new checkpoint of the current sprite state. Returns streaming NDJSON progress.",
+        "operationId": "sprite_env_create__checkpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCheckpointRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {
+                "example": [
+                  {
+                    "data": "Creating checkpoint...",
+                    "time": "2026-01-05T10:30:00Z",
+                    "type": "info"
+                  },
+                  {
+                    "data": "Stopping services...",
+                    "time": "2026-01-05T10:30:00Z",
+                    "type": "info"
+                  },
+                  {
+                    "data": "Saving filesystem state...",
+                    "time": "2026-01-05T10:30:00Z",
+                    "type": "info"
+                  },
+                  {
+                    "data": "Checkpoint v8 created",
+                    "time": "2026-01-05T10:30:00Z",
+                    "type": "complete"
+                  }
+                ],
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/StreamInfoEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/StreamErrorEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/StreamCompleteEvent"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Success - Streaming NDJSON response"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Checkpoint",
+        "tags": [
+          "Checkpoints"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/checkpoints": {
+      "get": {
+        "description": "List all checkpoints.",
+        "operationId": "sprite_env_list__checkpoints",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "comment": "Before database migration",
+                    "create_time": "2026-01-05T10:30:00Z",
+                    "id": "v7"
+                  },
+                  {
+                    "comment": "Stable state",
+                    "create_time": "2026-01-04T15:00:00Z",
+                    "id": "v6"
+                  },
+                  {
+                    "comment": "",
+                    "create_time": "2026-01-04T09:00:00Z",
+                    "id": "v5"
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CheckpointInfo"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Checkpoints",
+        "tags": [
+          "Checkpoints"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/checkpoints/{checkpoint_id}": {
+      "get": {
+        "description": "Get details of a specific checkpoint.",
+        "operationId": "sprite_env_get__checkpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "checkpoint_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "comment": "Before database migration",
+                  "create_time": "2026-01-05T10:30:00Z",
+                  "id": "v7"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/CheckpointInfo"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Checkpoint",
+        "tags": [
+          "Checkpoints"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/checkpoints/{checkpoint_id}/restore": {
+      "post": {
+        "description": "Restore to a specific checkpoint. Returns streaming NDJSON progress.",
+        "operationId": "sprite_env_restore__checkpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "checkpoint_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {
+                "example": [
+                  {
+                    "data": "Restoring to checkpoint v5...",
+                    "time": "2026-01-05T10:30:00Z",
+                    "type": "info"
+                  },
+                  {
+                    "data": "Stopping services...",
+                    "time": "2026-01-05T10:30:00Z",
+                    "type": "info"
+                  },
+                  {
+                    "data": "Restoring filesystem...",
+                    "time": "2026-01-05T10:30:00Z",
+                    "type": "info"
+                  },
+                  {
+                    "data": "Restored to v5",
+                    "time": "2026-01-05T10:30:00Z",
+                    "type": "complete"
+                  }
+                ],
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/StreamInfoEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/StreamErrorEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/StreamCompleteEvent"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Success - Streaming NDJSON response"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Restore Checkpoint",
+        "tags": [
+          "Checkpoints"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/exec": {
+      "get": {
+        "description": "List active exec sessions.",
+        "operationId": "sprite_env_list__exec__sessions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "bytes_per_second": 125.5,
+                    "command": "bash",
+                    "created": "2026-01-05T10:30:00Z",
+                    "id": 1847,
+                    "is_active": true,
+                    "last_activity": "2026-01-05T10:35:00Z",
+                    "tty": true,
+                    "workdir": "/home/sprite/myproject"
+                  },
+                  {
+                    "bytes_per_second": 0,
+                    "command": "python -m http.server 8000",
+                    "created": "2026-01-05T09:15:00Z",
+                    "id": 1923,
+                    "is_active": false,
+                    "last_activity": "2026-01-05T09:20:00Z",
+                    "tty": false,
+                    "workdir": "/home/sprite/webapp"
+                  }
+                ]
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Exec Sessions",
+        "tags": [
+          "Exec"
+        ]
+      },
+      "post": {
+        "description": "Execute a command via simple HTTP POST (non-TTY only). Simpler alternative for exec for environments that can't handle websockets.",
+        "operationId": "sprite_env_execute__command",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Command to execute (can be repeated for command + args)",
+            "in": "query",
+            "name": "cmd",
+            "required": true,
+            "schema": {
+              "description": "Command to execute (can be repeated for command + args)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Explicit path to executable (defaults to first `cmd` value or `bash`)",
+            "in": "query",
+            "name": "path",
+            "required": false,
+            "schema": {
+              "description": "Explicit path to executable (defaults to first `cmd` value or `bash`)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Enable stdin from request body (default: `false`)",
+            "in": "query",
+            "name": "stdin",
+            "required": false,
+            "schema": {
+              "description": "Enable stdin from request body (default: `false`)",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Environment variables in `KEY=VALUE` format (can be repeated)",
+            "in": "query",
+            "name": "env",
+            "required": false,
+            "schema": {
+              "description": "Environment variables in `KEY=VALUE` format (can be repeated)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Working directory for the command",
+            "in": "query",
+            "name": "dir",
+            "required": false,
+            "schema": {
+              "description": "Working directory for the command",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "description": "Raw bytes forwarded to stdin when `stdin=true`. Empty or omitted when stdin is disabled.",
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Execute Command",
+        "tags": [
+          "Exec"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/exec/{session_id}/kill": {
+      "post": {
+        "description": "Kill an exec session by session ID. Returns streaming NDJSON with kill progress.",
+        "operationId": "sprite_env_kill__exec__session",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Signal to send (default: `SIGTERM`)",
+            "in": "query",
+            "name": "signal",
+            "required": false,
+            "schema": {
+              "description": "Signal to send (default: `SIGTERM`)",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Timeout waiting for process to exit (default: `10s`)",
+            "in": "query",
+            "name": "timeout",
+            "required": false,
+            "schema": {
+              "description": "Timeout waiting for process to exit (default: `10s`)",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {
+                "example": [
+                  {
+                    "message": "Signaling SIGTERM to process group 1847",
+                    "pid": 1847,
+                    "signal": "SIGTERM",
+                    "type": "signal"
+                  },
+                  {
+                    "message": "Process exited",
+                    "type": "exited"
+                  },
+                  {
+                    "exit_code": 0,
+                    "type": "complete"
+                  }
+                ],
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ExecKillSignalEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ExecKillTimeoutEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ExecKillExitedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ExecKillKilledEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ExecKillErrorEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ExecKillCompleteEvent"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Success - Streaming NDJSON response"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Kill Exec Session",
+        "tags": [
+          "Exec"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/fs/chmod": {
+      "post": {
+        "description": "Change file or directory permissions.",
+        "operationId": "sprite_env_change__file__mode",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChmodRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChmodResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Change File Mode",
+        "tags": [
+          "Filesystem"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/fs/chown": {
+      "post": {
+        "description": "Change file or directory ownership.",
+        "operationId": "sprite_env_change__file__owner",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChownRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChownResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Change File Owner",
+        "tags": [
+          "Filesystem"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/fs/copy": {
+      "post": {
+        "description": "Copy a file or directory.",
+        "operationId": "sprite_env_copy__file_or__directory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CopyResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Copy File or Directory",
+        "tags": [
+          "Filesystem"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/fs/delete": {
+      "delete": {
+        "description": "Delete a file or directory.",
+        "operationId": "sprite_env_delete__file_or__directory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete File or Directory",
+        "tags": [
+          "Filesystem"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/fs/list": {
+      "get": {
+        "description": "List directory contents.",
+        "operationId": "sprite_env_list__directory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Path to the directory to list",
+            "in": "query",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "description": "Path to the directory to list",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Working directory for resolving relative paths",
+            "in": "query",
+            "name": "workingDir",
+            "required": true,
+            "schema": {
+              "description": "Working directory for resolving relative paths",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Directory",
+        "tags": [
+          "Filesystem"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/fs/read": {
+      "get": {
+        "description": "Read file contents from the sprite filesystem. Returns raw file bytes.",
+        "operationId": "sprite_env_read__file",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Path to the file to read",
+            "in": "query",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "description": "Path to the file to read",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Working directory for resolving relative paths",
+            "in": "query",
+            "name": "workingDir",
+            "required": true,
+            "schema": {
+              "description": "Working directory for resolving relative paths",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Read File",
+        "tags": [
+          "Filesystem"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/fs/rename": {
+      "post": {
+        "description": "Rename or move a file or directory.",
+        "operationId": "sprite_env_rename__file_or__directory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RenameResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Rename File or Directory",
+        "tags": [
+          "Filesystem"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/fs/write": {
+      "put": {
+        "description": "Write file contents to the sprite filesystem. Request body contains raw file bytes.",
+        "operationId": "sprite_env_write__file",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Path to the file to write",
+            "in": "query",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "description": "Path to the file to write",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Working directory for resolving relative paths",
+            "in": "query",
+            "name": "workingDir",
+            "required": true,
+            "schema": {
+              "description": "Working directory for resolving relative paths",
+              "type": "string"
+            }
+          },
+          {
+            "description": "File permissions in octal (e.g., '0644')",
+            "in": "query",
+            "name": "mode",
+            "required": false,
+            "schema": {
+              "description": "File permissions in octal (e.g., '0644')",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Create parent directories if they don't exist",
+            "in": "query",
+            "name": "mkdir",
+            "required": false,
+            "schema": {
+              "description": "Create parent directories if they don't exist",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WriteResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Write File",
+        "tags": [
+          "Filesystem"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/policy/network": {
+      "get": {
+        "description": "Get the current network policy configuration.",
+        "operationId": "sprite_env_get__network__policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "rules": [
+                    {
+                      "action": "allow",
+                      "domain": "github.com"
+                    },
+                    {
+                      "action": "allow",
+                      "domain": "*.npmjs.org"
+                    },
+                    {
+                      "action": "deny",
+                      "domain": "*"
+                    }
+                  ]
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkPolicyRequest"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Network Policy",
+        "tags": [
+          "Network Policy"
+        ]
+      },
+      "post": {
+        "description": "Update the network policy configuration.",
+        "operationId": "sprite_env_set__network__policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetworkPolicyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "rules": [
+                    {
+                      "action": "allow",
+                      "domain": "github.com"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Set Network Policy",
+        "tags": [
+          "Network Policy"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/policy/privileges": {
+      "delete": {
+        "description": "Remove privileges policy to revert to default (unrestricted) behavior.",
+        "operationId": "sprite_env_delete__privileges__policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete Privileges Policy",
+        "tags": [
+          "Network Policy"
+        ]
+      },
+      "get": {
+        "description": "Get the current privileges policy configuration (capability and device restrictions).",
+        "operationId": "sprite_env_get__privileges__policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Privileges Policy",
+        "tags": [
+          "Network Policy"
+        ]
+      },
+      "post": {
+        "description": "Update the privileges policy configuration to restrict capabilities or devices.",
+        "operationId": "sprite_env_set__privileges__policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Set Privileges Policy",
+        "tags": [
+          "Network Policy"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/policy/resources": {
+      "delete": {
+        "description": "Remove resources policy to revert to default behavior.",
+        "operationId": "sprite_env_delete__resources__policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete Resources Policy",
+        "tags": [
+          "Network Policy"
+        ]
+      },
+      "get": {
+        "description": "Get the current resources policy configuration (memory limits).",
+        "operationId": "sprite_env_get__resources__policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Resources Policy",
+        "tags": [
+          "Network Policy"
+        ]
+      },
+      "post": {
+        "description": "Update the resources policy configuration to set memory limits.",
+        "operationId": "sprite_env_set__resources__policy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Set Resources Policy",
+        "tags": [
+          "Network Policy"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/services": {
+      "get": {
+        "description": "List all configured services and their current state.",
+        "operationId": "sprite_env_list__services",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "args": [
+                      "-D",
+                      "/var/lib/postgresql/data"
+                    ],
+                    "cmd": "postgres",
+                    "http_port": null,
+                    "name": "postgres",
+                    "needs": [],
+                    "state": {
+                      "name": "postgres",
+                      "pid": 1234,
+                      "started_at": "2026-01-05T08:00:00Z",
+                      "status": "running"
+                    }
+                  },
+                  {
+                    "args": [
+                      "-m",
+                      "http.server",
+                      "8000"
+                    ],
+                    "cmd": "python",
+                    "http_port": 8000,
+                    "name": "webapp",
+                    "needs": [
+                      "postgres"
+                    ],
+                    "state": {
+                      "name": "webapp",
+                      "pid": 1567,
+                      "started_at": "2026-01-05T08:01:00Z",
+                      "status": "running"
+                    }
+                  }
+                ],
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ServiceResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Services",
+        "tags": [
+          "Services"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/services/{service_name}": {
+      "get": {
+        "description": "Get details of a specific service.",
+        "operationId": "sprite_env_get__service",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "args": [
+                    "-m",
+                    "http.server",
+                    "8000"
+                  ],
+                  "cmd": "python",
+                  "http_port": 8000,
+                  "name": "webapp",
+                  "needs": [
+                    "postgres"
+                  ],
+                  "state": {
+                    "name": "webapp",
+                    "pid": 1567,
+                    "started_at": "2026-01-05T08:01:00Z",
+                    "status": "running"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Service",
+        "tags": [
+          "Services"
+        ]
+      },
+      "put": {
+        "description": "Create or update a service definition.",
+        "operationId": "sprite_env_create__service",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Time to monitor logs after starting (default: `5s`)",
+            "in": "query",
+            "name": "duration",
+            "required": false,
+            "schema": {
+              "description": "Time to monitor logs after starting (default: `5s`)",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServiceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "args": [
+                    "-m",
+                    "http.server",
+                    "8000"
+                  ],
+                  "cmd": "python",
+                  "http_port": 8000,
+                  "name": "webapp",
+                  "needs": [
+                    "postgres"
+                  ],
+                  "state": {
+                    "name": "webapp",
+                    "started_at": "2026-01-05T10:30:00Z",
+                    "status": "starting"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceResponse"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request body"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Service",
+        "tags": [
+          "Services"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/services/{service_name}/logs": {
+      "get": {
+        "description": "Stream logs for a service.",
+        "operationId": "sprite_env_get__service__logs",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Number of lines to return from log buffer (default: all)",
+            "in": "query",
+            "name": "lines",
+            "required": false,
+            "schema": {
+              "description": "Number of lines to return from log buffer (default: all)",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Time to follow new logs (default: `0`, no follow)",
+            "in": "query",
+            "name": "duration",
+            "required": false,
+            "schema": {
+              "description": "Time to follow new logs (default: `0`, no follow)",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {
+                "example": [
+                  {
+                    "data": "Server started\n",
+                    "timestamp": 1735988400000,
+                    "type": "stdout"
+                  },
+                  {
+                    "data": "Handling request from 127.0.0.1\n",
+                    "timestamp": 1735988450000,
+                    "type": "stdout"
+                  },
+                  {
+                    "data": "Warning: slow query detected\n",
+                    "timestamp": 1735988455000,
+                    "type": "stderr"
+                  },
+                  {
+                    "log_files": {
+                      "stdout": "/.sprite/logs/services/webapp.log"
+                    },
+                    "timestamp": 1735988460000,
+                    "type": "complete"
+                  }
+                ],
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStdoutEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStderrEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogExitEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogErrorEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogCompleteEvent"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Success - Streaming NDJSON response"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Service Logs",
+        "tags": [
+          "Services"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/services/{service_name}/restart": {
+      "post": {
+        "description": "Restart a service (stop if running, then start). Returns streaming NDJSON with stop and start progress.",
+        "operationId": "sprite_env_restart__service",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Time to monitor logs after starting (default: `5s`)",
+            "in": "query",
+            "name": "duration",
+            "required": false,
+            "schema": {
+              "description": "Time to monitor logs after starting (default: `5s`)",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStoppingEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStoppedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStdoutEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStderrEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogExitEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogErrorEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogCompleteEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStartedEvent"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Success - Streaming NDJSON response"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Restart Service",
+        "tags": [
+          "Services"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/services/{service_name}/start": {
+      "post": {
+        "description": "Start a service. Returns streaming NDJSON with stdout/stderr.",
+        "operationId": "sprite_env_start__service",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Time to monitor logs after starting (default: `5s`)",
+            "in": "query",
+            "name": "duration",
+            "required": false,
+            "schema": {
+              "description": "Time to monitor logs after starting (default: `5s`)",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {
+                "example": [
+                  {
+                    "timestamp": 1735988400000,
+                    "type": "started"
+                  },
+                  {
+                    "data": "Starting server...\n",
+                    "timestamp": 1735988400000,
+                    "type": "stdout"
+                  },
+                  {
+                    "data": "Listening on port 8000\n",
+                    "timestamp": 1735988401000,
+                    "type": "stdout"
+                  },
+                  {
+                    "log_files": {
+                      "stdout": "/.sprite/logs/services/webapp.log"
+                    },
+                    "timestamp": 1735988402000,
+                    "type": "complete"
+                  }
+                ],
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStdoutEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStderrEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogExitEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogErrorEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogCompleteEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStartedEvent"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Success - Streaming NDJSON response"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Start Service",
+        "tags": [
+          "Services"
+        ]
+      }
+    },
+    "/v1/sprites/{name}/services/{service_name}/stop": {
+      "post": {
+        "description": "Stop a running service. Returns streaming NDJSON with service stop progress.",
+        "operationId": "sprite_env_stop__service",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "service_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Timeout waiting for service to stop (default: `10s`)",
+            "in": "query",
+            "name": "timeout",
+            "required": false,
+            "schema": {
+              "description": "Timeout waiting for service to stop (default: `10s`)",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {
+                "example": [
+                  {
+                    "timestamp": 1735988400000,
+                    "type": "stopping"
+                  },
+                  {
+                    "exit_code": 0,
+                    "timestamp": 1735988401000,
+                    "type": "stopped"
+                  },
+                  {
+                    "log_files": {
+                      "stdout": "/.sprite/logs/services/webapp.log"
+                    },
+                    "timestamp": 1735988402000,
+                    "type": "complete"
+                  }
+                ],
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStoppingEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStdoutEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStderrEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogErrorEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogStoppedEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ServiceLogCompleteEvent"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Success - Streaming NDJSON response"
+          },
+          "404": {
+            "description": "Not Found - Resource not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Stop Service",
+        "tags": [
+          "Services"
+        ]
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.sprites.dev"
+    }
+  ]
+}
