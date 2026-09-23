@@ -1,0 +1,23 @@
+# docs.sprites.dev now redirects to the Sprites section of docs.fly.io.
+#
+# handle blocks are mutually exclusive and Caddy evaluates them by specificity,
+# so the two API rules win over the catch-all regardless of order here.
+
+:80 {
+	# The old generated API reference had two entry points and neither has a
+	# direct equivalent. The new reference is per operation, at
+	# /sprites/api/<tag>/<operation>, so both go to its index.
+	handle /api/dev-latest/sprites* {
+		redir https://docs.fly.io/sprites/api 301
+	}
+
+	handle /api/_manual/sprites* {
+		redir https://docs.fly.io/sprites/api 301
+	}
+
+	# Everything else is a straight prefix. {uri} carries the path and the query
+	# string, so /quickstart/?x=1 becomes /sprites/quickstart/?x=1.
+	handle {
+		redir https://docs.fly.io/sprites{uri} 301
+	}
+}

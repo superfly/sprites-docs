@@ -1,0 +1,23 @@
+# fly.toml for the sprites-docs app.
+#
+# This app served the Astro documentation site until 23 September 2026, when the
+# content moved to docs.fly.io/sprites. It now serves nothing but 301s. The Astro
+# source is preserved at the astro-final tag.
+
+app = 'sprites-docs'
+primary_region = 'iad'
+
+[build]
+  dockerfile = 'redirect/Dockerfile'
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '256mb'
+  cpus = 1
