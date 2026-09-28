@@ -19,17 +19,23 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 
 ## Providers
 
-| Provider | Credential style | Notes |
-| --- | --- | --- |
-| GitHub | OAuth | Personal or org-scoped depending on requested scopes. |
-| OpenRouter | API key (BYOK) **or** managed | Bring your own OpenRouter key, or use the managed OpenRouter connector — billed as part of your Sprites plan. |
-| Custom API | API key + base URL | Wraps any token-authenticated HTTP API. |
+<Tip>
+  **[Browse the connector catalog](https://fly.io/sprites/ecosystem/)** on the Sprites ecosystem page to see all available providers. The catalog stays up to date as new connectors are added.
+</Tip>
+
+Every connector uses one of three credential styles:
+
+- **OAuth** — you approve access through the provider's consent screen, and Sprites stores the resulting token. GitHub works this way, scoped personally or to an org depending on what you request.
+- **Bring your own key** — you paste an API key you already hold.
+- **Managed** — the credential comes with your Sprites plan rather than an account of your own. See [Managed providers](#managed-providers).
+
+**Custom API** is the fallback for anything without a dedicated connector: give it a base URL, a token, and where the token goes, and it wraps any token-authenticated HTTP API.
 
 ## Setting up a connector
 
 Most connector management happens in the dashboard. Open your organization, then **Connectors**. You'll see what's already configured, grouped into "Managed by Sprites" (provided by your plan) and "Your connections" (everything you've added yourself).
 
-Click **Add connection** to pick a provider. What happens next depends on the provider:
+Click **Add connection** to pick a provider. What happens next depends on how that provider authenticates:
 
 - **GitHub** — you're sent through the provider's OAuth consent screen in a new tab. After you approve, the connector appears in **Your connections** with the scopes you granted.
 - **OpenRouter** — choose between bringing your own key (paste it in) or enabling the managed connector with one click.
@@ -82,7 +88,7 @@ The access policy can also restrict which provider paths a Sprite can reach thro
 <Info>
 **API only for now**
 
-Endpoint allow- and block-lists aren't yet editable from the dashboard. Set them via the [Connectors API](https://sprites.dev/api/connectors).
+Endpoint allow- and block-lists aren't yet editable from the dashboard. Set them via the [Connectors API](https://docs.fly.io/sprites/api/connectors/list-connectors).
 </Info>
 
 Patterns are exact paths or trailing-wildcard prefixes:
@@ -206,4 +212,4 @@ curl -X PUT "https://api.sprites.dev/v1/oauth/connections/<id>" \
 
 Deleting a connector immediately revokes all Sprite access to it. The encrypted credential is destroyed and cannot be recovered — if the connector was OAuth, the user must re-authorize from the dashboard to recreate it.
 
-For the full request and response schemas, see the [API reference](https://sprites.dev/api/connectors).
+For the full request and response schemas, see the [API reference](https://docs.fly.io/sprites/api/connectors/list-connectors).
