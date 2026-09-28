@@ -19,6 +19,10 @@ The Sprite never holds the provider token. It only knows the connector ID and th
 
 ## Providers
 
+<Card title="Browse the connector catalog" icon="plug" href="https://fly.io/sprites/ecosystem/">
+  The Sprites ecosystem page lists every provider available today. It reads from the API, so it stays current as connectors are added.
+</Card>
+
 Every connector uses one of three credential styles:
 
 - **OAuth** — you approve access through the provider's consent screen, and Sprites stores the resulting token. GitHub works this way, scoped personally or to an org depending on what you request.
@@ -26,8 +30,6 @@ Every connector uses one of three credential styles:
 - **Managed** — the credential comes with your Sprites plan rather than an account of your own. See [Managed providers](#managed-providers).
 
 **Custom API** is the fallback for anything without a dedicated connector: give it a base URL, a token, and where the token goes, and it wraps any token-authenticated HTTP API.
-
-For the providers available today, see the [Sprites ecosystem page](https://fly.io/sprites/ecosystem/). It reads the list from the API, so it stays current as connectors are added.
 
 ## Setting up a connector
 
