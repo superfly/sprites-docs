@@ -42,4 +42,10 @@ from files here.
 ## The old site
 
 `docs.sprites.dev` served this content before the move. The Astro source remains
-in this repository's history.
+in this repository's history, at the `astro-final` tag.
+
+The hostname still works. It redirects to `docs.fly.io/sprites`, keeping the path,
+and that redirect lives in `superfly/ui-ex` (`FlyWeb.Endpoint.redirect_hosts/2`)
+rather than here. Two old paths are the exception: `/api/dev-latest/sprites*` and
+`/api/_manual/sprites*` collapse onto `docs.fly.io/sprites/api`, because the
+generated reference has no per-page equivalent for them.
