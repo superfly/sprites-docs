@@ -1179,32 +1179,21 @@
             "format": "date-time",
             "type": "string"
           },
-          "provider": {
-            "description": "Provider key.",
-            "enum": [
-              "slack",
-              "slack_bot",
-              "github",
-              "discourse",
-              "openrouter",
-              "ollama",
-              "exa",
-              "firecrawl",
-              "linkup",
-              "steel",
-              "parasail",
-              "fireworks",
-              "deepgram",
-              "upstash",
-              "depot",
-              "meta",
-              "openai",
-              "typesafe",
-              "anthropic",
-              "s3_object_store",
-              "custom_api",
-              "sprites_admin"
+          "notes": {
+            "description": "Provider notes about this connection, derived from its saved settings. Each has a nullable `title` and a `body`; backticks mark inline code.",
+            "example": [
+              {
+                "title": null,
+                "body": "Full-access key."
+              }
             ],
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "provider": {
+            "description": "Provider key. See https://fly.io/sprites/ecosystem/ for current connectors.",
             "example": "slack",
             "type": "string"
           },
@@ -2834,6 +2823,7 @@
             "application/octet-stream": {
               "schema": {
                 "format": "binary",
+                "maxLength": 10485760,
                 "type": "string"
               }
             }
@@ -2850,6 +2840,9 @@
           },
           "404": {
             "description": "Not Found - Resource not found"
+          },
+          "413": {
+            "description": "Payload Too Large - Stdin exceeds 10 MiB"
           },
           "500": {
             "description": "Internal Server Error"
@@ -3441,6 +3434,9 @@
           },
           "404": {
             "description": "Not Found - Resource not found"
+          },
+          "413": {
+            "description": "Payload Too Large - File contents exceed 16 MiB"
           },
           "500": {
             "description": "Internal Server Error"
