@@ -18,7 +18,8 @@ jobs:
         with:
           fetch_depth: 2
           files: |
-            src/content/**/*.{md,mdx}
+            **/*.{md,mdx}
+            *.{md,mdx}
 
       # run reviewdog and the linter
       - name: run reviewdog and linter
