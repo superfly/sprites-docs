@@ -279,7 +279,7 @@
             "type": "string"
           },
           "notes": {
-            "description": "Provider notes about this connection, derived from its saved settings. Each has a nullable `title` and a `body`; backticks mark inline code.",
+            "description": "Provider notes about this connection, derived from its saved settings.",
             "example": [
               {
                 "body": "Full-access key.",
@@ -287,7 +287,7 @@
               }
             ],
             "items": {
-              "type": "object"
+              "$ref": "#/components/schemas/ProviderNote"
             },
             "type": "array"
           },
@@ -703,6 +703,81 @@
         ],
         "type": "object"
       },
+      "ExecSession": {
+        "properties": {
+          "bytes_per_second": {
+            "description": "Recent output rate",
+            "type": "number"
+          },
+          "command": {
+            "description": "Command being executed",
+            "type": "string"
+          },
+          "created": {
+            "description": "Session creation time",
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "description": "Session identifier",
+            "type": "string"
+          },
+          "is_active": {
+            "description": "Whether the session has recent output or attached clients",
+            "type": "boolean"
+          },
+          "last_activity": {
+            "description": "Time of the most recent output",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tty": {
+            "description": "Whether the session has a TTY",
+            "type": "boolean"
+          },
+          "workdir": {
+            "description": "Working directory",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created",
+          "command",
+          "workdir",
+          "tty",
+          "bytes_per_second",
+          "is_active"
+        ],
+        "type": "object"
+      },
+      "ExecSessionListResponse": {
+        "properties": {
+          "count": {
+            "description": "Number of active sessions",
+            "type": "integer"
+          },
+          "error": {
+            "description": "Present when the session manager is unavailable",
+            "type": "string"
+          },
+          "sessions": {
+            "description": "Active exec sessions",
+            "items": {
+              "$ref": "#/components/schemas/ExecSession"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "sessions",
+          "count"
+        ],
+        "type": "object"
+      },
       "ListConnectionsRequest": {
         "description": "List connectors query parameters",
         "properties": {
@@ -917,6 +992,47 @@
         ],
         "type": "object"
       },
+      "PrivilegesPolicyDoc": {
+        "properties": {
+          "devices": {
+            "description": "Device nodes the sprite may access",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "noNewPrivileges": {
+            "description": "Prevent processes from gaining privileges through execve",
+            "type": "boolean"
+          },
+          "profile": {
+            "description": "Capability profile: `minimal`, `standard` or `privileged`. Empty means unrestricted",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "ProviderNote": {
+        "description": "Connector provider note",
+        "properties": {
+          "body": {
+            "description": "Note body. Backticks mark inline code.",
+            "type": "string"
+          },
+          "title": {
+            "description": "Note title.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "body"
+        ],
+        "type": "object"
+      },
       "ProvisionConnectionRequest": {
         "description": "Provision connector request",
         "properties": {
@@ -969,6 +1085,40 @@
         ],
         "type": "object"
       },
+      "ResourcesPolicyDoc": {
+        "properties": {
+          "memory": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ResourcesPolicyMemory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "ResourcesPolicyMemory": {
+        "properties": {
+          "autoscale": {
+            "description": "Enable dynamic memory autoscaling (default: false)",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "limit_mb": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit_mb"
+        ],
+        "type": "object"
+      },
       "ServiceLogCompleteEvent": {
         "example": {
           "log_files": {
@@ -980,6 +1130,10 @@
           "type": "complete"
         },
         "properties": {
+          "log_files": {
+            "description": "Log file paths",
+            "type": "object"
+          },
           "timestamp": {
             "description": "Unix milliseconds",
             "type": "integer"
@@ -1550,6 +1704,10 @@
           "type": "error"
         },
         "properties": {
+          "code": {
+            "description": "Machine-readable error class, empty when unclassified",
+            "type": "string"
+          },
           "error": {
             "description": "Error description",
             "type": "string"
@@ -1595,6 +1753,24 @@
         "required": [
           "type",
           "data",
+          "time"
+        ],
+        "type": "object"
+      },
+      "StreamKeepaliveEvent": {
+        "properties": {
+          "time": {
+            "description": "Timestamp",
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "const": "keepalive",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
           "time"
         ],
         "type": "object"
@@ -1709,7 +1885,7 @@
   "info": {
     "title": "Sprites API",
     "version": "0.1.12",
-    "x-sprite-env-version": "v0.0.1-rc48"
+    "x-sprite-env-version": "0.0.2"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -2467,6 +2643,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/StreamCompleteEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/StreamKeepaliveEvent"
                     }
                   ]
                 }
@@ -2669,6 +2848,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/StreamCompleteEvent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/StreamKeepaliveEvent"
                     }
                   ]
                 }
@@ -2733,7 +2915,10 @@
                     "tty": false,
                     "workdir": "/home/sprite/webapp"
                   }
-                ]
+                ],
+                "schema": {
+                  "$ref": "#/components/schemas/ExecSessionListResponse"
+                }
               }
             },
             "description": "Success"
@@ -3418,6 +3603,19 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "maxLength": 16777216,
+                "type": "string"
+              }
+            }
+          },
+          "description": "Raw file bytes to write.",
+          "required": false
+        },
         "responses": {
           "200": {
             "content": {
@@ -3624,6 +3822,13 @@
         ],
         "responses": {
           "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrivilegesPolicyDoc"
+                }
+              }
+            },
             "description": "Success"
           },
           "404": {
@@ -3656,6 +3861,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrivilegesPolicyDoc"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Success"
@@ -3734,6 +3949,13 @@
         ],
         "responses": {
           "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourcesPolicyDoc"
+                }
+              }
+            },
             "description": "Success"
           },
           "404": {
@@ -3766,6 +3988,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourcesPolicyDoc"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Success"
