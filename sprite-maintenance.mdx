@@ -102,6 +102,18 @@ sprite exec -s my-sprite -- sprite-env services list
 
 Recreate each one on the new Sprite with `sprite-env services create`. Environment variables and other configuration don't copy either.
 
+<Warning>
+**Labels don't come with you, and [connector](/concepts/connectors) access usually depends on them.** A connector's access policy picks Sprites by name prefix and by label, and it's deny-by-default — so a new Sprite with a new name and no labels can't reach any of your connectors until it matches a policy.
+
+Give it the same labels as the old Sprite, either when you create it or afterwards:
+
+```bash
+sprite create my-new-sprite --label github --label production
+```
+
+If the policy matched on name prefix instead, the new name has to match that prefix too, or you update the policy to include it.
+</Warning>
+
 Test the new Sprite while the old one is still running, then move whatever points at the old URL. Keep the old Sprite until you're satisfied — it's your rollback, and it has no deadline on it.
 
 ### Upgrading in place
