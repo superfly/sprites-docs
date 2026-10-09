@@ -88,7 +88,7 @@ Running the upgrade on a Sprite that didn't need it does no harm. With nothing t
 
 If something you need exists only inside an old checkpoint, restore it and copy the files out first. Everything on your current disk comes across, so this affects your history, not your working state.
 
-If your checkpoint history itself matters to you, contact support before upgrading. Bringing it across is possible on request, and it can't be done afterwards.
+If you need to keep your checkpoint history, use the new-Sprite route below instead. Your old Sprite and everything on it stay exactly as they are, so its checkpoints remain restorable for as long as you keep it.
 </Warning>
 
 Your Sprite restarts once during the upgrade, and the first start afterwards is slower than usual while your disk is copied. The name, URL, configuration, and files all stay as they are.
@@ -147,6 +147,23 @@ You can't repeat the upgrade on your own after going back. Asking for it a secon
 
 ### Moving to a new Sprite instead
 
-There's a second route: create a new Sprite, which already uses the newer storage, and copy your data across. It's more work and you get a new name and URL, but nothing about your existing Sprite changes, your old checkpoints stay reachable on it, and you cut over when you're ready with no deadline.
+There's a second route: create a new Sprite, which already uses the newer storage, and copy your data across. You get a new name and URL, and you recreate your services and configuration by hand. In exchange, nothing about your existing Sprite changes, your old checkpoints stay reachable on it, and you cut over when you're ready with no deadline.
 
-Contact support and we'll do the copy with you, including verifying it file by file before you commit to anything.
+Stop your services on the old Sprite first, then copy your data out and back in:
+
+```bash
+sprite create my-new-sprite
+
+sprite file pull -r -s my-sprite /home/sprite/app .
+sprite file push -r -s my-new-sprite ./app /home/sprite/app
+```
+
+Only the paths you name come across. To see what else you'll need to set up again:
+
+```bash
+sprite exec -s my-sprite -- sprite-env services list
+```
+
+Recreate each one on the new Sprite with `sprite-env services create`. Environment variables and other configuration don't copy either.
+
+Test the new Sprite while the old one is still running, then move whatever points at the old URL. Keep the old Sprite until you're satisfied — it's your rollback, and it has no deadline on it.
