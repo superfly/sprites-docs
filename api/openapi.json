@@ -1,6 +1,860 @@
 {
   "components": {
     "schemas": {
+      "AccessPolicy": {
+        "description": "Connector access policy",
+        "properties": {
+          "allow_all": {
+            "description": "When true, all sprites in the organization may use this connector.",
+            "example": false,
+            "type": "boolean"
+          },
+          "allowed_endpoints": {
+            "description": "Provider API paths the connector may call. Supports exact paths and trailing `*` prefix wildcards.",
+            "example": [
+              "/chat.*"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "blocked_endpoints": {
+            "description": "Provider API paths the connector may not call. Block rules are checked before allow rules.",
+            "example": [
+              "/admin.*"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "name_prefix": {
+            "description": "Sprite name prefix required to use this connector.",
+            "example": "prod-",
+            "type": "string"
+          },
+          "sprite_labels": {
+            "description": "Labels the calling sprite must have. All listed labels are required.",
+            "example": [
+              "api-access"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "ApiKeyConnectionRequest": {
+        "description": "API-key connector request",
+        "properties": {
+          "access_policy": {
+            "$ref": "#/components/schemas/AccessPolicy",
+            "description": "Initial access policy. Empty or missing policies deny sprite use until updated.",
+            "example": {
+              "allow_all": true
+            }
+          },
+          "api_key": {
+            "description": "Provider API key. Stored encrypted and never returned by the API.",
+            "example": "sk-or-...",
+            "type": "string"
+          },
+          "base_api_url": {
+            "description": "Required for Upstash Redis: immutable HTTPS database REST URL. Not used by fixed-host providers.",
+            "example": "https://your-database.upstash.io",
+            "type": "string"
+          },
+          "provider": {
+            "description": "API-key provider.",
+            "example": "openrouter",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "api_key"
+        ],
+        "type": "object"
+      },
+      "CheckpointInfo": {
+        "example": {
+          "comment": "Before database migration",
+          "create_time": "2026-01-05T10:30:00Z",
+          "id": "v7"
+        },
+        "properties": {
+          "comment": {
+            "description": "User-provided description",
+            "type": "string"
+          },
+          "create_time": {
+            "description": "When the checkpoint was created",
+            "format": "date-time",
+            "type": "string"
+          },
+          "health": {
+            "description": "Health status (empty = healthy, \"mount_failed\" = unhealthy)",
+            "type": "string"
+          },
+          "id": {
+            "description": "Checkpoint identifier (e.g., `v7`)",
+            "type": "string"
+          },
+          "source_id": {
+            "description": "Parent checkpoint ID",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "create_time"
+        ],
+        "type": "object"
+      },
+      "ChmodRequest": {
+        "properties": {
+          "asRoot": {
+            "type": "boolean"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "workingDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "workingDir",
+          "mode",
+          "recursive",
+          "asRoot"
+        ],
+        "type": "object"
+      },
+      "ChmodResponse": {
+        "properties": {
+          "affected": {
+            "items": {
+              "$ref": "#/components/schemas/ChmodResult"
+            },
+            "type": "array"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "affected",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ChmodResult": {
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "mode"
+        ],
+        "type": "object"
+      },
+      "ChownRequest": {
+        "properties": {
+          "asRoot": {
+            "type": "boolean"
+          },
+          "gid": {
+            "type": "object"
+          },
+          "path": {
+            "type": "string"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "uid": {
+            "type": "object"
+          },
+          "workingDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "workingDir",
+          "uid",
+          "gid",
+          "recursive",
+          "asRoot"
+        ],
+        "type": "object"
+      },
+      "ChownResponse": {
+        "properties": {
+          "affected": {
+            "items": {
+              "$ref": "#/components/schemas/ChownResult"
+            },
+            "type": "array"
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "affected",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ChownResult": {
+        "properties": {
+          "gid": {
+            "type": "integer"
+          },
+          "path": {
+            "type": "string"
+          },
+          "uid": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "uid",
+          "gid"
+        ],
+        "type": "object"
+      },
+      "Connection": {
+        "description": "Connector",
+        "properties": {
+          "access_policy": {
+            "$ref": "#/components/schemas/AccessPolicy",
+            "description": "Policy controlling which sprites and provider endpoints may use this connector.",
+            "example": {
+              "allow_all": true,
+              "allowed_endpoints": [
+                "/*"
+              ]
+            }
+          },
+          "connection_type": {
+            "description": "How the connector was created.",
+            "enum": [
+              "oauth",
+              "api_key",
+              "provisioned",
+              "internal"
+            ],
+            "example": "oauth",
+            "type": "string"
+          },
+          "id": {
+            "description": "Connector ID used in gateway URLs.",
+            "example": "conn_abc123",
+            "type": "string"
+          },
+          "inserted_at": {
+            "description": "When the connector was created.",
+            "example": "2026-04-28T12:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "notes": {
+            "description": "Provider notes about this connection, derived from its saved settings. Each has a nullable `title` and a `body`; backticks mark inline code.",
+            "example": [
+              {
+                "body": "Full-access key.",
+                "title": null
+              }
+            ],
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "provider": {
+            "description": "Provider key. See https://fly.io/sprites/ecosystem/ for current connectors.",
+            "example": "slack",
+            "type": "string"
+          },
+          "provider_account_id": {
+            "description": "Provider account, workspace, or key identifier.",
+            "example": "T12345",
+            "type": "string"
+          },
+          "provider_account_name": {
+            "description": "Human-readable provider account name.",
+            "example": "Example Workspace",
+            "type": "string"
+          },
+          "provider_info": {
+            "description": "Provider-specific metadata such as workspace URLs, custom API base URLs, or icon references.",
+            "example": {
+              "team_domain": "example"
+            },
+            "type": "object"
+          },
+          "scopes": {
+            "description": "Comma-separated OAuth scopes granted to the connector.",
+            "example": "chat:write,channels:read",
+            "type": "string"
+          },
+          "token_expires_at": {
+            "description": "When the stored token expires, if the provider issues expiring tokens.",
+            "example": "2026-04-29T12:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "updated_at": {
+            "description": "When the connector was last updated.",
+            "example": "2026-04-29T12:00:00Z",
+            "format": "date-time",
+            "type": "string"
+          },
+          "usage_snippet": {
+            "description": "Provider-specific curl snippet showing how to call the connector through the gateway.",
+            "example": "curl https://api.sprites.dev/v1/gateway/slack/conn_abc123/auth.test",
+            "type": "string"
+          },
+          "user_id": {
+            "description": "Sprites user ID that created or owns the connector.",
+            "example": "user_abc123",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "provider",
+          "provider_account_id"
+        ],
+        "type": "object"
+      },
+      "ConnectionListResponse": {
+        "description": "Connector list response",
+        "properties": {
+          "connections": {
+            "description": "Connectors configured for the organization.",
+            "example": [
+              {
+                "id": "conn_abc123",
+                "provider": "slack"
+              }
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Connection"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "connections"
+        ],
+        "type": "object"
+      },
+      "ConnectionResponse": {
+        "description": "Connector response",
+        "properties": {
+          "connection": {
+            "$ref": "#/components/schemas/Connection",
+            "description": "Sanitized connector. Secrets and encrypted token fields are never returned.",
+            "example": {
+              "id": "conn_abc123",
+              "provider": "slack"
+            }
+          }
+        },
+        "required": [
+          "connection"
+        ],
+        "type": "object"
+      },
+      "CopyRequest": {
+        "properties": {
+          "asRoot": {
+            "type": "boolean"
+          },
+          "dest": {
+            "type": "string"
+          },
+          "preserveAttrs": {
+            "type": "boolean"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string"
+          },
+          "workingDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "dest",
+          "workingDir",
+          "recursive",
+          "preserveAttrs",
+          "asRoot"
+        ],
+        "type": "object"
+      },
+      "CopyResponse": {
+        "properties": {
+          "copied": {
+            "items": {
+              "$ref": "#/components/schemas/CopyResult"
+            },
+            "type": "array"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "totalBytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "copied",
+          "count",
+          "totalBytes"
+        ],
+        "type": "object"
+      },
+      "CopyResult": {
+        "properties": {
+          "dest": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "dest"
+        ],
+        "type": "object"
+      },
+      "CreateCheckpointRequest": {
+        "example": {
+          "comment": "Before deploying v2.0"
+        },
+        "properties": {
+          "comment": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "CreateSpriteRequest": {
+        "description": "Create sprite request",
+        "properties": {
+          "name": {
+            "description": "Unique name for the sprite within the organization",
+            "example": "my-sprite",
+            "type": "string"
+          },
+          "url_settings": {
+            "$ref": "#/components/schemas/UrlSettingsRequest",
+            "description": "URL access configuration",
+            "example": {
+              "auth": "public"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "DeleteRequest": {
+        "properties": {
+          "asRoot": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "recursive": {
+            "type": "boolean"
+          },
+          "workingDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "workingDir",
+          "recursive",
+          "asRoot"
+        ],
+        "type": "object"
+      },
+      "DeleteResponse": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "deleted": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "deleted",
+          "count"
+        ],
+        "type": "object"
+      },
+      "Entry": {
+        "properties": {
+          "isDir": {
+            "type": "boolean"
+          },
+          "modTime": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "path",
+          "type",
+          "size",
+          "mode",
+          "modTime",
+          "isDir"
+        ],
+        "type": "object"
+      },
+      "ExecKillCompleteEvent": {
+        "example": {
+          "exit_code": 0,
+          "type": "complete"
+        },
+        "properties": {
+          "exit_code": {
+            "description": "Process exit code",
+            "type": "integer"
+          },
+          "type": {
+            "const": "complete",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "exit_code"
+        ],
+        "type": "object"
+      },
+      "ExecKillErrorEvent": {
+        "example": {
+          "message": "Warning: process may not have terminated",
+          "type": "error"
+        },
+        "properties": {
+          "message": {
+            "description": "Error message",
+            "type": "string"
+          },
+          "type": {
+            "const": "error",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ExecKillExitedEvent": {
+        "example": {
+          "message": "Process exited",
+          "type": "exited"
+        },
+        "properties": {
+          "message": {
+            "description": "Status message",
+            "type": "string"
+          },
+          "type": {
+            "const": "exited",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ExecKillKilledEvent": {
+        "example": {
+          "message": "Process killed",
+          "type": "killed"
+        },
+        "properties": {
+          "message": {
+            "description": "Status message",
+            "type": "string"
+          },
+          "type": {
+            "const": "killed",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ExecKillSignalEvent": {
+        "example": {
+          "message": "Signaling SIGTERM to process group 1847",
+          "pid": 1847,
+          "signal": "SIGTERM",
+          "type": "signal"
+        },
+        "properties": {
+          "message": {
+            "description": "Status message",
+            "type": "string"
+          },
+          "pid": {
+            "description": "Target process ID",
+            "type": "integer"
+          },
+          "signal": {
+            "description": "Signal name (e.g., `SIGTERM`)",
+            "type": "string"
+          },
+          "type": {
+            "const": "signal",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message",
+          "signal",
+          "pid"
+        ],
+        "type": "object"
+      },
+      "ExecKillTimeoutEvent": {
+        "example": {
+          "message": "Timeout after 10s, sending SIGKILL",
+          "type": "timeout"
+        },
+        "properties": {
+          "message": {
+            "description": "Status message",
+            "type": "string"
+          },
+          "type": {
+            "const": "timeout",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message"
+        ],
+        "type": "object"
+      },
+      "ListConnectionsRequest": {
+        "description": "List connectors query parameters",
+        "properties": {
+          "provider": {
+            "description": "Optional provider filter.",
+            "example": "slack",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "ListResponse": {
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/Entry"
+            },
+            "type": "array"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "entries",
+          "count"
+        ],
+        "type": "object"
+      },
+      "ListSpritesRequest": {
+        "description": "List sprites query parameters",
+        "properties": {
+          "continuation_token": {
+            "description": "Token from previous response for pagination",
+            "example": "eyJsYXN0IjoibXktc3ByaXRlIn0=",
+            "type": "string"
+          },
+          "max_results": {
+            "description": "Maximum number of results (1-500, default: 50)",
+            "example": 50,
+            "type": "integer"
+          },
+          "prefix": {
+            "description": "Filter sprites by name prefix",
+            "example": "dev-",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "NetworkPolicyRequest": {
+        "example": {
+          "rules": [
+            {
+              "action": "allow",
+              "domain": "github.com"
+            },
+            {
+              "action": "allow",
+              "domain": "*.npmjs.org"
+            }
+          ]
+        },
+        "properties": {
+          "rules": {
+            "description": "List of network policy rules",
+            "items": {
+              "$ref": "#/components/schemas/NetworkPolicyRule"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "rules"
+        ],
+        "type": "object"
+      },
+      "NetworkPolicyRule": {
+        "example": {
+          "action": "allow",
+          "domain": "*.github.com"
+        },
+        "properties": {
+          "action": {
+            "description": "`allow` or `deny`",
+            "type": "string"
+          },
+          "domain": {
+            "description": "Domain pattern (e.g., `*.github.com`)",
+            "type": "string"
+          },
+          "include": {
+            "description": "Include rules from preset",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "OAuthAuthorizeRequest": {
+        "description": "OAuth authorize query parameters",
+        "properties": {
+          "add_scopes": {
+            "description": "Comma-separated scopes to add to any scopes already granted for this provider.",
+            "example": "reactions:write,files:read",
+            "type": "string"
+          },
+          "redirect_uri": {
+            "description": "OAuth callback URI. Defaults to the Sprites API callback for the provider.",
+            "example": "https://api.sprites.dev/v1/oauth/slack/callback",
+            "type": "string"
+          },
+          "scopes": {
+            "description": "Comma-separated scopes to request. Replaces the default scope set for this authorization URL.",
+            "example": "chat:write,channels:read",
+            "type": "string"
+          },
+          "state": {
+            "description": "Optional state value. If omitted, Sprites generates one that ties the callback to the organization.",
+            "example": "opaque-state",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "OAuthAuthorizeResponse": {
+        "description": "OAuth authorization response",
+        "properties": {
+          "authorize_url": {
+            "description": "Provider URL where the user grants access.",
+            "example": "https://slack.com/oauth/v2/authorize?client_id=...",
+            "type": "string"
+          },
+          "state": {
+            "description": "State value that must be sent back to the callback.",
+            "example": "opaque-state",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorize_url",
+          "state"
+        ],
+        "type": "object"
+      },
       "OAuthCallbackRequest": {
         "description": "OAuth callback request",
         "properties": {
@@ -32,68 +886,86 @@
         ],
         "type": "object"
       },
-      "CopyResponse": {
+      "PortNotificationMessage": {
         "properties": {
-          "copied": {
-            "items": {
-              "$ref": "#/components/schemas/CopyResult"
-            },
-            "type": "array"
+          "address": {
+            "description": "Proxy URL for accessing the port",
+            "type": "string"
           },
-          "count": {
+          "pid": {
+            "description": "Process ID that opened/closed the port",
             "type": "integer"
           },
-          "totalBytes": {
+          "port": {
+            "description": "Port number",
             "type": "integer"
-          }
-        },
-        "required": [
-          "copied",
-          "count",
-          "totalBytes"
-        ],
-        "type": "object"
-      },
-      "ChmodResult": {
-        "properties": {
-          "mode": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "path",
-          "mode"
-        ],
-        "type": "object"
-      },
-      "StreamCompleteEvent": {
-        "example": {
-          "data": "Checkpoint v3 created successfully",
-          "time": "2026-01-05T10:30:00Z",
-          "type": "complete"
-        },
-        "properties": {
-          "data": {
-            "description": "Completion message",
-            "type": "string"
-          },
-          "time": {
-            "description": "Timestamp",
-            "format": "date-time",
-            "type": "string"
           },
           "type": {
-            "const": "complete",
+            "description": "Notification type",
+            "enum": [
+              "port_opened",
+              "port_closed"
+            ],
             "type": "string"
           }
         },
         "required": [
           "type",
-          "data",
-          "time"
+          "port",
+          "address",
+          "pid"
+        ],
+        "type": "object"
+      },
+      "ProvisionConnectionRequest": {
+        "description": "Provision connector request",
+        "properties": {
+          "provider": {
+            "description": "Provider to provision.",
+            "example": "openrouter",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "type": "object"
+      },
+      "RenameRequest": {
+        "properties": {
+          "asRoot": {
+            "type": "boolean"
+          },
+          "dest": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "workingDir": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "dest",
+          "workingDir",
+          "asRoot"
+        ],
+        "type": "object"
+      },
+      "RenameResponse": {
+        "properties": {
+          "dest": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "dest"
         ],
         "type": "object"
       },
@@ -120,202 +992,6 @@
         "required": [
           "type",
           "timestamp"
-        ],
-        "type": "object"
-      },
-      "ExecKillCompleteEvent": {
-        "example": {
-          "exit_code": 0,
-          "type": "complete"
-        },
-        "properties": {
-          "exit_code": {
-            "description": "Process exit code",
-            "type": "integer"
-          },
-          "type": {
-            "const": "complete",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "exit_code"
-        ],
-        "type": "object"
-      },
-      "ServiceRequest": {
-        "example": {
-          "args": [
-            "-m",
-            "http.server",
-            "8000"
-          ],
-          "cmd": "python",
-          "http_port": 8000,
-          "needs": [
-            "postgres"
-          ]
-        },
-        "properties": {
-          "args": {
-            "description": "Command arguments",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "cmd": {
-            "description": "Command to execute",
-            "type": "string"
-          },
-          "dir": {
-            "description": "Working directory for the service",
-            "type": "string"
-          },
-          "env": {
-            "description": "Environment variables to add to the base service environment",
-            "type": "object"
-          },
-          "http_port": {
-            "description": "HTTP port for proxy routing",
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "needs": {
-            "description": "Service dependencies (started first)",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "cmd",
-          "args",
-          "needs"
-        ],
-        "type": "object"
-      },
-      "ServiceLogStdoutEvent": {
-        "example": {
-          "data": "Server listening on port 3000\n",
-          "timestamp": 1767609000000,
-          "type": "stdout"
-        },
-        "properties": {
-          "data": {
-            "description": "Log line content",
-            "type": "string"
-          },
-          "timestamp": {
-            "description": "Unix milliseconds",
-            "type": "integer"
-          },
-          "type": {
-            "const": "stdout",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "data",
-          "timestamp"
-        ],
-        "type": "object"
-      },
-      "UpdateSpriteRequest": {
-        "description": "Update sprite request",
-        "properties": {
-          "url_settings": {
-            "$ref": "#/components/schemas/UrlSettingsRequest",
-            "description": "URL access configuration to update",
-            "example": {
-              "auth": "public"
-            }
-          }
-        },
-        "required": [
-          "url_settings"
-        ],
-        "type": "object"
-      },
-      "ServiceState": {
-        "example": {
-          "name": "webapp",
-          "pid": 1567,
-          "started_at": "2026-01-05T08:01:00Z",
-          "status": "running"
-        },
-        "properties": {
-          "error": {
-            "description": "Error message if failed",
-            "type": "string"
-          },
-          "name": {
-            "description": "Service name",
-            "type": "string"
-          },
-          "pid": {
-            "description": "Process ID when running",
-            "type": "integer"
-          },
-          "started_at": {
-            "description": "ISO 8601 timestamp",
-            "type": "string"
-          },
-          "status": {
-            "description": "`stopped`, `starting`, `running`, `stopping`, or `failed`",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "status"
-        ],
-        "type": "object"
-      },
-      "UpdateConnectionRequest": {
-        "description": "Update connector request",
-        "properties": {
-          "access_policy": {
-            "$ref": "#/components/schemas/AccessPolicy",
-            "description": "Replacement access policy.",
-            "example": {
-              "sprite_labels": [
-                "api-access"
-              ],
-              "allowed_endpoints": [
-                "/chat.*"
-              ]
-            }
-          }
-        },
-        "required": [
-          "access_policy"
-        ],
-        "type": "object"
-      },
-      "CreateSpriteRequest": {
-        "description": "Create sprite request",
-        "properties": {
-          "name": {
-            "description": "Unique name for the sprite within the organization",
-            "example": "my-sprite",
-            "type": "string"
-          },
-          "url_settings": {
-            "$ref": "#/components/schemas/UrlSettingsRequest",
-            "description": "URL access configuration",
-            "example": {
-              "auth": "public"
-            }
-          }
-        },
-        "required": [
-          "name"
         ],
         "type": "object"
       },
@@ -373,267 +1049,78 @@
         ],
         "type": "object"
       },
-      "ChownRequest": {
-        "properties": {
-          "asRoot": {
-            "type": "boolean"
-          },
-          "gid": {
-            "type": "object"
-          },
-          "path": {
-            "type": "string"
-          },
-          "recursive": {
-            "type": "boolean"
-          },
-          "uid": {
-            "type": "object"
-          },
-          "workingDir": {
-            "type": "string"
-          }
+      "ServiceLogStartedEvent": {
+        "example": {
+          "timestamp": 1767609000000,
+          "type": "started"
         },
-        "required": [
-          "path",
-          "workingDir",
-          "uid",
-          "gid",
-          "recursive",
-          "asRoot"
-        ],
-        "type": "object"
-      },
-      "DeleteRequest": {
         "properties": {
-          "asRoot": {
-            "type": "boolean"
-          },
-          "path": {
-            "type": "string"
-          },
-          "recursive": {
-            "type": "boolean"
-          },
-          "workingDir": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "path",
-          "workingDir",
-          "recursive",
-          "asRoot"
-        ],
-        "type": "object"
-      },
-      "ConnectionResponse": {
-        "description": "Connector response",
-        "properties": {
-          "connection": {
-            "$ref": "#/components/schemas/Connection",
-            "description": "Sanitized connector. Secrets and encrypted token fields are never returned.",
-            "example": {
-              "id": "conn_abc123",
-              "provider": "slack"
-            }
-          }
-        },
-        "required": [
-          "connection"
-        ],
-        "type": "object"
-      },
-      "ChownResponse": {
-        "properties": {
-          "affected": {
-            "items": {
-              "$ref": "#/components/schemas/ChownResult"
-            },
-            "type": "array"
-          },
-          "count": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "affected",
-          "count"
-        ],
-        "type": "object"
-      },
-      "SpriteListResponse": {
-        "description": "Paginated sprite list",
-        "properties": {
-          "cold": {
-            "description": "Number of returned sprites currently cold.",
-            "example": 3,
-            "type": "integer"
-          },
-          "has_more": {
-            "description": "Whether more results are available",
-            "example": true,
-            "type": "boolean"
-          },
-          "name": {
-            "description": "Organization slug.",
-            "example": "my-org",
-            "type": "string"
-          },
-          "next_continuation_token": {
-            "description": "Token for fetching the next page of results",
-            "example": "eyJsYXN0IjoibXktZGV2LXNwcml0ZSJ9",
-            "type": "string"
-          },
-          "running": {
-            "description": "Number of returned sprites currently running.",
-            "example": 1,
-            "type": "integer"
-          },
-          "running_limit": {
-            "description": "Organization-wide active sprite limit.",
-            "example": 10,
-            "type": "integer"
-          },
-          "sprites": {
-            "description": "List of sprite resources",
-            "example": [
-              {
-                "id": "sprite-abc123",
-                "name": "my-dev-sprite",
-                "status": "running"
-              }
-            ],
-            "items": {
-              "$ref": "#/components/schemas/SpriteResponse"
-            },
-            "type": "array"
-          },
-          "warm": {
-            "description": "Number of returned sprites currently warm.",
-            "example": 2,
-            "type": "integer"
-          },
-          "warm_limit": {
-            "description": "Organization-wide warm sprite limit.",
-            "example": 10,
-            "type": "integer"
-          }
-        },
-        "required": [
-          "sprites",
-          "has_more",
-          "running",
-          "warm",
-          "cold",
-          "name"
-        ],
-        "type": "object"
-      },
-      "ListConnectionsRequest": {
-        "description": "List connectors query parameters",
-        "properties": {
-          "provider": {
-            "description": "Optional provider filter.",
-            "example": "slack",
-            "type": "string"
-          }
-        },
-        "required": [],
-        "type": "object"
-      },
-      "ApiKeyConnectionRequest": {
-        "description": "API-key connector request",
-        "properties": {
-          "access_policy": {
-            "$ref": "#/components/schemas/AccessPolicy",
-            "description": "Initial access policy. Empty or missing policies deny sprite use until updated.",
-            "example": {
-              "allow_all": true
-            }
-          },
-          "api_key": {
-            "description": "Provider API key. Stored encrypted and never returned by the API.",
-            "example": "sk-or-...",
-            "type": "string"
-          },
-          "base_api_url": {
-            "description": "Required for Upstash Redis: immutable HTTPS database REST URL. Not used by fixed-host providers.",
-            "example": "https://your-database.upstash.io",
-            "type": "string"
-          },
-          "provider": {
-            "description": "API-key provider.",
-            "example": "openrouter",
-            "type": "string"
-          }
-        },
-        "required": [
-          "provider",
-          "api_key"
-        ],
-        "type": "object"
-      },
-      "OAuthAuthorizeRequest": {
-        "description": "OAuth authorize query parameters",
-        "properties": {
-          "add_scopes": {
-            "description": "Comma-separated scopes to add to any scopes already granted for this provider.",
-            "example": "reactions:write,files:read",
-            "type": "string"
-          },
-          "redirect_uri": {
-            "description": "OAuth callback URI. Defaults to the Sprites API callback for the provider.",
-            "example": "https://api.sprites.dev/v1/oauth/slack/callback",
-            "type": "string"
-          },
-          "scopes": {
-            "description": "Comma-separated scopes to request. Replaces the default scope set for this authorization URL.",
-            "example": "chat:write,channels:read",
-            "type": "string"
-          },
-          "state": {
-            "description": "Optional state value. If omitted, Sprites generates one that ties the callback to the organization.",
-            "example": "opaque-state",
-            "type": "string"
-          }
-        },
-        "required": [],
-        "type": "object"
-      },
-      "Entry": {
-        "properties": {
-          "isDir": {
-            "type": "boolean"
-          },
-          "modTime": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "mode": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          },
-          "size": {
+          "timestamp": {
+            "description": "Unix milliseconds",
             "type": "integer"
           },
           "type": {
+            "const": "started",
             "type": "string"
           }
         },
         "required": [
-          "name",
-          "path",
           "type",
-          "size",
-          "mode",
-          "modTime",
-          "isDir"
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "ServiceLogStderrEvent": {
+        "example": {
+          "data": "Warning: deprecated API usage\n",
+          "timestamp": 1767609000000,
+          "type": "stderr"
+        },
+        "properties": {
+          "data": {
+            "description": "Log line content",
+            "type": "string"
+          },
+          "timestamp": {
+            "description": "Unix milliseconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "stderr",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data",
+          "timestamp"
+        ],
+        "type": "object"
+      },
+      "ServiceLogStdoutEvent": {
+        "example": {
+          "data": "Server listening on port 3000\n",
+          "timestamp": 1767609000000,
+          "type": "stdout"
+        },
+        "properties": {
+          "data": {
+            "description": "Log line content",
+            "type": "string"
+          },
+          "timestamp": {
+            "description": "Unix milliseconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "stdout",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data",
+          "timestamp"
         ],
         "type": "object"
       },
@@ -664,166 +1151,10 @@
         ],
         "type": "object"
       },
-      "ConnectionListResponse": {
-        "description": "Connector list response",
-        "properties": {
-          "connections": {
-            "description": "Connectors configured for the organization.",
-            "example": [
-              {
-                "id": "conn_abc123",
-                "provider": "slack"
-              }
-            ],
-            "items": {
-              "$ref": "#/components/schemas/Connection"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "connections"
-        ],
-        "type": "object"
-      },
-      "StreamInfoEvent": {
-        "example": {
-          "data": "Creating checkpoint...",
-          "time": "2026-01-05T10:30:00Z",
-          "type": "info"
-        },
-        "properties": {
-          "data": {
-            "description": "Status message",
-            "type": "string"
-          },
-          "time": {
-            "description": "Timestamp",
-            "format": "date-time",
-            "type": "string"
-          },
-          "type": {
-            "const": "info",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "data",
-          "time"
-        ],
-        "type": "object"
-      },
-      "NetworkPolicyRequest": {
-        "example": {
-          "rules": [
-            {
-              "action": "allow",
-              "domain": "github.com"
-            },
-            {
-              "action": "allow",
-              "domain": "*.npmjs.org"
-            }
-          ]
-        },
-        "properties": {
-          "rules": {
-            "description": "List of network policy rules",
-            "items": {
-              "$ref": "#/components/schemas/NetworkPolicyRule"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "rules"
-        ],
-        "type": "object"
-      },
-      "NetworkPolicyRule": {
-        "example": {
-          "action": "allow",
-          "domain": "*.github.com"
-        },
-        "properties": {
-          "action": {
-            "description": "`allow` or `deny`",
-            "type": "string"
-          },
-          "domain": {
-            "description": "Domain pattern (e.g., `*.github.com`)",
-            "type": "string"
-          },
-          "include": {
-            "description": "Include rules from preset",
-            "type": "string"
-          }
-        },
-        "required": [],
-        "type": "object"
-      },
-      "RenameResponse": {
-        "properties": {
-          "dest": {
-            "type": "string"
-          },
-          "source": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "source",
-          "dest"
-        ],
-        "type": "object"
-      },
-      "ExecKillKilledEvent": {
-        "example": {
-          "message": "Process killed",
-          "type": "killed"
-        },
-        "properties": {
-          "message": {
-            "description": "Status message",
-            "type": "string"
-          },
-          "type": {
-            "const": "killed",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "message"
-        ],
-        "type": "object"
-      },
-      "ExecKillTimeoutEvent": {
-        "example": {
-          "message": "Timeout after 10s, sending SIGKILL",
-          "type": "timeout"
-        },
-        "properties": {
-          "message": {
-            "description": "Status message",
-            "type": "string"
-          },
-          "type": {
-            "const": "timeout",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "message"
-        ],
-        "type": "object"
-      },
-      "ServiceLogStartedEvent": {
+      "ServiceLogStoppingEvent": {
         "example": {
           "timestamp": 1767609000000,
-          "type": "started"
+          "type": "stopping"
         },
         "properties": {
           "timestamp": {
@@ -831,7 +1162,7 @@
             "type": "integer"
           },
           "type": {
-            "const": "started",
+            "const": "stopping",
             "type": "string"
           }
         },
@@ -841,99 +1172,59 @@
         ],
         "type": "object"
       },
-      "CopyRequest": {
-        "properties": {
-          "asRoot": {
-            "type": "boolean"
-          },
-          "dest": {
-            "type": "string"
-          },
-          "preserveAttrs": {
-            "type": "boolean"
-          },
-          "recursive": {
-            "type": "boolean"
-          },
-          "source": {
-            "type": "string"
-          },
-          "workingDir": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "source",
-          "dest",
-          "workingDir",
-          "recursive",
-          "preserveAttrs",
-          "asRoot"
-        ],
-        "type": "object"
-      },
-      "ExecKillExitedEvent": {
+      "ServiceRequest": {
         "example": {
-          "message": "Process exited",
-          "type": "exited"
+          "args": [
+            "-m",
+            "http.server",
+            "8000"
+          ],
+          "cmd": "python",
+          "http_port": 8000,
+          "needs": [
+            "postgres"
+          ]
         },
         "properties": {
-          "message": {
-            "description": "Status message",
+          "args": {
+            "description": "Command arguments",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cmd": {
+            "description": "Command to execute",
             "type": "string"
           },
-          "type": {
-            "const": "exited",
+          "dir": {
+            "description": "Working directory for the service",
             "type": "string"
+          },
+          "env": {
+            "description": "Environment variables to add to the base service environment",
+            "type": "object"
+          },
+          "http_port": {
+            "description": "HTTP port for proxy routing",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "needs": {
+            "description": "Service dependencies (started first)",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
-          "type",
-          "message"
+          "cmd",
+          "args",
+          "needs"
         ],
-        "type": "object"
-      },
-      "ChmodRequest": {
-        "properties": {
-          "asRoot": {
-            "type": "boolean"
-          },
-          "mode": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          },
-          "recursive": {
-            "type": "boolean"
-          },
-          "workingDir": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "path",
-          "workingDir",
-          "mode",
-          "recursive",
-          "asRoot"
-        ],
-        "type": "object"
-      },
-      "UrlSettingsRequest": {
-        "description": "URL settings request",
-        "properties": {
-          "auth": {
-            "description": "Authentication type (default: sprite)",
-            "enum": [
-              "sprite",
-              "public"
-            ],
-            "example": "sprite",
-            "type": "string"
-          }
-        },
-        "required": [],
         "type": "object"
       },
       "ServiceResponse": {
@@ -1006,504 +1297,106 @@
         ],
         "type": "object"
       },
-      "ListSpritesRequest": {
-        "description": "List sprites query parameters",
-        "properties": {
-          "continuation_token": {
-            "description": "Token from previous response for pagination",
-            "example": "eyJsYXN0IjoibXktc3ByaXRlIn0=",
-            "type": "string"
-          },
-          "max_results": {
-            "description": "Maximum number of results (1-500, default: 50)",
-            "example": 50,
-            "type": "integer"
-          },
-          "prefix": {
-            "description": "Filter sprites by name prefix",
-            "example": "dev-",
-            "type": "string"
-          }
-        },
-        "required": [],
-        "type": "object"
-      },
-      "ChmodResponse": {
-        "properties": {
-          "affected": {
-            "items": {
-              "$ref": "#/components/schemas/ChmodResult"
-            },
-            "type": "array"
-          },
-          "count": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "affected",
-          "count"
-        ],
-        "type": "object"
-      },
-      "DeleteResponse": {
-        "properties": {
-          "count": {
-            "type": "integer"
-          },
-          "deleted": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "deleted",
-          "count"
-        ],
-        "type": "object"
-      },
-      "ExecKillSignalEvent": {
+      "ServiceState": {
         "example": {
-          "message": "Signaling SIGTERM to process group 1847",
-          "pid": 1847,
-          "signal": "SIGTERM",
-          "type": "signal"
-        },
-        "properties": {
-          "message": {
-            "description": "Status message",
-            "type": "string"
-          },
-          "pid": {
-            "description": "Target process ID",
-            "type": "integer"
-          },
-          "signal": {
-            "description": "Signal name (e.g., `SIGTERM`)",
-            "type": "string"
-          },
-          "type": {
-            "const": "signal",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "message",
-          "signal",
-          "pid"
-        ],
-        "type": "object"
-      },
-      "AccessPolicy": {
-        "description": "Connector access policy",
-        "properties": {
-          "allow_all": {
-            "description": "When true, all sprites in the organization may use this connector.",
-            "example": false,
-            "type": "boolean"
-          },
-          "allowed_endpoints": {
-            "description": "Provider API paths the connector may call. Supports exact paths and trailing `*` prefix wildcards.",
-            "example": [
-              "/chat.*"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "blocked_endpoints": {
-            "description": "Provider API paths the connector may not call. Block rules are checked before allow rules.",
-            "example": [
-              "/admin.*"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "name_prefix": {
-            "description": "Sprite name prefix required to use this connector.",
-            "example": "prod-",
-            "type": "string"
-          },
-          "sprite_labels": {
-            "description": "Labels the calling sprite must have. All listed labels are required.",
-            "example": [
-              "api-access"
-            ],
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          }
-        },
-        "required": [],
-        "type": "object"
-      },
-      "Connection": {
-        "description": "Connector",
-        "properties": {
-          "access_policy": {
-            "$ref": "#/components/schemas/AccessPolicy",
-            "description": "Policy controlling which sprites and provider endpoints may use this connector.",
-            "example": {
-              "allow_all": true,
-              "allowed_endpoints": [
-                "/*"
-              ]
-            }
-          },
-          "connection_type": {
-            "description": "How the connector was created.",
-            "enum": [
-              "oauth",
-              "api_key",
-              "provisioned",
-              "internal"
-            ],
-            "example": "oauth",
-            "type": "string"
-          },
-          "id": {
-            "description": "Connector ID used in gateway URLs.",
-            "example": "conn_abc123",
-            "type": "string"
-          },
-          "inserted_at": {
-            "description": "When the connector was created.",
-            "example": "2026-04-28T12:00:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "notes": {
-            "description": "Provider notes about this connection, derived from its saved settings. Each has a nullable `title` and a `body`; backticks mark inline code.",
-            "example": [
-              {
-                "title": null,
-                "body": "Full-access key."
-              }
-            ],
-            "items": {
-              "type": "object"
-            },
-            "type": "array"
-          },
-          "provider": {
-            "description": "Provider key. See https://fly.io/sprites/ecosystem/ for current connectors.",
-            "example": "slack",
-            "type": "string"
-          },
-          "provider_account_id": {
-            "description": "Provider account, workspace, or key identifier.",
-            "example": "T12345",
-            "type": "string"
-          },
-          "provider_account_name": {
-            "description": "Human-readable provider account name.",
-            "example": "Example Workspace",
-            "type": "string"
-          },
-          "provider_info": {
-            "description": "Provider-specific metadata such as workspace URLs, custom API base URLs, or icon references.",
-            "example": {
-              "team_domain": "example"
-            },
-            "type": "object"
-          },
-          "scopes": {
-            "description": "Comma-separated OAuth scopes granted to the connector.",
-            "example": "chat:write,channels:read",
-            "type": "string"
-          },
-          "token_expires_at": {
-            "description": "When the stored token expires, if the provider issues expiring tokens.",
-            "example": "2026-04-29T12:00:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "updated_at": {
-            "description": "When the connector was last updated.",
-            "example": "2026-04-29T12:00:00Z",
-            "format": "date-time",
-            "type": "string"
-          },
-          "usage_snippet": {
-            "description": "Provider-specific curl snippet showing how to call the connector through the gateway.",
-            "example": "curl https://api.sprites.dev/v1/gateway/slack/conn_abc123/auth.test",
-            "type": "string"
-          },
-          "user_id": {
-            "description": "Sprites user ID that created or owns the connector.",
-            "example": "user_abc123",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "provider",
-          "provider_account_id"
-        ],
-        "type": "object"
-      },
-      "ChownResult": {
-        "properties": {
-          "gid": {
-            "type": "integer"
-          },
-          "path": {
-            "type": "string"
-          },
-          "uid": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "path",
-          "uid",
-          "gid"
-        ],
-        "type": "object"
-      },
-      "CreateCheckpointRequest": {
-        "example": {
-          "comment": "Before deploying v2.0"
-        },
-        "properties": {
-          "comment": {
-            "type": "string"
-          }
-        },
-        "required": [],
-        "type": "object"
-      },
-      "ServiceLogStoppingEvent": {
-        "example": {
-          "timestamp": 1767609000000,
-          "type": "stopping"
-        },
-        "properties": {
-          "timestamp": {
-            "description": "Unix milliseconds",
-            "type": "integer"
-          },
-          "type": {
-            "const": "stopping",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "timestamp"
-        ],
-        "type": "object"
-      },
-      "RenameRequest": {
-        "properties": {
-          "asRoot": {
-            "type": "boolean"
-          },
-          "dest": {
-            "type": "string"
-          },
-          "source": {
-            "type": "string"
-          },
-          "workingDir": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "source",
-          "dest",
-          "workingDir",
-          "asRoot"
-        ],
-        "type": "object"
-      },
-      "PortNotificationMessage": {
-        "properties": {
-          "address": {
-            "description": "Proxy URL for accessing the port",
-            "type": "string"
-          },
-          "pid": {
-            "description": "Process ID that opened/closed the port",
-            "type": "integer"
-          },
-          "port": {
-            "description": "Port number",
-            "type": "integer"
-          },
-          "type": {
-            "description": "Notification type",
-            "enum": [
-              "port_opened",
-              "port_closed"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "port",
-          "address",
-          "pid"
-        ],
-        "type": "object"
-      },
-      "ServiceLogStderrEvent": {
-        "example": {
-          "data": "Warning: deprecated API usage\n",
-          "timestamp": 1767609000000,
-          "type": "stderr"
-        },
-        "properties": {
-          "data": {
-            "description": "Log line content",
-            "type": "string"
-          },
-          "timestamp": {
-            "description": "Unix milliseconds",
-            "type": "integer"
-          },
-          "type": {
-            "const": "stderr",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "data",
-          "timestamp"
-        ],
-        "type": "object"
-      },
-      "CopyResult": {
-        "properties": {
-          "dest": {
-            "type": "string"
-          },
-          "source": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "source",
-          "dest"
-        ],
-        "type": "object"
-      },
-      "WriteResponse": {
-        "properties": {
-          "mode": {
-            "type": "string"
-          },
-          "path": {
-            "type": "string"
-          },
-          "size": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "path",
-          "size",
-          "mode"
-        ],
-        "type": "object"
-      },
-      "StreamErrorEvent": {
-        "example": {
-          "error": "Checkpoint failed: disk full",
-          "time": "2026-01-05T10:30:00Z",
-          "type": "error"
+          "name": "webapp",
+          "pid": 1567,
+          "started_at": "2026-01-05T08:01:00Z",
+          "status": "running"
         },
         "properties": {
           "error": {
-            "description": "Error description",
+            "description": "Error message if failed",
             "type": "string"
           },
-          "time": {
-            "description": "Timestamp",
-            "format": "date-time",
+          "name": {
+            "description": "Service name",
             "type": "string"
           },
-          "type": {
-            "const": "error",
-            "type": "string"
-          }
-        },
-        "required": [
-          "type",
-          "error",
-          "time"
-        ],
-        "type": "object"
-      },
-      "ProvisionConnectionRequest": {
-        "description": "Provision connector request",
-        "properties": {
-          "provider": {
-            "description": "Provider to provision.",
-            "example": "openrouter",
-            "type": "string"
-          }
-        },
-        "required": [
-          "provider"
-        ],
-        "type": "object"
-      },
-      "UrlSettings": {
-        "description": "URL access settings",
-        "properties": {
-          "auth": {
-            "description": "Authentication type",
-            "enum": [
-              "sprite",
-              "public"
-            ],
-            "example": "sprite",
-            "type": "string"
-          },
-          "private_access": {
-            "description": "Who may access a sprite-authenticated URL.",
-            "enum": [
-              "admins",
-              "organization"
-            ],
-            "example": "admins",
-            "type": "string"
-          }
-        },
-        "required": [
-          "auth"
-        ],
-        "type": "object"
-      },
-      "ListResponse": {
-        "properties": {
-          "count": {
+          "pid": {
+            "description": "Process ID when running",
             "type": "integer"
           },
-          "entries": {
+          "started_at": {
+            "description": "ISO 8601 timestamp",
+            "type": "string"
+          },
+          "status": {
+            "description": "`stopped`, `starting`, `running`, `stopping`, or `failed`",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status"
+        ],
+        "type": "object"
+      },
+      "SpriteListResponse": {
+        "description": "Paginated sprite list",
+        "properties": {
+          "cold": {
+            "description": "Number of returned sprites currently cold.",
+            "example": 3,
+            "type": "integer"
+          },
+          "has_more": {
+            "description": "Whether more results are available",
+            "example": true,
+            "type": "boolean"
+          },
+          "name": {
+            "description": "Organization slug.",
+            "example": "my-org",
+            "type": "string"
+          },
+          "next_continuation_token": {
+            "description": "Token for fetching the next page of results",
+            "example": "eyJsYXN0IjoibXktZGV2LXNwcml0ZSJ9",
+            "type": "string"
+          },
+          "running": {
+            "description": "Number of returned sprites currently running.",
+            "example": 1,
+            "type": "integer"
+          },
+          "running_limit": {
+            "description": "Organization-wide active sprite limit.",
+            "example": 10,
+            "type": "integer"
+          },
+          "sprites": {
+            "description": "List of sprite resources",
+            "example": [
+              {
+                "id": "sprite-abc123",
+                "name": "my-dev-sprite",
+                "status": "running"
+              }
+            ],
             "items": {
-              "$ref": "#/components/schemas/Entry"
+              "$ref": "#/components/schemas/SpriteResponse"
             },
             "type": "array"
           },
-          "path": {
-            "type": "string"
+          "warm": {
+            "description": "Number of returned sprites currently warm.",
+            "example": 2,
+            "type": "integer"
+          },
+          "warm_limit": {
+            "description": "Organization-wide warm sprite limit.",
+            "example": 10,
+            "type": "integer"
           }
         },
         "required": [
-          "path",
-          "entries",
-          "count"
+          "sprites",
+          "has_more",
+          "running",
+          "warm",
+          "cold",
+          "name"
         ],
         "type": "object"
       },
@@ -1622,34 +1515,48 @@
         ],
         "type": "object"
       },
-      "OAuthAuthorizeResponse": {
-        "description": "OAuth authorization response",
+      "StreamCompleteEvent": {
+        "example": {
+          "data": "Checkpoint v3 created successfully",
+          "time": "2026-01-05T10:30:00Z",
+          "type": "complete"
+        },
         "properties": {
-          "authorize_url": {
-            "description": "Provider URL where the user grants access.",
-            "example": "https://slack.com/oauth/v2/authorize?client_id=...",
+          "data": {
+            "description": "Completion message",
             "type": "string"
           },
-          "state": {
-            "description": "State value that must be sent back to the callback.",
-            "example": "opaque-state",
+          "time": {
+            "description": "Timestamp",
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "const": "complete",
             "type": "string"
           }
         },
         "required": [
-          "authorize_url",
-          "state"
+          "type",
+          "data",
+          "time"
         ],
         "type": "object"
       },
-      "ExecKillErrorEvent": {
+      "StreamErrorEvent": {
         "example": {
-          "message": "Warning: process may not have terminated",
+          "error": "Checkpoint failed: disk full",
+          "time": "2026-01-05T10:30:00Z",
           "type": "error"
         },
         "properties": {
-          "message": {
-            "description": "Error message",
+          "error": {
+            "description": "Error description",
+            "type": "string"
+          },
+          "time": {
+            "description": "Timestamp",
+            "format": "date-time",
             "type": "string"
           },
           "type": {
@@ -1659,42 +1566,135 @@
         },
         "required": [
           "type",
-          "message"
+          "error",
+          "time"
         ],
         "type": "object"
       },
-      "CheckpointInfo": {
+      "StreamInfoEvent": {
         "example": {
-          "comment": "Before database migration",
-          "create_time": "2026-01-05T10:30:00Z",
-          "id": "v7"
+          "data": "Creating checkpoint...",
+          "time": "2026-01-05T10:30:00Z",
+          "type": "info"
         },
         "properties": {
-          "comment": {
-            "description": "User-provided description",
+          "data": {
+            "description": "Status message",
             "type": "string"
           },
-          "create_time": {
-            "description": "When the checkpoint was created",
+          "time": {
+            "description": "Timestamp",
             "format": "date-time",
             "type": "string"
           },
-          "health": {
-            "description": "Health status (empty = healthy, \"mount_failed\" = unhealthy)",
-            "type": "string"
-          },
-          "id": {
-            "description": "Checkpoint identifier (e.g., `v7`)",
-            "type": "string"
-          },
-          "source_id": {
-            "description": "Parent checkpoint ID",
+          "type": {
+            "const": "info",
             "type": "string"
           }
         },
         "required": [
-          "id",
-          "create_time"
+          "type",
+          "data",
+          "time"
+        ],
+        "type": "object"
+      },
+      "UpdateConnectionRequest": {
+        "description": "Update connector request",
+        "properties": {
+          "access_policy": {
+            "$ref": "#/components/schemas/AccessPolicy",
+            "description": "Replacement access policy.",
+            "example": {
+              "allowed_endpoints": [
+                "/chat.*"
+              ],
+              "sprite_labels": [
+                "api-access"
+              ]
+            }
+          }
+        },
+        "required": [
+          "access_policy"
+        ],
+        "type": "object"
+      },
+      "UpdateSpriteRequest": {
+        "description": "Update sprite request",
+        "properties": {
+          "url_settings": {
+            "$ref": "#/components/schemas/UrlSettingsRequest",
+            "description": "URL access configuration to update",
+            "example": {
+              "auth": "public"
+            }
+          }
+        },
+        "required": [
+          "url_settings"
+        ],
+        "type": "object"
+      },
+      "UrlSettings": {
+        "description": "URL access settings",
+        "properties": {
+          "auth": {
+            "description": "Authentication type",
+            "enum": [
+              "sprite",
+              "public"
+            ],
+            "example": "sprite",
+            "type": "string"
+          },
+          "private_access": {
+            "description": "Who may access a sprite-authenticated URL.",
+            "enum": [
+              "admins",
+              "organization"
+            ],
+            "example": "admins",
+            "type": "string"
+          }
+        },
+        "required": [
+          "auth"
+        ],
+        "type": "object"
+      },
+      "UrlSettingsRequest": {
+        "description": "URL settings request",
+        "properties": {
+          "auth": {
+            "description": "Authentication type (default: sprite)",
+            "enum": [
+              "sprite",
+              "public"
+            ],
+            "example": "sprite",
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "WriteResponse": {
+        "properties": {
+          "mode": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "path",
+          "size",
+          "mode"
         ],
         "type": "object"
       }
