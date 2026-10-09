@@ -86,9 +86,7 @@ Running the upgrade on a Sprite that didn't need it does no harm. With nothing t
 <Warning>
 **Checkpoints taken before the upgrade won't come with you.** The upgrade copies your Sprite's current disk. Earlier [checkpoints](/concepts/checkpoints) stay behind — they aren't deleted, but they stop appearing in your checkpoint list and can't be restored.
 
-If something you need exists only inside an old checkpoint, restore it and copy the files out first. Everything on your current disk comes across, so this affects your history, not your working state.
-
-If you need to keep your checkpoint history, use the new-Sprite route below instead. Your old Sprite and everything on it stay exactly as they are, so its checkpoints remain restorable for as long as you keep it.
+If something you need exists only inside an old checkpoint, restore it and copy the files out before you upgrade. Everything on your current disk comes across, so this affects your history, not your working state.
 </Warning>
 
 Your Sprite restarts once during the upgrade, and the first start afterwards is slower than usual while your disk is copied. The name, URL, configuration, and files all stay as they are.
@@ -122,12 +120,12 @@ This stays in the foreground for the whole upgrade and prints one line per step,
 The `allow_storage_migration` flag is required, and that's deliberate. Without it, an upgrade that would change your storage is refused. Routine upgrades never move you; only this explicit request does.
 
 <Info>
-If the response says `no upgrade is published for this sprite's release lane`, your Sprite is on a release line with nothing newer published to it yet, and nothing has happened. Contact support for the version to use, then add it to the request as `"version": "..."` alongside the flag.
+If the response says `no upgrade is published for this sprite's release lane`, your Sprite is on a release line with nothing newer published to it yet, and nothing has happened. Upgrading it needs an explicit version, added to the request as `"version": "..."` alongside the flag.
 </Info>
 
 When your Sprite comes back, check that your application serves traffic, that your files are where you left them, and that a new checkpoint succeeds. Take that checkpoint once you're satisfied — it becomes your first restore point on the new storage.
 
-An upgrade that fails leaves your original disk untouched. The copy is written separately and only becomes your active disk at the last step, so a failure part way through can't damage what you had. If your Sprite doesn't come back, or comes back wrong, contact support and say that a storage upgrade failed. Stop writing to the Sprite in the meantime, because anything written after a failed upgrade makes recovery messier.
+An upgrade that fails leaves your original disk untouched. The copy is written separately and only becomes your active disk at the last step, so a failure part way through can't damage what you had. If your Sprite doesn't come back, or comes back wrong, stop writing to it — anything written after a failed upgrade makes recovery messier.
 
 ### Going back
 
@@ -142,7 +140,7 @@ sprite api -s my-sprite /upgrade -- \
 You return to your disk as it was at the moment of the upgrade. Anything written after it doesn't come back with you, so the sooner you decide, the less you lose.
 
 <Info>
-You can't repeat the upgrade on your own after going back. Asking for it a second time brings back the disk as it was at the first attempt rather than copying your newer work across. Contact support instead of retrying it yourself.
+Don't repeat the upgrade after going back. Asking for it a second time brings back the disk as it was at the first attempt rather than copying across anything you wrote in between.
 </Info>
 
 ### Moving to a new Sprite instead
