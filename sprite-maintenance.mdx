@@ -100,10 +100,10 @@ Only the paths you name come across. To see what else you'll need to set up agai
 sprite exec -s my-sprite -- sprite-env services list
 ```
 
-Recreate each service on the new Sprite using sprite-env services create. You'll also need to copy over your environment variables and any other configuration.
+Recreate each service on the new Sprite using `sprite-env services create`. You'll also need to copy over your environment variables and any other configuration.
 
 <Warning>
-**Your new Sprite might lose access to [connectors](/concepts/connectors)** Connector access policies match Sprites by name prefix or label, and deny access by default. Since your new Sprite has a different name and doesn't inherit labels, check that it matches the policies for any connectors it needs to access.
+**Your new Sprite might lose access to [connectors](/concepts/connectors).** Connector access policies match Sprites by name prefix or label, and deny access by default. Since your new Sprite has a different name and doesn't inherit labels, check that it matches the policies for any connectors it needs to access.
 
 Give it the same labels as the old Sprite, either when you create it or afterwards:
 
