@@ -1972,7 +1972,13 @@
         "summary": "Update a connector",
         "tags": [
           "Connectors"
-        ]
+        ],
+        "x-mint": {
+          "metadata": {
+            "title": "Update a connector (PATCH)",
+            "sidebarTitle": "Update a connector"
+          }
+        }
       },
       "put": {
         "description": "Update a connector access policy.",
@@ -2026,7 +2032,13 @@
         "summary": "Update a connector",
         "tags": [
           "Connectors"
-        ]
+        ],
+        "x-mint": {
+          "metadata": {
+            "title": "Update a connector (PUT)",
+            "sidebarTitle": "Update a connector"
+          }
+        }
       }
     },
     "/v1/oauth/{provider}/authorize": {
@@ -2856,7 +2868,13 @@
         "summary": "Execute Command",
         "tags": [
           "Exec"
-        ]
+        ],
+        "x-mint": {
+          "metadata": {
+            "title": "Execute Command over HTTP",
+            "sidebarTitle": "Execute Command"
+          }
+        }
       }
     },
     "/v1/sprites/{name}/exec/{session_id}/kill": {
