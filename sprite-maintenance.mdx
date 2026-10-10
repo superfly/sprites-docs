@@ -69,13 +69,17 @@ sprite exec -- printenv SPRITE_STORAGE_DRIVER
 
 If that prints `sbd`, you're already on the newer storage and there's nothing to do. Anything else, or nothing at all, means the Sprite hasn't been upgraded yet.
 
-To check a whole organization at once:
+To list the Sprites in an organization that still need the upgrade:
 
 ```bash
-sprite list -o my-org | while read -r s; do
-  printf '%s\t%s\n' "$s" "$(sprite exec -o my-org -s "$s" -- printenv SPRITE_STORAGE_DRIVER 2>/dev/null)"
+for s in $(sprite list -o my-org); do
+  d=$(sprite exec -o my-org -s "$s" -- sh -c 'echo $SPRITE_STORAGE_DRIVER')
+  [ "$d" = sbd ] || echo "$s"
 done
 ```
+
+Each check starts the Sprite if it isn't already running, so this takes a few seconds per
+Sprite. Anything it prints either needs the upgrade or couldn't be reached.
 
 You have two options for moving to the newer storage system. We recommend creating a new Sprite and copying your data over. This leaves your existing Sprite untouched, so you can switch back if something goes wrong. Upgrading in place is simpler, but carries more risk.
 
