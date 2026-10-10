@@ -43,3 +43,147 @@ sudo do-release-upgrade
 # upgrade installed packages to the new release
 sudo apt full-upgrade
 ```
+
+---
+
+## Storage Upgrades
+
+You can upgrade an existing Sprite with a newer storage system than the one it was created with. New Sprites already use it, but existing Sprites won't be upgraded automatically. You need to request the upgrade.
+
+After upgrading:
+
+- **Reads and writes get faster.** Frequently accessed data is cached on the host instead of fetched from object storage on every request.
+- **Checkpoints get faster.** Checkpoints mark a point in your disk's history instead of copying the disk, so they're quick to create and use very little additional space.
+- **Restores get faster.** Restoring a checkpoint takes about as long as restarting your Sprite, rather than waiting for a disk download.
+- **Fewer interruptions.** Short-lived storage problems are much less likely to reach your Sprite.
+
+You don't have to upgrade right away. Your Sprite will keep working on the older storage system, but new runtime versions increasingly target the newer one. Eventually, we'll retire the older storage system.
+
+### Checking whether a Sprite needs it
+
+To check which storage system your Sprite uses, run:
+
+```bash
+sprite exec -- sh -c 'echo $SPRITE_STORAGE_DRIVER'
+```
+
+If that prints `sbd`, you're already on the newer storage and there's nothing to do. Anything else, or nothing at all, means the Sprite hasn't been upgraded yet.
+
+To list the Sprites in an organization that still need the upgrade:
+
+```bash
+for s in $(sprite list -o my-org); do
+  d=$(sprite exec -o my-org -s "$s" -- sh -c 'echo $SPRITE_STORAGE_DRIVER')
+  [ "$d" = sbd ] || echo "$s"
+done
+```
+
+Each check starts the Sprite if it isn't already running, so this takes a few seconds per
+Sprite. Anything it prints either needs the upgrade or couldn't be reached.
+
+You have two options for moving to the newer storage system. We recommend creating a new Sprite and copying your data over. This leaves your existing Sprite untouched, so you can switch back if something goes wrong. Upgrading in place is simpler, but carries more risk.
+
+### Moving to a new Sprite
+
+Create a new Sprite, which already uses the newer storage system, and copy your data over. Your existing Sprite stays untouched, including its checkpoints. If something goes wrong or you're not happy with the result, you can keep using your original Sprite.
+
+The trade-off is that your new Sprite gets a different name and URL, and you'll need to recreate your services and configuration manually.
+
+Stop your services on the old Sprite first, then copy your data out and back in:
+
+```bash
+sprite create my-new-sprite
+
+sprite file pull -r -s my-sprite /home/sprite/app .
+sprite file push -r -s my-new-sprite ./app /home/sprite/app
+```
+
+Only the paths you name come across. To see what else you'll need to set up again:
+
+```bash
+sprite exec -s my-sprite -- sprite-env services list
+```
+
+Recreate each service on the new Sprite using `sprite-env services create`. You'll also need to copy over your environment variables and any other configuration.
+
+<Warning>
+**Your new Sprite might lose access to [connectors](/concepts/connectors).** Connector access policies match Sprites by name prefix or label, and deny access by default. Since your new Sprite has a different name and doesn't inherit labels, check that it matches the policies for any connectors it needs to access.
+
+Give it the same labels as the old Sprite, either when you create it or afterwards:
+
+```bash
+sprite create my-new-sprite --label github --label production
+```
+
+If the policy matched on name prefix instead, the new name has to match that prefix too, or you update the policy to include it.
+</Warning>
+
+Test the new Sprite while the original is still running. Once you're satisfied, update anything that uses the old Sprite's URL. Keep the original Sprite as a fallback for as long as you need it.
+
+### Upgrading in place
+
+This keeps the Sprite's name, URL and configuration. Your Sprite restarts once, and the first start afterwards is slower than usual while your disk is copied.
+
+<Warning>
+**Checkpoints taken before the upgrade won't come with you.** The upgrade copies your Sprite's current disk. Earlier [checkpoints](/concepts/checkpoints) stay behind — they aren't deleted, but they stop appearing in your checkpoint list and can't be restored.
+
+If something you need exists only inside an old checkpoint, restore it and copy the files out before you upgrade. Everything on your current disk comes across, so this affects your history, not your working state.
+</Warning>
+
+<Info>
+If your Sprite already uses the newer storage system, running the upgrade just updates the Sprite's runtime version. There's no data migration, but your Sprite will restart. If you're unsure which storage system your Sprite uses, you can run the upgrade without checking first.
+</Info>
+
+For extra peace of mind, you can back up important files to your local machine before upgrading:
+
+```bash
+sprite file pull -r -p -s my-sprite /home/sprite/app ./sprite-backup
+```
+
+Stop your services first if you can. Files copied while something is writing to them can be captured half-finished.
+
+Before upgrading, record your Sprite's current version. Once the upgrade is accepted, the version field shows the new version, and the previous one isn't recorded. You'll need the original version number if you want to roll back.
+
+```bash
+sprite api /v1/sprites/my-sprite -- --silent | jq -r .version
+```
+
+Take a checkpoint if you want a recent restore point, then run the upgrade:
+
+```bash
+sprite api -s my-sprite /upgrade -- \
+  -N -sS -X POST -H 'Content-Type: application/json' \
+  -d '{"allow_storage_migration": true}'
+```
+
+The command runs in the foreground and prints progress as each step completes, ending with a `completed` or `failed` event. The `-N` flag disables output buffering so you can see progress as it happens. Without it, you won't see any output until the upgrade finishes, which can take several minutes.
+
+The `allow_storage_migration` flag is required, and that's deliberate. Without it, an upgrade that would change your storage is refused. Routine upgrades never move you; only this explicit request does.
+
+<Info>
+If the response says `no upgrade is published for this sprite's release lane`, your Sprite is on a release line with nothing newer published to it yet, and nothing has happened. Upgrading it needs an explicit version, added to the request as `"version": "..."` alongside the flag.
+</Info>
+
+When your Sprite comes back, check that your application serves traffic, that your files are where you left them, and that a new checkpoint succeeds. Take that checkpoint once you're satisfied — it becomes your first restore point on the new storage.
+
+The upgrade copies your disk separately and switches to the new disk only at the final step. If the upgrade fails before that switch, your original disk remains untouched.
+
+If your Sprite doesn't restart successfully or something looks wrong afterward, stop writing to it. Additional writes can complicate recovery.
+
+### Rolling back
+
+To roll back, use the same upgrade command with the version you recorded earlier. You'll also need the same flag to bypass the storage compatibility check, which applies to both upgrades and rollbacks:
+
+```bash
+sprite api -s my-sprite /upgrade -- \
+  -N -sS -X POST -H 'Content-Type: application/json' \
+  -d '{"version": "THE-VERSION-YOU-WROTE-DOWN", "allow_storage_migration": true}'
+```
+
+You return to your disk as it was at the moment of the upgrade. Anything written after it doesn't come back with you, so the sooner you decide, the less you lose.
+
+<Info>
+Don't run the upgrade again after rolling back. A second upgrade reuses the disk copy from the first attempt instead of copying your current disk, so you'll lose any changes made since the rollback. If you still want to move to the newer storage system, create a new Sprite and copy your data over instead.
+
+If you've already run the upgrade again and files are missing, stop writing to the Sprite and contact Support. Your data hasn't been deleted; changes made between the two upgrades are still on the older storage system.
+</Info>
