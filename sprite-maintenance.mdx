@@ -64,7 +64,7 @@ You don't have to upgrade right away. Your Sprite will keep working on the older
 To check which storage system your Sprite uses, run:
 
 ```bash
-sprite exec -- printenv SPRITE_STORAGE_DRIVER
+sprite exec -- sh -c 'echo $SPRITE_STORAGE_DRIVER'
 ```
 
 If that prints `sbd`, you're already on the newer storage and there's nothing to do. Anything else, or nothing at all, means the Sprite hasn't been upgraded yet.
