@@ -9,7 +9,7 @@ Sprites are persistent. Everything you leave is there when you come back, includ
 
 ## OS Upgrades
 
-New Sprites run on a fresh install of Ubuntu 25.10. Older Sprites created with Ubuntu 25.04 must upgrade to continue receiving security and feature updates.
+New Sprites run on a fresh install of Ubuntu 26.04. Older Sprites created with Ubuntu 25.04 or 25.10 must upgrade to continue receiving security and feature updates.
 
 <Info>
 If you don't know what version of Ubuntu your Sprite currently runs, check with:
@@ -52,10 +52,9 @@ You can upgrade an existing Sprite with a newer storage system than the one it w
 
 After upgrading:
 
-- **Reads and writes get faster.** Frequently accessed data is cached on the host instead of fetched from object storage on every request.
+- **Fewer interruptions.** Short-lived storage problems are much less likely to reach your Sprite.
 - **Checkpoints get faster.** Checkpoints mark a point in your disk's history instead of copying the disk, so they're quick to create and use very little additional space.
 - **Restores get faster.** Restoring a checkpoint takes about as long as restarting your Sprite, rather than waiting for a disk download.
-- **Fewer interruptions.** Short-lived storage problems are much less likely to reach your Sprite.
 
 You don't have to upgrade right away. Your Sprite will keep working on the older storage system, but new runtime versions increasingly target the newer one. Eventually, we'll retire the older storage system.
 
@@ -94,9 +93,11 @@ Stop your services on the old Sprite first, then copy your data out and back in:
 ```bash
 sprite create my-new-sprite
 
-sprite file pull -r -s my-sprite /home/sprite/app .
-sprite file push -r -s my-new-sprite ./app /home/sprite/app
+rsync -a -e 'sprite exec -s my-sprite --stdin --' env:/home/sprite/app .
+rsync -a -e 'sprite exec -s my-new-sprite --stdin --' ./app env:/home/sprite/
 ```
+
+These commands use `rsync` over `sprite exec`. rsync expects a host name before each remote path, so `env:` stands in for one. It doesn't do anything. `env:/home/sprite/app` just means `/home/sprite/app` on the Sprite. If a copy is interrupted, run the same command again to pick up where it left off.
 
 Only the paths you name come across. To see what else you'll need to set up again:
 
@@ -137,8 +138,10 @@ If your Sprite already uses the newer storage system, running the upgrade just u
 For extra peace of mind, you can back up important files to your local machine before upgrading:
 
 ```bash
-sprite file pull -r -p -s my-sprite /home/sprite/app ./sprite-backup
+rsync -a -e 'sprite exec -s my-sprite --stdin --' env:/home/sprite/app ./sprite-backup
 ```
+
+As in [Moving to a new Sprite](#moving-to-a-new-sprite), `env:` is a placeholder for the host name rsync expects, and you can rerun the command to resume an interrupted copy.
 
 Stop your services first if you can. Files copied while something is writing to them can be captured half-finished.
 
