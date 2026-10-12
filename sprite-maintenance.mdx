@@ -123,7 +123,7 @@ Test the new Sprite while the original is still running. Once you're satisfied, 
 
 ### Upgrading in place
 
-This keeps the Sprite's name, URL and configuration. Your Sprite restarts once, and the first start afterwards is slower than usual while your disk is copied.
+This keeps the Sprite's name, URL and configuration. Your Sprite restarts once, and the first start afterwards is slower than usual while your disk is copied. After that, the first things you do with the Sprite, like running commands, reading files or sending requests to your app, are slow too while the new storage loads your data. How long this lasts varies from Sprite to Sprite.
 
 <Warning>
 **Checkpoints taken before the upgrade won't come with you.** The upgrade copies your Sprite's current disk. Earlier [checkpoints](/concepts/checkpoints) stay behind — they aren't deleted, but they stop appearing in your checkpoint list and can't be restored.
@@ -167,7 +167,7 @@ The `allow_storage_migration` flag is required, and that's deliberate. Without i
 If the response says `no upgrade is published for this sprite's release lane`, your Sprite is on a release line with nothing newer published to it yet, and nothing has happened. Upgrading it needs an explicit version, added to the request as `"version": "..."` alongside the flag.
 </Info>
 
-When your Sprite comes back, check that your application serves traffic, that your files are where you left them, and that a new checkpoint succeeds. Take that checkpoint once you're satisfied — it becomes your first restore point on the new storage.
+When your Sprite comes back, expect your first few commands to be slow. Then check that your application serves traffic, that your files are where you left them, and that a new checkpoint succeeds. Take that checkpoint once you're satisfied — it becomes your first restore point on the new storage.
 
 The upgrade copies your disk separately and switches to the new disk only at the final step. If the upgrade fails before that switch, your original disk remains untouched.
 
