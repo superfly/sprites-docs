@@ -11,33 +11,25 @@ Sprites uses your Fly.io account for authentication. This guide covers setting u
 The simplest way to authenticate:
 
 ```bash
-sprite org auth
+sprite login
 ```
 
-This opens a browser window to authenticate with Fly.io. Once complete, you're ready to use Sprites.
+This opens a browser window where you sign in to Fly.io and approve the CLI. Once complete, you're ready to use Sprites.
 
 ## Authentication Flow
 
 ### 1. Authenticate with Fly.io
 
-If you're already logged into `flyctl`, the Sprites CLI can use your existing session:
-
 ```bash
-sprite org auth
+sprite login
 ```
 
-If you're not logged in or encounter issues:
+This signs you in to Fly.io in the browser, then adds an API token for your organization. You don't need to be logged into `flyctl` first. If the browser doesn't open, open the link the command prints.
+
+To log in to a specific organization:
 
 ```bash
-# First, ensure you're logged into fly
-fly auth logout
-fly auth login
-
-# Verify your flyctl session works
-fly apps list
-
-# Then authenticate with Sprites
-sprite org auth
+sprite login -o my-team
 ```
 
 ### 2. Select an Organization
@@ -123,7 +115,7 @@ When using file-based storage, `~/.sprites/sprites.json` contains:
 
 ### Adding Organizations
 
-Add tokens for multiple organizations:
+After you log in with `sprite login`, add tokens for more organizations:
 
 ```bash
 # Add another organization
@@ -216,12 +208,7 @@ export SPRITES_API_URL="https://api.sprites.dev"  # Override API endpoint
 
 ```bash
 # Re-authenticate
-sprite org auth
-
-# If that fails, reset and try again
-fly auth logout
-fly auth login
-sprite org auth
+sprite login
 ```
 
 ### Token Not Found
@@ -236,7 +223,7 @@ sprite org keyring disable
 cat ~/.sprites/sprites.json | grep api_token
 
 # Re-authenticate if needed
-sprite org auth
+sprite login
 ```
 
 ### Browser Doesn't Open
@@ -253,8 +240,8 @@ If the authentication browser doesn't open automatically:
 If you get permission errors after authentication:
 
 1. Verify your Fly.io account has access to the organization
-2. Check that your `flyctl` session is valid: `fly apps list`
-3. Try re-authenticating: `sprite org auth`
+2. Check which organizations the CLI has tokens for: `sprite org list`
+3. Try re-authenticating: `sprite login`
 
 ## Security Best Practices
 
