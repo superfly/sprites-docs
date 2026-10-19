@@ -184,6 +184,39 @@ curl -X POST "https://api.sprites.dev/v1/oauth/connections/api_key" \
   -d '{ "provider": "openrouter", "api_key": "sk-or-v1-...", "access_policy": { "allow_all": true } }'
 ```
 
+### Create a Custom API connector
+
+Wraps any token-authenticated HTTP API. `name`, `base_api_url` and `access_token` are required; everything else is optional.
+
+```bash
+curl -X POST "https://api.sprites.dev/v1/oauth/connections/custom_api" \
+  -H "Authorization: Bearer $SPRITES_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "acme-api",
+    "base_api_url": "https://api.acme.example",
+    "access_token": "sk-live-...",
+    "auth_method": "header",
+    "auth_header_prefix": "Bearer",
+    "test_url": "https://api.acme.example/me",
+    "description": "Acme production account",
+    "access_policy": { "sprite_labels": ["acme"] }
+  }'
+```
+
+`auth_method` says where the credential goes on each provider request:
+
+| `auth_method` | Credential placement | Companion field |
+| --- | --- | --- |
+| `header` (default) | `Authorization: <prefix> <token>` | `auth_header_prefix`, default `Bearer` |
+| `url_path` | Substituted for `{token}` in a path segment after `base_api_url` | `auth_url_path_template` |
+| `query_param` | Appended as a query parameter | `auth_query_param_name`, default `api_key` |
+| `custom_header` | Sent as a header of your choosing | `auth_custom_header_name`, default `X-Api-Key` |
+
+The connector's `name` is its identity within your organization. Creating a second Custom API connector with the same name updates the existing one in place rather than adding another, so pick distinct names for distinct APIs.
+
+To check a credential before (or without) saving it, send the same body to `POST /v1/oauth/connections/custom_api/test`. The outcome comes back in the 200 response as `result.status` of `ok` or `error`. To change a saved connector, `PUT /v1/oauth/connections/custom_api/<id>` with only the fields you want to replace; a blank or omitted `access_token` keeps the stored credential.
+
 ### Enable a managed connector
 
 ```bash
