@@ -30,7 +30,7 @@ export function generateCommandsMdx(
   sections.push(`---
 sidebarTitle: Commands
 title: CLI Commands Reference
-og:description: Complete reference for all Sprites CLI commands
+description: "Reference for each sprite CLI command and flag: org, create, use, list, destroy, exec, console, checkpoint, restore, proxy and url, plus exit codes."
 ---
 
 Complete reference for all \`sprite\` CLI commands.
