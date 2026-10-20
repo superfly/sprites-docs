@@ -215,7 +215,9 @@ Use `auth_method` to specify how the connector sends the credential with each AP
 
 Custom API connector names are unique within your organization. If you create a custom API connector with a name that already exists, Sprites updates the existing connector instead of creating a new one. Use a different name for each API.
 
-To check a credential before (or without) saving it, send the same body to `POST /v1/oauth/connections/custom_api/test`. The outcome comes back in the 200 response as `result.status` of `ok` or `error`. To change a saved connector, `PUT /v1/oauth/connections/custom_api/<id>` with only the fields you want to replace; a blank or omitted `access_token` keeps the stored credential.
+You can test a credential without saving the connector. Send the same request body to `POST /v1/oauth/connections/custom_api/test`. The endpoint returns HTTP 200 with `result.status` set to `ok` or `error`.
+
+To update an existing connector, send a `PUT` request to `/v1/oauth/connections/custom_api/<id>` with the fields you want to change. Leave `access_token` blank or omit it to keep the existing credential.
 
 ### Enable a managed connector
 
