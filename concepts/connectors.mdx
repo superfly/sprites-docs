@@ -186,7 +186,7 @@ curl -X POST "https://api.sprites.dev/v1/oauth/connections/api_key" \
 
 ### Create a custom API connector
 
-Wraps any token-authenticated HTTP API. `name`, `base_api_url` and `access_token` are required; everything else is optional.
+Use a custom API connector to give your Sprites access to an HTTP API that authenticates with a token. You need to provide `name`, `base_api_url`, and `access_token`. The other fields are optional.
 
 ```bash
 curl -X POST "https://api.sprites.dev/v1/oauth/connections/custom_api" \
