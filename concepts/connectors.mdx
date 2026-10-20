@@ -206,7 +206,7 @@ curl -X POST "https://api.sprites.dev/v1/oauth/connections/custom_api" \
 
 Use `auth_method` to specify how the connector sends the credential with each API request:
 
-| `auth_method` | Credential placement | Companion field |
+| `auth_method` | How the credential is sent | Companion field |
 | --- | --- | --- |
 | `header` (default) | `Authorization: <prefix> <token>` | `auth_header_prefix`, default `Bearer` |
 | `url_path` | Substituted for `{token}` in a path segment after `base_api_url` | `auth_url_path_template` |
