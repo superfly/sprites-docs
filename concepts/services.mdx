@@ -1,6 +1,6 @@
 ---
 title: Services
-og:description: "Processes the Sprite runtime starts at boot, restarts when they crash, and can wire to your Sprite's URL"
+description: "Create Sprite services with sprite-env so processes start at boot, restart on crash and wake on requests via --http-port. Covers logs and dependencies."
 ---
 
 A Sprite pauses when nothing is using it, and processes don't reliably survive the trip. A warm wake resumes them where they left off; a cold boot drops them entirely. Anything you started by hand in a shell, a dev server, a database, an agent, is gone after a cold wake unless something brings it back.

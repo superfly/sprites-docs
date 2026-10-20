@@ -1,6 +1,6 @@
 ---
 title: Checkpoints
-og:description: "Save a Sprite's filesystem at a point in time and roll back to it later. The deliberate save point that complements automatic persistence"
+description: "Snapshot a Sprite's filesystem with sprite checkpoint create, roll back with sprite restore, browse old versions in /.sprite/checkpoints, and prune them."
 ---
 
 Persistence keeps your filesystem across pauses on its own: you don't ask for it, and it's always there. A checkpoint is the other half. It's a save point you create on purpose, a snapshot of the filesystem at one moment that you can return to later.

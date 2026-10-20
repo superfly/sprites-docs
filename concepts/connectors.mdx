@@ -1,6 +1,6 @@
 ---
 title: Connectors
-og:description: Give Sprites access to external APIs without putting provider credentials inside the Sprite
+description: "Let Sprites call GitHub, OpenRouter or any HTTP API through the Sprites gateway without holding the token, using deny-by-default access policies."
 ---
 
 A Sprite that needs to talk to GitHub, OpenRouter, or another HTTP API runs into the same problem: where does the credential live? Pasting a token into the Sprite's environment works, but every Sprite that needs that token now holds a copy of a long-lived secret. Rotating it means touching every Sprite. Auditing access means reading process environments. Revoking it for one Sprite means revoking it for all of them.
