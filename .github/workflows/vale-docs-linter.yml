@@ -20,6 +20,11 @@ jobs:
         id: changed-files
         uses: tj-actions/changed-files@v46.0.5
         with:
+          # Emit the list as a JSON array, which is the one shape vale-action
+          # parses without a separator. escape_json defaults to true, which
+          # backslash-escapes the quotes and makes the array unparseable.
+          json: true
+          escape_json: false
           files: |
             **/*.{md,mdx}
             *.{md,mdx}
@@ -29,14 +34,12 @@ jobs:
         if: steps.changed-files.outputs.any_changed == 'true'
         uses: errata-ai/vale-action@reviewdog
         with:
-          # tj-actions/changed-files emits a space-separated list, so telling the
-          # action it is comma-separated made it pass Vale one argument holding
-          # every path joined by spaces. That is a valid path only when a PR
-          # changed exactly one file, so the check silently skipped every larger
-          # one: Vale answers an unmatched path with an empty result and exit 0.
-          # See docs-tracking#375.
+          # vale-action reads this input one of three ways: a single existing
+          # path, a JSON array, or a string split on 'separator'. It trims
+          # 'separator', so a space can't be passed that way, and an unparseable
+          # value makes it lint the whole repo instead. A JSON array is the only
+          # shape that reliably means "these files". See docs-tracking#375.
           files: ${{ steps.changed-files.outputs.all_changed_and_modified_files }}
-          separator: " "
           # added, diff_context, file, nofilter
           filter_mode: file
           # github-pr-check, github-pr-review, github-check
