@@ -26,8 +26,12 @@ jobs:
         if: steps.changed-files.outputs.any_changed == 'true'
         uses: errata-ai/vale-action@reviewdog
         with:
+          # tj-actions/changed-files emits a space-separated list. Telling the
+          # action it is comma-separated made it pass Vale one argument holding
+          # every path, which Vale answers with an empty result and exit 0, so
+          # this check reported nothing at all. See docs-tracking#375.
           files: ${{ steps.changed-files.outputs.all_changed_and_modified_files }}
-          separator: ","
+          separator: " "
           # added, diff_context, file, nofilter
           filter_mode: file
           # github-pr-check, github-pr-review, github-check
