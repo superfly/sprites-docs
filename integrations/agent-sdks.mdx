@@ -1,6 +1,6 @@
 ---
 title: SDKs and frameworks
-description: "Run agents in Sprites with adapters for Hugging Face OpenEnv, Google ADK, OpenAI Agents SDK, OpenRouter Agent SDK and TanStack AI, with runnable examples."
+description: "Run agents in Sprites with adapters for Hugging Face OpenEnv, Google ADK, OpenAI Agents SDK, OpenRouter Agent SDK, Pydantic AI and TanStack AI, with runnable examples."
 ---
 
 These adapters let an application use Sprites as the execution environment for an agent.
@@ -199,6 +199,43 @@ node sprite-agent.mjs
 A successful run prints the agent's report of the sandbox's working directory.
 
 `workspace.close()` releases adapter-local resources but preserves the Sprite. `workspace.destroy()` is the explicit infrastructure deletion operation.
+
+## Pydantic AI
+
+Pydantic AI Harness includes a `SpritesSandbox` capability that runs an agent's shell commands and file edits in a persistent Sprite. It requires Python 3.11 or newer.
+
+```sh
+pip install "pydantic-ai-harness[sprites,anthropic]"
+export SPRITE_TOKEN='...'
+export ANTHROPIC_API_KEY='...'
+```
+
+The `anthropic` extra is only for the example model. Swap it for your model provider's extra.
+
+Save this as `sprite_agent.py`. It gives the agent the harness's coding tools and asks it to report its working directory:
+
+```python
+from pydantic_ai import Agent
+from pydantic_ai_harness.coder import Coder
+from pydantic_ai_harness.sprites_sandbox import SpritesSandbox
+
+agent = Agent('anthropic:claude-opus-5-5', capabilities=[SpritesSandbox(), Coder()])
+result = agent.run_sync('Run pwd in the sandbox and report the working directory.')
+print(result.output)
+print(result.workspace.ref)
+```
+
+Run it with:
+
+```sh
+python sprite_agent.py
+```
+
+A successful run prints the agent's report of the sandbox's working directory, then the Sprite's workspace ref.
+
+Pydantic AI never deletes the Sprite. It sleeps when idle and keeps its files until you delete it. Store `result.workspace.ref` to reattach later with `workspace=ref`, or delete the Sprite with `await SpritesSandbox().destroy(ref)`.
+
+See the [Pydantic AI Sprites sandbox documentation](https://pydantic.dev/docs/ai/harness/sprites-sandbox/) for reattaching, cleanup after failed runs, durable execution, and configuration options.
 
 ## TanStack AI
 
