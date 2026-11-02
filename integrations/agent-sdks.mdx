@@ -205,12 +205,12 @@ A successful run prints the agent's report of the sandbox's working directory.
 Pydantic AI Harness includes a `SpritesSandbox` capability that runs an agent's shell commands and file edits in a persistent Sprite. It requires Python 3.11 or newer.
 
 ```sh
-pip install "pydantic-ai-harness[sprites,anthropic]"
+pip install "pydantic-ai-harness[sprites,coder,anthropic]"
 export SPRITE_TOKEN='...'
 export ANTHROPIC_API_KEY='...'
 ```
 
-The `anthropic` extra is only for the example model. Swap it for your model provider's extra.
+The `coder` extra is needed for `Coder()`. The `anthropic` extra is only for the example model. Swap it for your model provider's extra.
 
 Save this as `sprite_agent.py`. It gives the agent the harness's coding tools and asks it to report its working directory:
 
