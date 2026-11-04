@@ -184,6 +184,41 @@ curl -X POST "https://api.sprites.dev/v1/oauth/connections/api_key" \
   -d '{ "provider": "openrouter", "api_key": "sk-or-v1-...", "access_policy": { "allow_all": true } }'
 ```
 
+### Create a custom API connector
+
+Use a custom API connector to give your Sprites access to an HTTP API that authenticates with a token. You need to provide `name`, `base_api_url`, and `access_token`. The other fields are optional.
+
+```bash
+curl -X POST "https://api.sprites.dev/v1/oauth/connections/custom_api" \
+  -H "Authorization: Bearer $SPRITES_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "acme-api",
+    "base_api_url": "https://api.acme.example",
+    "access_token": "sk-live-...",
+    "auth_method": "header",
+    "auth_header_prefix": "Bearer",
+    "test_url": "https://api.acme.example/me",
+    "description": "Acme production account",
+    "access_policy": { "sprite_labels": ["acme"] }
+  }'
+```
+
+Use `auth_method` to specify how the connector sends the credential with each API request:
+
+| `auth_method` | How the credential is sent | Companion field |
+| --- | --- | --- |
+| `header` (default) | `Authorization: <prefix> <token>` | `auth_header_prefix`, default `Bearer` |
+| `url_path` | Substituted for `{token}` in a path segment after `base_api_url` | `auth_url_path_template` |
+| `query_param` | Appended as a query parameter | `auth_query_param_name`, default `api_key` |
+| `custom_header` | Sent as a header of your choosing | `auth_custom_header_name`, default `X-Api-Key` |
+
+Custom API connector names are unique within your organization. If you create a custom API connector with a name that already exists, Sprites updates the existing connector instead of creating a new one. Use a different name for each API.
+
+You can test a credential without saving the connector. Send the same request body to `POST /v1/oauth/connections/custom_api/test`. The endpoint returns HTTP 200 with `result.status` set to `ok` or `error`.
+
+To update an existing connector, send a `PUT` request to `/v1/oauth/connections/custom_api/<id>` with the fields you want to change. Leave `access_token` blank or omit it to keep the existing credential.
+
 ### Enable a managed connector
 
 ```bash
