@@ -63,7 +63,7 @@ The environment key is returned only once, when the environment is created. Stor
 ```bash
 sprite create --skip-console gemini-byos
 
-sprite exec -s gemini-byos -- bash -c \
+sprite exec -s gemini-byos --no-stdin -- bash -c \
   "curl -fsSL https://raw.githubusercontent.com/google-gemini/gemini-api-cli/main/scripts/install.sh | bash"
 ```
 
@@ -72,7 +72,7 @@ sprite exec -s gemini-byos -- bash -c \
 Write the key to a file only your user can read. The connector service reads it from there, so the key never appears in a command line or process listing.
 
 ```bash
-sprite exec -s gemini-byos --env "GEMINI_ENVIRONMENT_KEY=$GEMINI_ENVIRONMENT_KEY" -- bash -c \
+sprite exec -s gemini-byos --no-stdin --env "GEMINI_ENVIRONMENT_KEY=$GEMINI_ENVIRONMENT_KEY" -- bash -c \
   'umask 077; printf "GEMINI_ENVIRONMENT_KEY=%s\n" "$GEMINI_ENVIRONMENT_KEY" > ~/.gemini-env'
 ```
 
@@ -83,7 +83,7 @@ You can run `gemini-api environments connect` directly with `sprite exec`, but i
 Write the start script:
 
 ```bash
-sprite exec -s gemini-byos -- bash -c 'cat > ~/gemini-connect.sh <<"EOF"
+sprite exec -s gemini-byos --no-stdin -- bash -c 'cat > ~/gemini-connect.sh <<"EOF"
 #!/usr/bin/env bash
 set -a; . "$HOME/.gemini-env"; set +a
 export PATH="$HOME/.local/bin:$PATH"
@@ -104,7 +104,7 @@ chmod +x ~/gemini-connect.sh'
 Then create the service:
 
 ```bash
-sprite exec -s gemini-byos -- \
+sprite exec -s gemini-byos --no-stdin -- \
   sprite-env services create gemini-connect --cmd /home/sprite/gemini-connect.sh
 ```
 
