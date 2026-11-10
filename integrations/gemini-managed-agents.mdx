@@ -8,9 +8,7 @@ description: "Run Gemini API Managed Agents shell and file tools in a Sprite wit
   Sources: Google's Fly example (google-gemini/gemini-api-cli, docs/self-hosted/providers/fly-machines)
   and their self-hosted README.
   Open items before merge:
-  - TODO(test): Sprite side tested 10 Nov on a Sprites 2.0 Sprite (install, key file, service, HOME,
-    keep-awake hold and release). connect itself untested: needs a key with Managed Agents enabled.
-  - Uses sprite-env keep-awake, which only Sprites 2.0 has. Sprites 1.0 used the Tasks API instead.
+  - TODO(test): nothing here has been run. Needs a Gemini API key with Managed Agents enabled.
   - TODO(links): swap the GitHub self-hosted README for an ai.google.dev page if one goes live at launch.
   - TODO(image): header image, ask Annie.
 */}
@@ -86,7 +84,7 @@ sprite exec -s gemini-self-hosted --no-stdin --env "GEMINI_ENVIRONMENT_KEY=$GEMI
 
 ### Run the worker as a service
 
-You can run `gemini-api environments connect` directly with `sprite exec`, but it stops when that command ends. The Sprite also [pauses](/concepts/lifecycle) when it goes idle, and outbound polling doesn't count as activity, so a paused Sprite stops picking up work. Run the worker as a Sprite [service](/concepts/services) instead, so it restarts if it crashes. A service alone doesn't keep a Sprite awake, so the start script also renews `sprite-env keep-awake` while the worker runs.
+You can run `gemini-api environments connect` directly with `sprite exec`, but it stops when that command ends. The Sprite also [pauses](/concepts/lifecycle) when it goes idle, and outbound polling doesn't count as activity, so a paused Sprite stops picking up work. Run the worker as a Sprite [service](/concepts/services) instead, so it restarts if it crashes, and have it hold a [Task](/keeping-sprites-running) so the Sprite stays active while the worker runs.
 
 Write the start script. It gives the agent `~/workspace` as its working directory; without `--root-dir` and `--workdir`, the worker uses whatever directory it starts in.
 
@@ -97,13 +95,13 @@ set -a; . "$HOME/.gemini-env"; set +a
 export PATH="$HOME/.local/bin:$PATH"
 mkdir -p "$HOME/workspace"
 
-# Keep the Sprite awake: hold for 5 minutes, renewed every minute.
+# Hold the Sprite active: a 5-minute task, refreshed every minute.
 ( while true; do
-    sprite-env keep-awake --for 5m >/dev/null 2>&1
+    sprite-env curl -X PUT /v1/tasks/gemini-connect -d "{\"expire\": \"5m\"}" >/dev/null 2>&1
     sleep 60
   done ) &
 heartbeat=$!
-trap "kill $heartbeat 2>/dev/null; sprite-env keep-awake --release >/dev/null 2>&1" EXIT
+trap "kill $heartbeat 2>/dev/null; sprite-env curl -X DELETE /v1/tasks/gemini-connect >/dev/null 2>&1" EXIT
 
 gemini-api environments connect --root-dir "$HOME/workspace" --workdir "$HOME/workspace"
 EOF
@@ -117,10 +115,12 @@ sprite exec -s gemini-self-hosted --no-stdin -- \
   sprite-env services create gemini-connect --cmd /home/sprite/gemini-connect.sh
 ```
 
+{/* TODO(test): confirm services run with HOME=/home/sprite so the install path and ~/.gemini-env resolve. */}
+
 The worker's output goes to `/.sprite/logs/services/gemini-connect.log`.
 
 <Info>
-A connected Sprite stays active the whole time the worker runs, including while it waits for work, and an active Sprite is billed for compute. To stop billing between uses, stop the service with `sprite-env services stop gemini-connect` (the Sprite then pauses) and start it again with `sprite-env services start gemini-connect` when you need it. If the worker crashes without cleaning up, the hold lapses within five minutes and the Sprite can pause.
+A connected Sprite stays active the whole time the worker runs, including while it waits for work, and an active Sprite is billed for compute. To stop billing between uses, stop the service with `sprite-env services stop gemini-connect` (the Sprite then pauses) and start it again with `sprite-env services start gemini-connect` when you need it. If the worker crashes without cleaning up, the task expires within five minutes and the Sprite can pause.
 </Info>
 
 ## Run an interaction
@@ -175,7 +175,7 @@ fly apps destroy "$FLY_APP" --yes
 
 | Symptom | Likely cause | Check / fix |
 |---|---|---|
-| Interactions hang, then time out | The worker isn't running, or the Sprite paused | `sprite exec -s gemini-self-hosted -- sprite-env services list` should show `gemini-connect` running. `sprite-env keep-awake status` should show a `keep_awake_until_ms` value, not `null`. |
+| Interactions hang, then time out | The worker isn't running, or the Sprite paused | `sprite exec -s gemini-self-hosted -- sprite-env services list` should show `gemini-connect` running. `sprite-env curl -s /v1/tasks` should show the `gemini-connect` task with a future `expires_at`. |
 | The worker exits right after it starts | The environment key is wrong, or `~/.gemini-env` is missing | Read `/.sprite/logs/services/gemini-connect.log`. |
 | `gemini-api: command not found` in the log | The CLI install failed, or it installed somewhere other than `~/.local/bin` | Rerun the install step and check its output. |
 
@@ -185,3 +185,4 @@ fly apps destroy "$FLY_APP" --yes
 - [Google's Fly.io example](https://github.com/google-gemini/gemini-api-cli/tree/main/docs/self-hosted/providers/fly-machines): the minimal version of this setup.
 - [Claude Managed Agents](/integrations/claude-managed-agents): the same idea for Anthropic's Managed Agents.
 - [Services](/concepts/services): supervised long-running processes inside a Sprite.
+- [Keeping Sprites running](/keeping-sprites-running): the Tasks API and the heartbeat pattern.
