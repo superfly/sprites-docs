@@ -8,6 +8,8 @@ Complete reference for all `sprite` CLI commands.
 
 {/* AUTO-GENERATED-CONTENT:START - Do not edit this section */}
 
+
+
 ## Authentication Commands
 
 ### `sprite login`
@@ -21,12 +23,14 @@ sprite login [flags] [api-url]
 **Options:**
 - `-o, --org <name>` - Specify organization
 - `-s, --sprite <name>` - Specify sprite
+- `--force` - Skip the "already logged in" confirmation prompt
 - `-h, --help` - Show this help message
 
 **Examples:**
 ```bash
 sprite login
 sprite login -o my-org
+sprite login --force                # add another account without prompting
 sprite login https://custom-api.sprites.dev
 Related Commands:
 sprite auth --help      Non-interactive token setup (CI/CD)
@@ -217,16 +221,19 @@ sprite list [flags]
 - `-s, --sprite <name>` - Specify sprite
 - `-w, --watch` - Watch for live updates
 - `--prefix <prefix>` - Filter sprites by name prefix
+- `--json` - Output sprite and organization details as JSON
 - `-h, --help` - Show this help message
 
 > Lists all sprites in the selected organization.
 > Use --prefix to filter sprites by name prefix.
+> --json cannot be combined with --watch.
 
 **Examples:**
 ```bash
 sprite list
 sprite list -o myorg
 sprite list --prefix dev
+sprite --json list | jq '.sprites[].name'
 ```
 
 ### `sprite destroy`
@@ -273,17 +280,25 @@ sprite exec [flags] -- <command> [args...]
 - `--tty` - Allocate pseudo-TTY
 - `--env <vars>` - Environment variables (KEY=value,KEY2=value2)
 - `--http-post` - Use HTTP/1.1 POST instead of WebSockets (non-TTY only)
+- `--stdin` - Read and forward stdin (non-TTY only)
+- `--no-stdin` - Do not read or forward stdin (non-TTY only)
 - `--no-port-forward` - Disable automatic local port forwarding for ports opened by the command
 - `--file <source:dest>` - Upload file before exec (repeatable)
 - `-h, --help` - Show this help message
 
 > When using --tty, terminal environment variables (TERM, COLORTERM, LANG,
 > LC_ALL) are automatically passed through from your local environment.
+> Piped stdin continues to be forwarded when neither stdin flag is supplied,
+> but this compatibility mode cannot reconnect safely after a connection loss.
+> Use --stdin to make input forwarding explicit or --no-stdin to keep
+> output-only commands reconnectable.
 > Use 'sprite sessions' to list, attach to, or kill running sessions.
 
 **Examples:**
 ```bash
 sprite exec -- ls -la
+sprite exec --no-stdin -- sh -c 'run-output-only-job'
+printf 'hello' | sprite exec --stdin -- cat
 sprite exec --dir /app -- echo hello world
 sprite exec --env KEY=value,FOO=bar -- env
 sprite exec --tty -- /bin/bash
@@ -540,6 +555,7 @@ sprite upgrade --force          # Force upgrade even if up to date
 sprite upgrade --channel dev    # Switch to the dev channel
 sprite upgrade --channel rc     # Switch to the rc channel
 ```
+
 
 {/* AUTO-GENERATED-CONTENT:END */}
 
