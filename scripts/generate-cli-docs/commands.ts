@@ -68,6 +68,35 @@ export const commands: CommandDefinition[] = [
     helpCommand: ['sprite', 'auth', 'setup', '--help'],
   },
 
+  {
+    name: 'sprite org set-default',
+    category: 'authentication',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite org keyring status',
+    category: 'authentication',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite auth migrate',
+    category: 'authentication',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite keyring',
+    category: 'authentication',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+
   // Sprite Management Commands
   {
     name: 'sprite create',
@@ -105,6 +134,49 @@ export const commands: CommandDefinition[] = [
     skipTest: true,
   },
 
+  {
+    name: 'sprite info',
+    category: 'sprite-management',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite config',
+    category: 'sprite-management',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite config update',
+    category: 'sprite-management',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite file edit',
+    category: 'sprite-management',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite file push',
+    category: 'sprite-management',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite file pull',
+    category: 'sprite-management',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+
   // Command Execution
   {
     name: 'sprite exec',
@@ -125,6 +197,36 @@ export const commands: CommandDefinition[] = [
     requiresSprite: true,
     requiresAuth: true,
     skipTest: true, // Interactive
+  },
+
+  {
+    name: 'sprite attach',
+    category: 'command-execution',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite sessions list',
+    aliases: ['sprite s list'],
+    category: 'command-execution',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite sessions attach',
+    category: 'command-execution',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
+  },
+  {
+    name: 'sprite sessions kill',
+    category: 'command-execution',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
   },
 
   // Checkpoints
@@ -223,6 +325,13 @@ export const commands: CommandDefinition[] = [
       args: ['sprite', 'upgrade', '--check'],
       expectSuccess: true,
     },
+  },
+  {
+    name: 'sprite completion',
+    category: 'utility',
+    requiresSprite: false,
+    requiresAuth: false,
+    skipTest: true, // Help output only
   },
 ];
 
