@@ -1,111 +1,177 @@
 ---
-title: Gemini Managed Agents
-description: "Run Gemini API Managed Agents tool calls in a per-session Sprite: bring your own sandbox, a worker, Tasks keep-alive and cleanup."
+title: Gemini API Managed Agents
+description: "Run Gemini API Managed Agents shell and file tools in a Sprite with Bring Your Own Sandbox: create an environment, connect a Sprite, keep it running."
 ---
 
 {/*
-  SCAFFOLD. Modeled on integrations/claude-managed-agents.mdx.
-  Fill every TODO from Gemini's Bring Your Own Sandbox guide before merging.
-  Sections marked "carries over" are Sprites behavior and should only need
-  names changed. Header image and lifecycle diagrams: TODO, ask Annie.
+  DRAFT for the Gemini BYOS launch. Source: Mariano Cocirio's guide, emailed 10 Nov 2026.
+  Open items before merge:
+  - TODO(links): Gemini overview and BYOS docs URLs, live at launch.
+  - TODO(test): nothing here has been run. Needs the gemini-api CLI (repo not public yet)
+    and a key with Managed Agents enabled.
+  - TODO(confirm): does `environments connect` need to stay up between interactions?
+    The keep-alive section assumes yes.
+  - TODO(image): header image, ask Annie.
 */}
 
-{/* TODO: Gemini's product name, overview URL, and BYOS guide URL. Confirm they are live at launch. */}
-[Gemini API Managed Agents](TODO) let Google run the agent loop and the model while the agent's tools (the filesystem it reads and writes, the commands it runs) execute in a sandbox you control. With [Bring Your Own Sandbox](TODO), you run each session inside a Sprite, so the agent's code, filesystem, and network egress never leave your infrastructure.
+[Gemini API Managed Agents](TODO) run the agent loop and the model on Google's side. With [Bring Your Own Sandbox](TODO), the agent's shell and file tools execute in a sandbox you control instead. Connect a Sprite as that sandbox and the agent's commands, filesystem, and network egress stay on a Firecracker microVM in your Fly.io organization.
 
 ## How it works
 
-{/* TODO: confirm Gemini's model matches: queue of work items, a worker claims each, a runner in the sandbox executes tools and reports results. Rewrite to Gemini's terms. */}
-When a session is assigned to your sandbox, Gemini queues a work item. A worker you run claims the item and starts a per-session Sprite that runs Gemini's tool runner. Tool inputs and outputs flow back to Gemini so the model can see results; everything the tools touch stays in the Sprite.
+You create a self-hosted environment in the Gemini API. A Sprite runs the `gemini-api` CLI's connector, which links the Sprite to that environment using an environment key. When you send the agent an interaction that targets the environment, its tool calls run inside the Sprite and the results go back to Gemini.
 
-{/* TODO: Alex says the environment key works much the same way. Confirm the credential name and that the main Gemini API key never needs to reach the Sprite. */}
-The runner authenticates with an **environment key**, the only credential it needs. Your Gemini API key never reaches the Sprite.
+The connector authenticates with the **environment key** only. Your Gemini API key stays on your own machine and never reaches the Sprite.
 
 ## Before you begin
 
 You need:
 
-- A **Gemini API key** (`GEMINI_API_KEY`?) to set up the sandbox and start sessions. It stays off the Sprite. {/* TODO: env var name */}
-- A **Sprites API token** (`org-slug/org-id/token-id/token-value`). Export it as `SPRITE_TOKEN`.
-- A **Gemini managed agent**. {/* TODO: link to Gemini's quickstart; what ID to note */}
-- A **worker runtime** on the worker host. {/* TODO: languages and packages Gemini's SDK supports */}
-
-## Set up the environment
-
-### Register your sandbox
-
-{/* TODO: Gemini's API call or console steps to register a self-hosted sandbox. Note what ID it returns. */}
+- A **Gemini API key** with access to Managed Agents, exported as `GEMINI_API_KEY`.
+- The **`gemini-api` CLI** on your local machine, to send interactions. {/* TODO: local install command */}
+- The **`sprite` CLI**, installed and logged in:
 
 ```bash
-# TODO
+curl -fsSL https://sprites.dev/install.sh | sh
+sprite login
 ```
 
-### Generate an environment key
-
-{/* TODO: where the key is generated, and the env vars the worker reads */}
+## Create a self-hosted environment
 
 ```bash
-export TODO_ENVIRONMENT_ID="..."
-export TODO_ENVIRONMENT_KEY="..."
+curl -fsSL -X POST \
+  "https://generativelanguage.googleapis.com/v1beta/environments" \
+  -H "x-goog-api-key: $GEMINI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "self_hosted"}'
 ```
 
-## Run the worker
+Export the environment ID and key from the response:
 
-### Spawn a Sprite per session
+```bash
+export GEMINI_ENVIRONMENT_ID="environments/..."
+export GEMINI_ENVIRONMENT_KEY="ek_..."
+```
 
-{/* Carries over from the Claude page. Swap the runner, the SDK install, and the env var names. */}
-The worker creates a Sprite, uploads Gemini's runner, installs the SDK, and launches it as a Sprite [service](/concepts/services) rather than a detached `nohup` process. A service is supervised: the Sprite owns it, so it survives beyond the request that created it and is restored on wake. Because a service that exits is otherwise restarted, the one-shot worker stops itself on completion so it is not brought back up.
+<Warning>
+The environment key is returned only once, when the environment is created. Store it somewhere safe.
+</Warning>
 
-The environment variables are written to a file the service sources rather than passed as service arguments, so the environment key never appears in process listings. The service deletes the file right after sourcing it, so the key isn't left on the Sprite's disk.
+## Connect a Sprite
+
+### Create the Sprite and install the CLI
+
+```bash
+sprite create --skip-console gemini-byos
+
+sprite exec -s gemini-byos -- bash -c \
+  "curl -fsSL https://raw.githubusercontent.com/google-gemini/gemini-api-cli/main/scripts/install.sh | bash"
+```
+
+### Store the environment key
+
+Write the key to a file only your user can read. The connector service reads it from there, so the key never appears in a command line or process listing.
+
+```bash
+sprite exec -s gemini-byos --env "GEMINI_ENVIRONMENT_KEY=$GEMINI_ENVIRONMENT_KEY" -- bash -c \
+  'umask 077; printf "GEMINI_ENVIRONMENT_KEY=%s\n" "$GEMINI_ENVIRONMENT_KEY" > ~/.gemini-env'
+```
+
+### Run the connector as a service
+
+You can run `gemini-api environments connect` directly with `sprite exec`, but it stops when that command ends, and the Sprite [pauses](/concepts/lifecycle) when it goes idle. A connector only makes outbound connections, so the Sprite has no inbound traffic to keep it awake. Run the connector as a Sprite [service](/concepts/services) instead, so it restarts if it crashes, and have it hold a [Task](/keeping-sprites-running) so the Sprite stays active while it is connected.
+
+Write the start script:
+
+```bash
+sprite exec -s gemini-byos -- bash -c 'cat > ~/gemini-connect.sh <<"EOF"
+#!/usr/bin/env bash
+set -a; . "$HOME/.gemini-env"; set +a
+export PATH="$HOME/.local/bin:$PATH"
+
+# Hold the Sprite active: a 5-minute task, refreshed every minute.
+( while true; do
+    sprite-env curl -X PUT /v1/tasks/gemini-connect -d "{\"expire\": \"5m\"}" >/dev/null 2>&1
+    sleep 60
+  done ) &
+heartbeat=$!
+trap "kill $heartbeat 2>/dev/null; sprite-env curl -X DELETE /v1/tasks/gemini-connect >/dev/null 2>&1" EXIT
+
+gemini-api environments connect
+EOF
+chmod +x ~/gemini-connect.sh'
+```
+
+Then create the service:
+
+```bash
+sprite exec -s gemini-byos -- \
+  sprite-env services create gemini-connect --cmd /home/sprite/gemini-connect.sh
+```
+
+{/* TODO(test): confirm services run with HOME=/home/sprite so the install path and ~/.gemini-env resolve. */}
+
+The connector's output goes to `/.sprite/logs/services/gemini-connect.log`.
 
 <Info>
-A service is supervised, but it does not hold the Sprite in an active state: once a session is underway the runner takes no inbound traffic, so a bare service counts as quiet and the [Sprite would pause](/concepts/lifecycle) after a short idle window, stalling a long session mid-turn. That is why the service command registers a [Task](/keeping-sprites-running) and heartbeats it while the runner works: the task holds the Sprite active for the length of the session, and its short expiry is the crash-safety net that lets the Sprite pause again if the runner dies without cleaning up.
+While the connector runs, the task keeps the Sprite active, and an active Sprite is billed for compute. To stop billing between uses, stop the service with `sprite-env services stop gemini-connect` and start it again when you need it. If the connector crashes without cleaning up, the task expires within five minutes and the Sprite can pause.
 </Info>
 
-{/* TODO: sprite_sandbox code. Start from the Claude page's spawn() and find_live(): keep the Sprites API calls, the env-file pattern, and the Task heartbeat service command; replace RUNNER_SRC, the pip package, the env var names, and the Sprite name prefix (gemini-agent-). Python first; add TypeScript only if there's time to test it. */}
+## Run an interaction
 
-```python Python expandable
-# sprite_sandbox.py
-# TODO
+From your local machine, send the agent an interaction that targets your environment:
+
+```bash
+gemini-api agent run \
+  "Create hello.txt and run uname -a in bash." \
+  --agent antigravity-preview-05-2026 \
+  --body "{\"environment\": \"$GEMINI_ENVIRONMENT_ID\"}"
 ```
 
-### Claim work items
+The agent's commands run on the Sprite, and `hello.txt` stays on its disk.
 
-{/* TODO: Gemini's poller or webhook API. Note the lease/auto-stop equivalent: the poller must not release the item out from under the Sprite. */}
+{/* TODO(test): which directory does hello.txt land in? */}
 
-```python Python expandable
-# sprites_poller.py
-# TODO
+## Use a Fly Machine instead
+
+To use a plain [Fly Machine](https://fly.io/docs/machines/) instead of a Sprite, store the key as an app secret rather than passing it with `-e`. That keeps it out of the Machine's config:
+
+```bash
+export FLY_APP="your-fly-app"
+fly apps create "$FLY_APP" || true
+fly secrets set -a "$FLY_APP" --stage GEMINI_ENVIRONMENT_KEY="$GEMINI_ENVIRONMENT_KEY"
+
+fly machine run ubuntu:24.04 -a "$FLY_APP" -- bash -c \
+  "apt-get update && apt-get install -y curl ca-certificates && \
+   curl -fsSL https://raw.githubusercontent.com/google-gemini/gemini-api-cli/main/scripts/install.sh | bash && \
+   PATH=\"\$HOME/.local/bin:\$PATH\" gemini-api environments connect"
 ```
 
-## Start a session
+{/* TODO(test): confirm a staged secret reaches a Machine started with fly machine run. */}
 
-{/* TODO: create a session against the sandbox and send a first message, using Gemini's SDK. Where do relative paths land (workdir)? */}
-
-```python Python
-# TODO
-```
+A Machine runs until its process exits, so it doesn't need a keep-alive, but it bills the whole time it runs. It also reinstalls the CLI every time it starts.
 
 ## Clean up
 
-{/* Carries over. Only the Sprite name prefix changes. */}
-Each session gets its own `gemini-agent-*` Sprite, and those Sprites outlive the session. An idle Sprite [pauses](/concepts/lifecycle), which stops compute billing, but its filesystem persists and keeps accruing storage cost until you delete it, so a busy environment builds up a fleet of paused Sprites. Reap each one once its session finishes, on a session-end event or with a periodic sweep, by calling [`DELETE /v1/sprites/{name}`](/api/sprites#delete-sprite). Copy anything you need out of the workspace first (for example via the filesystem API), because deleting a Sprite deletes its checkpoints too.
+Deleting a Sprite deletes its disk and checkpoints, so copy out anything the agent wrote that you want to keep first.
+
+```bash
+sprite destroy -s gemini-byos --force
+
+# Or, for a Fly Machine:
+fly apps destroy "$FLY_APP" --yes
+```
 
 ## Troubleshooting
 
-{/* Sprites rows carry over. Add Gemini-side rows (queue never drains, bad key) from their guide or from testing. */}
-
 | Symptom | Likely cause | Check / fix |
 |---|---|---|
-| Session created, but no Sprite ever appears | No worker is claiming the work item | TODO: Gemini's queue status check. |
-| Sprite is created, but the session dies within seconds | The SDK install failed inside the Sprite (for example a network policy blocking the package index), or the environment key is invalid | Read the service log, below. |
-| Not sure where to look first | The runner logs to stdout | Read `/.sprite/logs/services/agent-runner.log` inside the Sprite, via `exec` or the filesystem API. |
-| Service shows `failed (exit 143)` or `stopped` right after a session finishes | Expected. That's the terminal state of the self-stop pattern, not a failure. | Nothing to fix. |
-| A long session stalls mid-turn | The keep-alive task is missing or has expired, so the Sprite paused | Inside the Sprite, `sprite-env curl -s /v1/tasks` should show the `agent-runner` task with a future `expires_at` while a session is active. |
+| Interactions hang, then time out | The connector isn't running, or the Sprite paused | `sprite exec -s gemini-byos -- sprite-env services list` should show `gemini-connect` running. `sprite-env curl -s /v1/tasks` should show the `gemini-connect` task with a future `expires_at`. |
+| The connector exits right after it starts | The environment key is wrong, or `~/.gemini-env` is missing | Read `/.sprite/logs/services/gemini-connect.log`. |
+| `gemini-api: command not found` in the log | The CLI install failed, or it installed somewhere other than `~/.local/bin` | Rerun the install step and check its output. |
 
 ## See also
 
-- [Bring Your Own Sandbox](TODO): Gemini's reference for the sandbox contract.
-- [Claude Managed Agents](/integrations/claude-managed-agents): the same pattern for Anthropic's Managed Agents.
+- [Bring Your Own Sandbox](TODO): Google's reference for Gemini API self-hosted environments.
+- [Claude Managed Agents](/integrations/claude-managed-agents): the same idea for Anthropic's Managed Agents.
 - [Services](/concepts/services): supervised long-running processes inside a Sprite.
-- [Checkpoints](/concepts/checkpoints): snapshot a prepared Sprite to skip cold-start setup.
+- [Keeping Sprites running](/keeping-sprites-running): the Tasks API and the heartbeat pattern.
