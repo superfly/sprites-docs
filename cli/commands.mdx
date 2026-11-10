@@ -144,6 +144,62 @@ sprite auth setup --token <token>
 sprite auth setup --token "org-slug/org-id/token-id/token-value"
 ```
 
+### `sprite org set-default`
+
+sprite org set-default - Set the default organization
+
+```bash
+sprite org set-default [alias:]<org-name>
+```
+
+**Options:**
+- `-h, --help` - Show this help message
+
+**Examples:**
+```bash
+sprite org set-default myorg           # Set default org
+sprite org set-default prod:myorg      # Set org for 'prod' alias
+```
+
+### `sprite org keyring status`
+
+sprite org keyring status - Show current keyring status
+
+```bash
+sprite org keyring status
+```
+
+**Options:**
+- `-h, --help` - Show this help message
+
+### `sprite auth migrate`
+
+sprite auth migrate - Migrate token keys to URL-based format
+
+```bash
+sprite auth migrate
+```
+
+### `sprite keyring`
+
+sprite keyring - Browse organization tokens stored in keyring
+
+```bash
+sprite keyring
+```
+
+**Options:**
+- `-h, --help` - Show this help message
+
+> Opens an interactive TUI to browse organization tokens.
+> Use arrow keys to navigate, Enter to view tokens.
+> Press 'v' to show/hide the selected token value.
+
+**Examples:**
+```bash
+sprite keyring
+```
+
 ## Sprite Management
 
 ### `sprite create`
@@ -261,6 +317,160 @@ sprite create --help       Create a new sprite
 sprite checkpoint --help   Save state before destroying
 ```
 
+### `sprite info`
+
+sprite info - Show sprite info including URL and labels
+
+```bash
+sprite info [flags] [sprite-name]
+```
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help` - Show this help message
+
+**Examples:**
+```bash
+sprite info                     # Show info for selected sprite
+sprite info my-sprite           # Show info for a specific sprite
+sprite info -o myorg my-sprite  # Show info for a sprite in a specific org
+Output:
+Displays the sprite's URL, URL authentication setting, and labels.
+Related Commands:
+sprite config --help           Show or update sprite configuration
+sprite list --help             List your sprites
+```
+
+### `sprite config`
+
+sprite config - Show or update sprite configuration
+
+```bash
+sprite config [flags] [sprite-name]
+sprite config update [flags] [sprite-name]
+```
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help` - Show this help message
+
+**Examples:**
+```bash
+sprite config                       # Show current config for selected sprite
+sprite config my-sprite             # Show config for a specific sprite
+sprite config update --url-auth public
+sprite config update --label env:prod
+Related Commands:
+sprite config update --help    Update sprite configuration
+sprite info --help             Show sprite info including URL and labels
+```
+
+### `sprite config update`
+
+sprite config update - Update sprite configuration
+
+```bash
+sprite config update [flags] [sprite-name]
+```
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `--url-auth <type>` - URL authentication type: 'public' or 'sprite'
+- `--private-access <type>` - Private URL access type: 'admins' or 'org_users'
+- `--label <label>` - Label to apply to the sprite (can be repeated)
+- `--clear-labels` - Clear all existing labels before applying --label
+- `-h, --help` - Show this help message
+
+**Examples:**
+```bash
+sprite config update --url-auth public              # Make URL publicly accessible
+sprite config update --url-auth sprite              # Require org membership (default)
+sprite config update --url-auth sprite --private-access admins  # Restrict private URLs to admins
+sprite config update --label env:prod               # Apply a label
+sprite config update --label env:prod --label tier:free  # Apply multiple labels
+sprite config update --clear-labels                 # Remove all labels
+sprite config update --clear-labels --label env:staging  # Replace all labels
+Related Commands:
+sprite config --help    Show current sprite configuration
+sprite info --help      Show sprite info including URL and labels
+```
+
+### `sprite file edit`
+
+sprite file edit - Edit a file in a sprite
+
+```bash
+sprite file edit [flags] [<sprite>:]<path>
+```
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help` - Show this help message
+
+### `sprite file push`
+
+sprite file push - Copy local files into a sprite
+
+```bash
+sprite file push [flags] <source>... [<sprite>:]<path>
+```
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-p, --parents` - Create missing parent directories on the remote
+- `-r, --recursive` - Recursively push a directory
+- `-h, --help` - Show this help message
+
+**Examples:**
+```bash
+# Push a single file
+sprite file push -s mysprite ./config.yml /etc/app/config.yml
+# Push to a named sprite
+sprite file push ./config.yml mysprite:/etc/app/config.yml
+# Push multiple files into a remote directory
+sprite file push -s mysprite ./a.txt ./b.txt /tmp/uploads/
+# Push a whole directory tree
+sprite file push -s mysprite -r ./dist/ /srv/app/
+# Push and create parents
+sprite file push -s mysprite -p ./app.conf /etc/nested/dir/app.conf
+```
+
+### `sprite file pull`
+
+sprite file pull - Copy files out of a sprite to the local machine
+
+```bash
+sprite file pull [flags] [<sprite>:]<path>... <target>
+```
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-p, --parents` - Create missing parent directories locally
+- `-r, --recursive` - Recursively pull a directory
+- `-h, --help` - Show this help message
+
+**Examples:**
+```bash
+# Pull a single file to the current directory
+sprite file pull -s mysprite /var/log/app.log .
+# Pull a file from a named sprite to a specific local path
+sprite file pull -s mysprite /etc/app/config.yml ./config.yml
+# Pull multiple files from different sprites a local directory
+sprite file pull mysprite:/tmp/a.txt othersprite:/tmp/b.txt ./downloads/
+# Pull multiple files into a local directory
+sprite file pull -s mysprite /tmp/a.txt /tmp/b.txt ./downloads/
+# Pull a whole remote directory tree
+sprite file pull -s mysprite -r /srv/app/dist/ ./dist/
+# Pull and create local parent directories
+sprite file pull -s mysprite -p /etc/nested/file.conf ./local/nested/file.conf
+```
+
 ## Command Execution
 
 ### `sprite exec`
@@ -336,6 +546,72 @@ sprite console [flags]
 sprite console
 sprite console -o myorg -s mysprite
 ```
+
+### `sprite attach`
+
+sprite attach - Attach to a running session
+
+```bash
+sprite attach [flags] [session_id|command_name]
+```
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `--no-port-forward` - Disable automatic local port forwarding for ports opened by the session
+- `-h, --help` - Show this help message
+
+**Examples:**
+```bash
+sprite attach                 # Show interactive session selector
+sprite attach 3               # Attach to session ID 3
+sprite attach bash            # Attach to oldest session running bash
+sprite attach /bin/zsh        # Attach to oldest session running /bin/zsh
+```
+
+### `sprite sessions list`
+
+sprite sessions list - List running exec sessions
+
+```bash
+sprite sessions list [flags]
+```
+
+**Aliases:** `sprite s list`
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `-h, --help` - Show this help message
+
+### `sprite sessions attach`
+
+sprite sessions attach - Attach to a running exec session
+
+```bash
+sprite sessions attach [flags] <session_id>
+```
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `--no-port-forward` - Disable automatic local port forwarding for ports opened by the session
+- `-h, --help` - Show this help message
+
+### `sprite sessions kill`
+
+sprite sessions kill - Kill a running exec session
+
+```bash
+sprite sessions kill [flags] <session_id>
+```
+
+**Options:**
+- `-o, --org <name>` - Specify organization
+- `-s, --sprite <name>` - Specify sprite
+- `--signal <signal>` - Signal to send (default: TERM)
+- `--timeout <duration>` - Timeout before SIGKILL (default: 10s)
+- `-h, --help` - Show this help message
 
 ## Checkpoints
 
@@ -554,6 +830,14 @@ sprite upgrade --check          # Check for available updates
 sprite upgrade --force          # Force upgrade even if up to date
 sprite upgrade --channel dev    # Switch to the dev channel
 sprite upgrade --channel rc     # Switch to the rc channel
+```
+
+### `sprite completion`
+
+completion - Generate shell completion scripts
+
+```bash
+sprite completion <bash|zsh|fish|powershell>
 ```
 
 
