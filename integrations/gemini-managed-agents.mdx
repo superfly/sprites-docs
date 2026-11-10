@@ -1,0 +1,111 @@
+---
+title: Gemini Managed Agents
+description: "Run Gemini API Managed Agents tool calls in a per-session Sprite: bring your own sandbox, a worker, Tasks keep-alive and cleanup."
+---
+
+{/*
+  SCAFFOLD. Modeled on integrations/claude-managed-agents.mdx.
+  Fill every TODO from Gemini's Bring Your Own Sandbox guide before merging.
+  Sections marked "carries over" are Sprites behavior and should only need
+  names changed. Header image and lifecycle diagrams: TODO, ask Annie.
+*/}
+
+{/* TODO: Gemini's product name, overview URL, and BYOS guide URL. Confirm they are live at launch. */}
+[Gemini API Managed Agents](TODO) let Google run the agent loop and the model while the agent's tools (the filesystem it reads and writes, the commands it runs) execute in a sandbox you control. With [Bring Your Own Sandbox](TODO), you run each session inside a Sprite, so the agent's code, filesystem, and network egress never leave your infrastructure.
+
+## How it works
+
+{/* TODO: confirm Gemini's model matches: queue of work items, a worker claims each, a runner in the sandbox executes tools and reports results. Rewrite to Gemini's terms. */}
+When a session is assigned to your sandbox, Gemini queues a work item. A worker you run claims the item and starts a per-session Sprite that runs Gemini's tool runner. Tool inputs and outputs flow back to Gemini so the model can see results; everything the tools touch stays in the Sprite.
+
+{/* TODO: Alex says the environment key works much the same way. Confirm the credential name and that the main Gemini API key never needs to reach the Sprite. */}
+The runner authenticates with an **environment key**, the only credential it needs. Your Gemini API key never reaches the Sprite.
+
+## Before you begin
+
+You need:
+
+- A **Gemini API key** (`GEMINI_API_KEY`?) to set up the sandbox and start sessions. It stays off the Sprite. {/* TODO: env var name */}
+- A **Sprites API token** (`org-slug/org-id/token-id/token-value`). Export it as `SPRITE_TOKEN`.
+- A **Gemini managed agent**. {/* TODO: link to Gemini's quickstart; what ID to note */}
+- A **worker runtime** on the worker host. {/* TODO: languages and packages Gemini's SDK supports */}
+
+## Set up the environment
+
+### Register your sandbox
+
+{/* TODO: Gemini's API call or console steps to register a self-hosted sandbox. Note what ID it returns. */}
+
+```bash
+# TODO
+```
+
+### Generate an environment key
+
+{/* TODO: where the key is generated, and the env vars the worker reads */}
+
+```bash
+export TODO_ENVIRONMENT_ID="..."
+export TODO_ENVIRONMENT_KEY="..."
+```
+
+## Run the worker
+
+### Spawn a Sprite per session
+
+{/* Carries over from the Claude page. Swap the runner, the SDK install, and the env var names. */}
+The worker creates a Sprite, uploads Gemini's runner, installs the SDK, and launches it as a Sprite [service](/concepts/services) rather than a detached `nohup` process. A service is supervised: the Sprite owns it, so it survives beyond the request that created it and is restored on wake. Because a service that exits is otherwise restarted, the one-shot worker stops itself on completion so it is not brought back up.
+
+The environment variables are written to a file the service sources rather than passed as service arguments, so the environment key never appears in process listings. The service deletes the file right after sourcing it, so the key isn't left on the Sprite's disk.
+
+<Info>
+A service is supervised, but it does not hold the Sprite in an active state: once a session is underway the runner takes no inbound traffic, so a bare service counts as quiet and the [Sprite would pause](/concepts/lifecycle) after a short idle window, stalling a long session mid-turn. That is why the service command registers a [Task](/keeping-sprites-running) and heartbeats it while the runner works: the task holds the Sprite active for the length of the session, and its short expiry is the crash-safety net that lets the Sprite pause again if the runner dies without cleaning up.
+</Info>
+
+{/* TODO: sprite_sandbox code. Start from the Claude page's spawn() and find_live(): keep the Sprites API calls, the env-file pattern, and the Task heartbeat service command; replace RUNNER_SRC, the pip package, the env var names, and the Sprite name prefix (gemini-agent-). Python first; add TypeScript only if there's time to test it. */}
+
+```python Python expandable
+# sprite_sandbox.py
+# TODO
+```
+
+### Claim work items
+
+{/* TODO: Gemini's poller or webhook API. Note the lease/auto-stop equivalent: the poller must not release the item out from under the Sprite. */}
+
+```python Python expandable
+# sprites_poller.py
+# TODO
+```
+
+## Start a session
+
+{/* TODO: create a session against the sandbox and send a first message, using Gemini's SDK. Where do relative paths land (workdir)? */}
+
+```python Python
+# TODO
+```
+
+## Clean up
+
+{/* Carries over. Only the Sprite name prefix changes. */}
+Each session gets its own `gemini-agent-*` Sprite, and those Sprites outlive the session. An idle Sprite [pauses](/concepts/lifecycle), which stops compute billing, but its filesystem persists and keeps accruing storage cost until you delete it, so a busy environment builds up a fleet of paused Sprites. Reap each one once its session finishes, on a session-end event or with a periodic sweep, by calling [`DELETE /v1/sprites/{name}`](/api/sprites#delete-sprite). Copy anything you need out of the workspace first (for example via the filesystem API), because deleting a Sprite deletes its checkpoints too.
+
+## Troubleshooting
+
+{/* Sprites rows carry over. Add Gemini-side rows (queue never drains, bad key) from their guide or from testing. */}
+
+| Symptom | Likely cause | Check / fix |
+|---|---|---|
+| Session created, but no Sprite ever appears | No worker is claiming the work item | TODO: Gemini's queue status check. |
+| Sprite is created, but the session dies within seconds | The SDK install failed inside the Sprite (for example a network policy blocking the package index), or the environment key is invalid | Read the service log, below. |
+| Not sure where to look first | The runner logs to stdout | Read `/.sprite/logs/services/agent-runner.log` inside the Sprite, via `exec` or the filesystem API. |
+| Service shows `failed (exit 143)` or `stopped` right after a session finishes | Expected. That's the terminal state of the self-stop pattern, not a failure. | Nothing to fix. |
+| A long session stalls mid-turn | The keep-alive task is missing or has expired, so the Sprite paused | Inside the Sprite, `sprite-env curl -s /v1/tasks` should show the `agent-runner` task with a future `expires_at` while a session is active. |
+
+## See also
+
+- [Bring Your Own Sandbox](TODO): Gemini's reference for the sandbox contract.
+- [Claude Managed Agents](/integrations/claude-managed-agents): the same pattern for Anthropic's Managed Agents.
+- [Services](/concepts/services): supervised long-running processes inside a Sprite.
+- [Checkpoints](/concepts/checkpoints): snapshot a prepared Sprite to skip cold-start setup.
