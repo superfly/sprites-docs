@@ -26,6 +26,10 @@ The worker authenticates with the **environment key** only. Your Gemini API key 
 
 Because the worker polls, it only receives work while it is running. The [Run the worker as a service](#run-the-worker-as-a-service) step keeps it running and keeps the Sprite awake.
 
+<Info>
+[Google's Fly.io example](https://github.com/google-gemini/gemini-api-cli/tree/main/docs/self-hosted/providers/fly-machines) in the `gemini-api` CLI repository is the minimal version of this setup, with the same environment, install, and interaction steps. This guide adds the service and keep-alive that let the worker run unattended.
+</Info>
+
 ## Before you begin
 
 You need:
@@ -173,6 +177,8 @@ fly apps destroy "$FLY_APP" --yes
 ```
 
 ## Troubleshooting
+
+Most failures here show up as interactions that never complete. Check the worker's service log first; it usually tells you whether the worker, the key, or the CLI install is at fault.
 
 | Symptom | Likely cause | Check / fix |
 |---|---|---|
