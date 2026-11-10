@@ -8,7 +8,10 @@ description: "Run Gemini API Managed Agents shell and file tools in a Sprite wit
   Sources: Google's Fly example (google-gemini/gemini-api-cli, docs/self-hosted/providers/fly-machines)
   and their self-hosted README.
   Open items before merge:
-  - TODO(test): nothing here has been run. Needs a Gemini API key with Managed Agents enabled.
+  - Tested 10 Nov: CLI install, key file and worker service (runs as sprite, HOME=/home/sprite,
+    reads the key) on a Sprite; Task hold and release on Sprites 1.
+  - TODO(test): connect itself, which needs a Gemini API key with Managed Agents enabled.
+  - Sprites 2.0 has no Tasks API (sprite-env keep-awake instead). Revisit at its release.
   - TODO(links): swap the GitHub self-hosted README for an ai.google.dev page if one goes live at launch.
   - TODO(image): header image, ask Annie.
 */}
@@ -114,8 +117,6 @@ Then create the service:
 sprite exec -s gemini-self-hosted --no-stdin -- \
   sprite-env services create gemini-connect --cmd /home/sprite/gemini-connect.sh
 ```
-
-{/* TODO(test): confirm services run with HOME=/home/sprite so the install path and ~/.gemini-env resolve. */}
 
 The worker's output goes to `/.sprite/logs/services/gemini-connect.log`.
 
