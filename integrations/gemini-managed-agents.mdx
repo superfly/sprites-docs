@@ -18,6 +18,10 @@ description: "Run Gemini API Managed Agents shell and file tools in a Sprite wit
 
 Gemini API Managed Agents run the agent loop and the model on Google's side. With [self-hosted environments](https://github.com/google-gemini/gemini-api-cli/blob/main/docs/self-hosted/README.md) (Bring Your Own Sandbox), the agent's shell and file tools run in a sandbox you control instead. Connect a Sprite as that sandbox and the agent's commands, files, and network egress stay on a Firecracker microVM in your Fly.io organization.
 
+<Card title="Google's Fly.io example" icon="github" href="https://github.com/google-gemini/gemini-api-cli/tree/main/docs/self-hosted/providers/fly-machines">
+  The minimal version of this setup, from the `gemini-api` CLI repository. This guide adds the service and keep-alive that let the worker run unattended.
+</Card>
+
 ## How it works
 
 You create a self-hosted environment in the Gemini API. Inside a Sprite, the `gemini-api` CLI runs `environments connect`, a worker that polls Gemini for work over outbound HTTPS. When you send the agent an interaction that targets your environment, the worker picks it up, runs the agent's tool calls inside the Sprite, and sends the results back.
@@ -25,10 +29,6 @@ You create a self-hosted environment in the Gemini API. Inside a Sprite, the `ge
 The worker authenticates with the **environment key** only. Your Gemini API key stays on your own machine and never reaches the Sprite.
 
 Because the worker polls, it only receives work while it is running. The [Run the worker as a service](#run-the-worker-as-a-service) step keeps it running and keeps the Sprite awake.
-
-<Info>
-[Google's Fly.io example](https://github.com/google-gemini/gemini-api-cli/tree/main/docs/self-hosted/providers/fly-machines) in the `gemini-api` CLI repository is the minimal version of this setup, with the same environment, install, and interaction steps. This guide adds the service and keep-alive that let the worker run unattended.
-</Info>
 
 ## Before you begin
 
