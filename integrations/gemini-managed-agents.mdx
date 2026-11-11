@@ -35,6 +35,8 @@ curl -fsSL https://sprites.dev/install.sh | sh
 sprite login
 ```
 
+If you already have the `sprite` CLI, run `sprite upgrade`. This guide uses `sprite exec --no-stdin`, which needs version 2026-09-02 or later.
+
 ## Create a self-hosted environment
 
 ```bash
@@ -128,6 +130,12 @@ gemini-api agent run \
 
 The agent's commands run on the Sprite, and `hello.txt` lands in `~/workspace` on the Sprite's disk.
 
+An interaction can take several minutes, most of it spent waiting on the model between tool calls. `gemini-api agent run` streams the reply as it arrives. To watch the agent's tool calls on the Sprite side, follow the service log:
+
+```bash
+sprite exec -s gemini-self-hosted -- tail -f /.sprite/logs/services/gemini-connect.log
+```
+
 <Note>
 The file tools are confined to `--root-dir`, but `execute_bash` is not: shell commands can reach anything the Sprite's user can. The Sprite itself is the isolation boundary, so give each environment its own Sprite.
 </Note>
@@ -170,6 +178,7 @@ Most failures here show up as interactions that never complete. Check the worker
 | Interactions hang, then time out | The worker isn't running, or the Sprite paused | `sprite exec -s gemini-self-hosted -- sprite-env services list` should show `gemini-connect` running. `sprite-env curl -s /v1/tasks` should show the `gemini-connect` task with a future `expires_at`. |
 | The worker exits right after it starts | The environment key is wrong, or `~/.gemini-env` is missing | Read `/.sprite/logs/services/gemini-connect.log`. |
 | `gemini-api: command not found` in the log | The CLI install failed, or it installed somewhere other than `~/.local/bin` | Rerun the install step and check its output. |
+| `Error: unknown flag: --no-stdin` | Your `sprite` CLI is older than 2026-09-02 | Run `sprite upgrade`. |
 | `gemini-api agent run` returns 403 | The interaction uses a model that needs billing, such as Gemini 4 Argon or Carbon, and the key's project is on the free tier | Use the default model, or turn on billing for the project. |
 
 ## See also
