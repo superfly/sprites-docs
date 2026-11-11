@@ -3,18 +3,6 @@ title: Gemini Managed Agents
 description: "Run Gemini Managed Agents shell and file tools in a Sprite with Bring Your Own Sandbox: create an environment, connect a Sprite, keep it running."
 ---
 
-{/*
-  DRAFT for the Gemini BYOS launch, 11 Nov 2026.
-  Sources: Google's Fly example (google-gemini/gemini-api-cli, docs/self-hosted/providers/fly-machines)
-  and their self-hosted README.
-  Open items before merge:
-  - Tested 10 Nov: CLI install, key file and worker service (runs as sprite, HOME=/home/sprite,
-    reads the key) on a Sprite; Task hold and release.
-  - Kyle tested 11 Nov: Sprite and Machine setup OK, staged secret reaches the Machine.
-  - TODO(test): an interaction end to end, which needs a key from a project with billing.
-  - TODO(image): header image, ask Annie.
-*/}
-
 Gemini Managed Agents run the agent loop and the model on Google's side. With [self-hosted environments](https://aistudio.google.com/docs/agent-environment#self-hosted-environments) (Bring Your Own Sandbox), the agent's shell and file tools run in a sandbox you control instead. Connect a Sprite as that sandbox and the agent's commands, files, and network egress stay on a Firecracker microVM in your Fly.io organization.
 
 <Card title="Google's Fly.io example" icon="github" href="https://github.com/google-gemini/gemini-api-cli/tree/main/docs/self-hosted/providers/fly-machines">
