@@ -1,0 +1,192 @@
+---
+title: Gemini Managed Agents
+description: "Run Gemini Managed Agents shell and file tools in a Sprite with Bring Your Own Sandbox: create an environment, connect a Sprite, keep it running."
+---
+
+Gemini Managed Agents run the agent loop and the model on Google's side. With [self-hosted environments](https://aistudio.google.com/docs/agent-environment#self-hosted-environments) (Bring Your Own Sandbox), the agent's shell and file tools run in a sandbox you control instead. Connect a Sprite as that sandbox and the agent's commands, files, and network egress stay on a Firecracker microVM in your Fly.io organization.
+
+<Card title="Google's Fly.io example" icon="github" href="https://github.com/google-gemini/gemini-api-cli/tree/main/docs/self-hosted/providers/fly-machines">
+  The same setup as a quick start, from the `gemini-api` CLI repository.
+</Card>
+
+## How it works
+
+You create a self-hosted environment in the Gemini API. Inside a Sprite, the `gemini-api` CLI runs `environments connect`, a worker that polls Gemini for work over outbound HTTPS. When you send the agent an interaction that targets your environment, the worker picks it up, runs the agent's tool calls inside the Sprite, and sends the results back.
+
+The worker authenticates with the **environment key** only. Your Gemini API key stays on your own machine and never reaches the Sprite.
+
+Because the worker polls, it only receives work while it is running. The [Run the worker as a service](#run-the-worker-as-a-service) step keeps it running and keeps the Sprite awake.
+
+## Before you begin
+
+You need:
+
+- A [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key), exported as `GEMINI_API_KEY`. The agent's default model, Gemini 3.8 Flash, works on the free tier. To use Gemini 4 Argon or Carbon, the key's project needs [billing](https://ai.google.dev/gemini-api/docs/billing) turned on.
+
+- The **`gemini-api` CLI** on your local machine, to send interactions:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/google-gemini/gemini-api-cli/main/scripts/install.sh | bash
+```
+
+If the installer warns that `~/.local/bin` isn't in your PATH, add it as the warning suggests, or run the CLI as `~/.local/bin/gemini-api`.
+
+- The **`sprite` CLI**, installed and logged in:
+
+```bash
+curl -fsSL https://sprites.dev/install.sh | sh
+sprite login
+```
+
+If you already have the `sprite` CLI, run `sprite upgrade`. This guide uses `sprite exec --no-stdin`, which needs version 2026-09-02 or later.
+
+## Create a self-hosted environment
+
+```bash
+curl -fsSL -X POST \
+  "https://generativelanguage.googleapis.com/v1beta/environments" \
+  -H "x-goog-api-key: $GEMINI_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"mode": "self_hosted"}'
+```
+
+Export the environment ID and key from the response:
+
+```bash
+export GEMINI_ENVIRONMENT_ID="..."   # "id" from the response
+export GEMINI_ENVIRONMENT_KEY="..."  # "environment_key" from the response
+```
+
+<Warning>
+The environment key is returned only once, when the environment is created. Store it somewhere safe.
+</Warning>
+
+## Connect a Sprite
+
+### Create the Sprite and install the CLI
+
+```bash
+sprite create --skip-console gemini-self-hosted
+
+sprite exec -s gemini-self-hosted --no-stdin -- bash -c \
+  "curl -fsSL https://raw.githubusercontent.com/google-gemini/gemini-api-cli/main/scripts/install.sh | bash"
+```
+
+### Store the environment key
+
+Write the key to a file only your user can read. The worker reads it from there, so the key never appears in a command line or process listing.
+
+```bash
+sprite exec -s gemini-self-hosted --no-stdin --env "GEMINI_ENVIRONMENT_KEY=$GEMINI_ENVIRONMENT_KEY" -- bash -c \
+  'umask 077; printf "GEMINI_ENVIRONMENT_KEY=%s\n" "$GEMINI_ENVIRONMENT_KEY" > ~/.gemini-env'
+```
+
+### Run the worker as a service
+
+You can run `gemini-api environments connect` directly with `sprite exec`, but it stops when that command ends. The Sprite also [pauses](/concepts/lifecycle) when it goes idle, and outbound polling doesn't count as activity, so a paused Sprite stops picking up work. Run the worker as a Sprite [service](/concepts/services) instead, so it restarts if it crashes, and have it hold a [Task](/keeping-sprites-running) so the Sprite stays active while the worker runs.
+
+Write the start script. It gives the agent `~/workspace` as its working directory; without `--root-dir` and `--workdir`, the worker uses whatever directory it starts in.
+
+```bash
+sprite exec -s gemini-self-hosted --no-stdin -- bash -c 'cat > ~/gemini-connect.sh <<"EOF"
+#!/usr/bin/env bash
+set -a; . "$HOME/.gemini-env"; set +a
+export PATH="$HOME/.local/bin:$PATH"
+mkdir -p "$HOME/workspace"
+
+# Hold the Sprite active: a 5-minute task, refreshed every minute.
+( while true; do
+    sprite-env curl -X PUT /v1/tasks/gemini-connect -d "{\"expire\": \"5m\"}" >/dev/null 2>&1
+    sleep 60
+  done ) &
+heartbeat=$!
+trap "kill $heartbeat 2>/dev/null; sprite-env curl -X DELETE /v1/tasks/gemini-connect >/dev/null 2>&1" EXIT
+
+gemini-api environments connect --root-dir "$HOME/workspace" --workdir "$HOME/workspace"
+EOF
+chmod +x ~/gemini-connect.sh'
+```
+
+Then create the service:
+
+```bash
+sprite exec -s gemini-self-hosted --no-stdin -- \
+  sprite-env services create gemini-connect --cmd /home/sprite/gemini-connect.sh
+```
+
+The worker's output goes to `/.sprite/logs/services/gemini-connect.log`.
+
+<Info>
+A connected Sprite stays active the whole time the worker runs, including while it waits for work, and an active Sprite is billed for compute. To stop billing between uses, stop the service with `sprite-env services stop gemini-connect` (the Sprite then pauses) and start it again with `sprite-env services start gemini-connect` when you need it. If the worker crashes without cleaning up, the task expires within five minutes and the Sprite can pause.
+</Info>
+
+## Run an interaction
+
+From your local machine, send the agent an interaction that targets your environment:
+
+```bash
+gemini-api agent run \
+  "Create hello.txt and run uname -a in bash." \
+  --agent antigravity-preview-09-2026 \
+  --body "{\"environment\": \"$GEMINI_ENVIRONMENT_ID\"}"
+```
+
+The agent's commands run on the Sprite, and `hello.txt` lands in `~/workspace` on the Sprite's disk.
+
+An interaction can take several minutes, most of it spent waiting on the model between tool calls. `gemini-api agent run` streams the reply as it arrives. To watch the agent's tool calls on the Sprite side, follow the service log:
+
+```bash
+sprite exec -s gemini-self-hosted -- tail -f /.sprite/logs/services/gemini-connect.log
+```
+
+<Note>
+The file tools are confined to `--root-dir`, but `execute_bash` is not: shell commands can reach anything the Sprite's user can. The Sprite itself is the isolation boundary, so give each environment its own Sprite.
+</Note>
+
+## Use a Fly Machine instead
+
+To use a plain [Fly Machine](https://fly.io/docs/machines/) instead of a Sprite, store the key as an app secret rather than passing it with `-e`. That keeps it out of the Machine's config:
+
+```bash
+export FLY_APP="your-fly-app"
+fly apps create "$FLY_APP" -o your-org   # skip if the app already exists
+fly secrets set -a "$FLY_APP" --stage GEMINI_ENVIRONMENT_KEY="$GEMINI_ENVIRONMENT_KEY"
+
+fly machine run ubuntu:24.04 -a "$FLY_APP" -- bash -c \
+  "apt-get update && apt-get install -y curl ca-certificates && \
+   curl -fsSL https://raw.githubusercontent.com/google-gemini/gemini-api-cli/main/scripts/install.sh | bash && \
+   mkdir -p /workspace && \
+   PATH=\"\$HOME/.local/bin:\$PATH\" gemini-api environments connect --root-dir /workspace --workdir /workspace"
+```
+
+A Machine runs until its process exits, so it doesn't need a keep-alive, but it is billed the whole time it runs. It also reinstalls the CLI every time it starts.
+
+## Clean up
+
+Deleting a Sprite deletes its disk and checkpoints, so copy out anything in `~/workspace` you want to keep first.
+
+```bash
+sprite destroy -s gemini-self-hosted --force
+
+# Or, for a Fly Machine:
+fly apps destroy "$FLY_APP" --yes
+```
+
+## Troubleshooting
+
+Most failures here show up as interactions that never complete. Check the worker's service log first; it usually tells you whether the worker, the key, or the CLI install is at fault.
+
+| Symptom | Likely cause | Check / fix |
+|---|---|---|
+| Interactions hang, then time out | The worker isn't running, or the Sprite paused | `sprite exec -s gemini-self-hosted -- sprite-env services list` should show `gemini-connect` running. `sprite-env curl -s /v1/tasks` should show the `gemini-connect` task with a future `expires_at`. |
+| The worker exits right after it starts | The environment key is wrong, or `~/.gemini-env` is missing | Read `/.sprite/logs/services/gemini-connect.log`. |
+| `gemini-api: command not found` in the log | The CLI install failed, or it installed somewhere other than `~/.local/bin` | Rerun the install step and check its output. |
+| `Error: unknown flag: --no-stdin` | Your `sprite` CLI is older than 2026-09-02 | Run `sprite upgrade`. |
+| `gemini-api agent run` returns 403 | The interaction uses a model that needs billing, such as Gemini 4 Argon or Carbon, and the key's project is on the free tier | Use the default model, or turn on billing for the project. |
+
+## See also
+
+- [Self-hosted environments](https://github.com/google-gemini/gemini-api-cli/blob/main/docs/self-hosted/README.md): Google's reference for the worker, its flags, and its tools.
+- [Claude Managed Agents](/integrations/claude-managed-agents): the same idea for Anthropic's Managed Agents.
+- [Services](/concepts/services): supervised long-running processes inside a Sprite.
+- [Keeping Sprites running](/keeping-sprites-running): the Tasks API and the heartbeat pattern.

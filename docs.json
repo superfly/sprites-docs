@@ -68,6 +68,7 @@
               "integrations/agent-plugins",
               "integrations/agent-sdks",
               "integrations/claude-managed-agents",
+              "integrations/gemini-managed-agents",
               "integrations/cursor-cloud-agents",
               "integrations/cortex-code",
               "integrations/platform-integrations"
