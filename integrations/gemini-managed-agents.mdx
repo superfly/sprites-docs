@@ -22,11 +22,14 @@ Because the worker polls, it only receives work while it is running. The [Run th
 You need:
 
 - A [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key), exported as `GEMINI_API_KEY`. The agent's default model, Gemini 3.8 Flash, works on the free tier. To use Gemini 4 Argon or Carbon, the key's project needs [billing](https://ai.google.dev/gemini-api/docs/billing) turned on.
+
 - The **`gemini-api` CLI** on your local machine, to send interactions:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/google-gemini/gemini-api-cli/main/scripts/install.sh | bash
 ```
+
+If the installer warns that `~/.local/bin` isn't in your PATH, add it as the warning suggests, or run the CLI as `~/.local/bin/gemini-api`.
 
 - The **`sprite` CLI**, installed and logged in:
 
