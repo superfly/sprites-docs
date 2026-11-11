@@ -10,16 +10,16 @@ description: "Run Gemini Managed Agents shell and file tools in a Sprite with Br
   Open items before merge:
   - Tested 10 Nov: CLI install, key file and worker service (runs as sprite, HOME=/home/sprite,
     reads the key) on a Sprite; Task hold and release on Sprites 1.
-  - TODO(test): connect itself, which needs a Gemini API key with Managed Agents enabled.
+  - TODO(test): connect and an interaction end to end. Any Gemini API key works (Mariano, 11 Nov);
+    Kyle tested 11 Nov without a billing-enabled key.
   - Sprites 2.0 has no Tasks API (sprite-env keep-awake instead). Revisit at its release.
-  - TODO(links): swap the GitHub self-hosted README for an ai.google.dev page if one goes live at launch.
   - TODO(image): header image, ask Annie.
 */}
 
-Gemini Managed Agents run the agent loop and the model on Google's side. With [self-hosted environments](https://github.com/google-gemini/gemini-api-cli/blob/main/docs/self-hosted/README.md) (Bring Your Own Sandbox), the agent's shell and file tools run in a sandbox you control instead. Connect a Sprite as that sandbox and the agent's commands, files, and network egress stay on a Firecracker microVM in your Fly.io organization.
+Gemini Managed Agents run the agent loop and the model on Google's side. With [self-hosted environments](https://aistudio.google.com/docs/agent-environment#self-hosted-environments) (Bring Your Own Sandbox), the agent's shell and file tools run in a sandbox you control instead. Connect a Sprite as that sandbox and the agent's commands, files, and network egress stay on a Firecracker microVM in your Fly.io organization.
 
 <Card title="Google's Fly.io example" icon="github" href="https://github.com/google-gemini/gemini-api-cli/tree/main/docs/self-hosted/providers/fly-machines">
-  The minimal version of this setup, from the `gemini-api` CLI repository. This guide adds the service and keep-alive that let the worker run unattended.
+  The same setup as a quick start, from the `gemini-api` CLI repository.
 </Card>
 
 ## How it works
@@ -34,7 +34,7 @@ Because the worker polls, it only receives work while it is running. The [Run th
 
 You need:
 
-- A [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key) with access to Managed Agents, exported as `GEMINI_API_KEY`.
+- A [Gemini API key](https://ai.google.dev/gemini-api/docs/api-key), exported as `GEMINI_API_KEY`.
 - The **`gemini-api` CLI** on your local machine, to send interactions:
 
 ```bash
@@ -61,8 +61,8 @@ curl -fsSL -X POST \
 Export the environment ID and key from the response:
 
 ```bash
-export GEMINI_ENVIRONMENT_ID="environments/..."
-export GEMINI_ENVIRONMENT_KEY="ek_..."
+export GEMINI_ENVIRONMENT_ID="..."   # "id" from the response
+export GEMINI_ENVIRONMENT_KEY="..."  # "environment_key" from the response
 ```
 
 <Warning>
@@ -135,7 +135,7 @@ From your local machine, send the agent an interaction that targets your environ
 ```bash
 gemini-api agent run \
   "Create hello.txt and run uname -a in bash." \
-  --agent antigravity-preview-05-2026 \
+  --agent antigravity-preview-09-2026 \
   --body "{\"environment\": \"$GEMINI_ENVIRONMENT_ID\"}"
 ```
 
@@ -151,7 +151,7 @@ To use a plain [Fly Machine](https://fly.io/docs/machines/) instead of a Sprite,
 
 ```bash
 export FLY_APP="your-fly-app"
-fly apps create "$FLY_APP" || true
+fly apps create "$FLY_APP" -o your-org   # skip if the app already exists
 fly secrets set -a "$FLY_APP" --stage GEMINI_ENVIRONMENT_KEY="$GEMINI_ENVIRONMENT_KEY"
 
 fly machine run ubuntu:24.04 -a "$FLY_APP" -- bash -c \
