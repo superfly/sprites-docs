@@ -217,7 +217,7 @@ Custom API connector names are unique within your organization. If you create a 
 
 You can test a credential without saving the connector. Send the same request body to `POST /v1/oauth/connections/custom_api/test`. The endpoint returns HTTP 200 with `result.status` set to `ok` or `error`.
 
-To update an existing connector, send a `PUT` request to `/v1/oauth/connections/custom_api/<id>` with the fields you want to change. Leave `access_token` blank or omit it to keep the existing credential.
+To update an existing connector, send a `PUT` request to `/v1/oauth/connections/custom_api/<id>` with the fields you want to change. Leave `access_token` blank or omit it to keep the existing credential. If you change `base_api_url` or `test_url` to a different origin, include a new `access_token` in the same request.
 
 ### Enable a managed connector
 
