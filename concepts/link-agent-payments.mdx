@@ -1,0 +1,109 @@
+---
+title: Link Agent Payments
+description: "Let an agent in a Sprite pay for things with a single-use card from Link, Stripe's wallet. You approve every purchase in the Link app, and your card details stay with Link."
+---
+
+The Link Agent Payments connector lets an agent running in a Sprite pay for things on your behalf. The agent asks for a single-use virtual card for one purchase, with a merchant and an amount. You approve the request in the Link app, and the agent gets a card it can use for that purchase only.
+
+Your real card details stay with [Link](https://link.com), Stripe's wallet. The agent never sees your Link tokens, and it can't approve its own purchases.
+
+Link Agent Payments works with Link accounts in the US and Canada.
+
+## What an agent can and can't do
+
+An agent in an allowed Sprite can:
+
+- Create, check and cancel spend requests.
+- Collect the single-use card after you approve a request.
+
+An agent can't:
+
+- See your Link tokens or your real card details.
+- Approve its own purchases.
+- Change your payment methods, addresses or approval settings.
+
+<Warning>
+**Anyone who controls an allowed Sprite can read the card**
+
+After you approve a spend request, the card number and CVC are available inside the Sprite. Only give access to Sprites you trust, and approve only the requests you expect.
+</Warning>
+
+## Limits
+
+| Limit | Amount |
+| --- | --- |
+| Per request | \$500 |
+| Per day | \$500 |
+| Per 30 days | \$20,000 |
+| Time to approve a request | 30 minutes |
+
+Each card is single use, capped at the approved amount, and stops working after 12 hours.
+
+## Set up the connector
+
+1. In the dashboard, open your organization, then **Connectors**.
+2. Click **Add connection** and choose **Link Agent Payments**.
+3. Click **Continue with Link** and sign in to your Link account.
+4. Choose which Sprites can use the connector. Like every connector, it's deny-by-default, so no Sprite can use it until you grant access. See [Configuring access](/concepts/connectors#configuring-access).
+
+The connector's detail page shows its gateway URL and connection ID.
+
+## Use it from a Sprite
+
+Agents use Link CLI (`@stripe/link-cli`) in the Sprite, pointed at the Sprites gateway. The gateway adds and refreshes your real Link token, so the Sprite only needs a placeholder:
+
+```bash
+npm install -g @stripe/link-cli
+
+export LINK_API_BASE_URL="https://api.sprites.dev/v1/gateway/link/<connection_id>"
+export LINK_ACCESS_TOKEN=sprites-gateway
+export LINK_NO_REFRESH=1
+```
+
+Don't set `LINK_REFRESH_TOKEN`.
+
+Check the connection by listing your payment methods:
+
+```bash
+link-cli payment-methods list --format json
+```
+
+### Make a purchase
+
+The agent creates a spend request with the merchant, the amount in cents, and some context about the purchase. The context must be at least 100 characters. Add `--test` to get a test card that charges nothing:
+
+```bash
+link-cli spend-request create --test --request-approval --format json \
+  --merchant-name "Stripe Press" --merchant-url "https://press.stripe.com" \
+  --amount 3500 --currency usd \
+  --context "Buying 'Working in Public' from press.stripe.com for the user, who asked for this book in today's session and set a 40 USD budget for it."
+```
+
+You get a notification to approve the request in the Link app. The agent waits for your approval, for up to 30 minutes:
+
+```bash
+link-cli spend-request retrieve lsrq_... --interval 5 --timeout 1800 --format json
+```
+
+After you approve, the agent writes the card to a file that only its user can read, instead of printing it in the terminal:
+
+```bash
+link-cli spend-request retrieve lsrq_... --include card \
+  --output-file /tmp/link-card.json --format json
+```
+
+The agent then uses the card at the merchant's checkout.
+
+### Call the API directly
+
+The same API is available over plain HTTP through the gateway:
+
+```bash
+curl "https://api.sprites.dev/v1/gateway/link/<connection_id>/spend_requests"
+```
+
+## Related
+
+- [Connectors](/concepts/connectors)
+- [Buy Fly.io credit with MPP](https://docs.fly.io/about/mpp-credits), for agents that add credit to your Fly.io organization with Link
+- [Link CLI on npm](https://www.npmjs.com/package/@stripe/link-cli)

@@ -47,6 +47,7 @@
             "pages": [
               "concepts/checkpoints",
               "concepts/connectors",
+              "concepts/link-agent-payments",
               "concepts/lifecycle",
               "concepts/networking",
               "concepts/services"
