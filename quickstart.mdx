@@ -122,13 +122,14 @@ First, get your Sprite's public URL:
 sprite info
 ```
 
-Then start a simple Python server:
+Then start a simple Python server. Serve a dedicated directory, not your home directory: your home directory holds shell history and agent config files (`.claude`, `.codex`, and so on) that you don't want on the web.
 
 ```bash
-sprite exec -- python -m http.server 8080
+sprite exec -- bash -c "mkdir -p ~/site && echo 'Hello from my Sprite!' > ~/site/index.html"
+sprite exec -- python -u -m http.server 8080 --directory /home/sprite/site
 ```
 
-Visit the URL in your browser—you'll see Python's directory listing page. Press `Ctrl+C` to stop the server when you're done. Your Sprite automatically routes HTTP traffic to port 8080 and wakes up to handle requests.
+Visit the URL in your browser—you'll see your page. Press `Ctrl+C` to stop the server when you're done. Your Sprite automatically routes HTTP traffic to port 8080 and wakes up to handle requests.
 
 <Info>
 By default, your Sprite's URL requires authentication. To make it publicly accessible, run:
@@ -137,7 +138,7 @@ By default, your Sprite's URL requires authentication. To make it publicly acces
 sprite config update --url-auth public
 ```
 
-The `sprite` auth mode (the default) requires a Sprite token with Bearer authentication.
+Anyone with the URL can then see whatever the server on port 8080 serves. The `sprite` auth mode (the default) requires a Sprite token with Bearer authentication.
 </Info>
 
 ### Test on-demand wake-up
