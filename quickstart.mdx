@@ -125,7 +125,7 @@ sprite info
 Then start a simple Python server. Serve a dedicated directory, not your home directory: your home directory holds shell history and agent config files (`.claude`, `.codex`, and so on) that you don't want on the web.
 
 ```bash
-sprite exec -- bash -c "mkdir -p ~/site && echo 'Hello from my Sprite!' > ~/site/index.html"
+sprite exec -- bash -c "mkdir -p ~/site && echo 'Hello from my Sprite' > ~/site/index.html"
 sprite exec -- python -u -m http.server 8080 --directory /home/sprite/site
 ```
 
