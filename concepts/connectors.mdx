@@ -145,7 +145,7 @@ So you can ask in plain language:
 | --- | --- | --- |
 | `connected` | The connector exists and this Sprite's access policy allows it | Calls `gateway_base_url` with the provider path appended, with no `Authorization` header |
 | `restricted` | The connector exists, but this Sprite's access policy denies it | Relays `manage_url` and `access_reason` so an admin can widen the policy, then waits |
-| `available` | The provider has a connector, but nobody in your organization has connected it yet | Relays `setup_url` and runs `find` again once you say setup is done |
+| `available` | The provider can be connected, and no connection this Sprite can use or see matched better | Relays `setup_url` and runs `find` again once you say setup is done |
 | `none` | Nothing matches | Suggests a Custom API connector, giving you the base URL and the header the credential belongs in |
 
 Host matches win over name matches, and ties go to `connected`, then `restricted`, then `available`. A multi-word query needs quotes: `find "web search"`.
@@ -160,7 +160,7 @@ Under the hood, `find` reads `GET /v1/gateway/list`: `http://sprite.internal/v1/
 
 - **`connections`** — connectors this Sprite may use. Each carries the `gateway_base_url` to call, a `manage_url` for its dashboard page, and `upstream_host`, the provider host the gateway forwards to. OAuth connectors also carry a `request_scopes_url` for granting extra scopes.
 - **`restricted`** — connectors that exist in your organization but whose access policy denies this Sprite. Each carries `manage_url`, `access_reason` (why the policy denies this Sprite, for example a missing label), and `upstream_host`. There's no gateway URL to call.
-- **`available`** — providers from the catalog that nobody in your organization has connected. Each carries `setup_url`, `auth_kind` (`oauth`, `api_key`, or `managed`), and `upstream_host`.
+- **`available`** — every provider your organization may add, whether or not a connection to it already exists. Each carries `setup_url`, `auth_kind` (`oauth`, `api_key`, or `managed`), and `upstream_host`. `find` ranks an existing connection above its provider's catalog entry, so an `available` match means nothing usable or visible was found first.
 
 Entries in all three buckets carry `display_name`, `description`, `categories`, and `keywords`, which is what `find` matches on.
 
