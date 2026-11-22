@@ -3,11 +3,13 @@ title: Remote MCP Server
 description: "Point any MCP client at sprites.dev/mcp and sign in with Fly.io OAuth. Covers the mcp- name prefix limit, available tools, the safety model and fixes."
 ---
 
+<Warning>
+The Sprites MCP server is deprecated. Use the [Fly MCP](https://fly.io/mcp/) at `https://mcp.fly.io` instead: it has the Sprites tools, plus tools for your Fly apps, Machines, volumes, secrets and Managed Postgres. If your client is connected to `sprites.dev/mcp`, switch it to `https://mcp.fly.io`.
+</Warning>
+
 Sprites runs a hosted MCP server. Connect an MCP client to it and the client can control Sprites directly. It can create and manage them, run commands, inspect checkpoints, and change network policy through standard MCP tools.
 
 Why use it? Your MCP client gets persistent, isolated Linux environments without you pasting API tokens into a prompt or running a local MCP bridge.
-
-This server covers Sprites only. If your client also needs to manage existing Fly apps, Machines, volumes, secrets or Managed Postgres, use the [Fly MCP](https://fly.io/mcp/) at `https://mcp.fly.io` instead: it includes the Sprites tools too.
 
 ## MCP server URL
 
