@@ -28,7 +28,6 @@ Sprites 2 is a new version of Sprites, rebuilt on new infrastructure. A Sprite i
 If you already use Sprites 1, check these before you move work over:
 
 - **The API is different.** Sprites 2 has its own OpenAPI description at `https://api.sprites.dev/v1/openapi.json`. Some Sprites 1 endpoints don't exist in Sprites 2, including `fs/read` and `fs/list`.
-{/* TODO(confirm): sprites2-docs.fly.dev also lists /suspend and /resume as missing, but the ssh docs@sprites.dev reference documents POST /v1/sprites/NAME/suspend. Which is right? */}
 {/* TODO(confirm): API hostname after the AWS cutover. Keep the base URL in this one place if it changes. */}
 - **No `/proxy` endpoint.** Use per-service URLs, or forward a local port with `ssh -L` for things like login flows that expect `localhost`.
 - **Memory is billed differently.** See [Pricing](#pricing).
@@ -43,7 +42,7 @@ Sprites 2 is opt-in during the beta.
 
 To use Sprites 2 through the API, send the `Sprites-Api-Beta: 2026-12-01` header with every request:
 
-{/* TODO(confirm): Jason, 23 Nov: the header requirement "probably could be relaxed before GA". Still unanswered: does the CLI or SSH need anything, and does the org also need to opt in? */}
+{/* TODO(confirm): Jason, 23 Nov: the header requirement "probably could be relaxed before GA". Org opt-in and SSH/CLI: "no good answer yet". */}
 
 ```bash
 curl -sS "https://api.sprites.dev/v1/sprites" \
@@ -101,4 +100,4 @@ These aren't part of Sprites 2 yet:
 - [Sprites 2 feature guides](https://sprites2-docs.fly.dev/) walk through each feature with examples.
 - Run `ssh docs@sprites.dev` for the full Sprites 2 reference, written for people and agents. You don't need an account.
 - [Get started with Sprites 2](/sprites-2/getting-started) walks you through your first Sprite.
-{/* TODO: add where to report beta problems. */}
+{/* TODO: add where to report beta problems. Asked 23 Nov, no answer yet. */}
