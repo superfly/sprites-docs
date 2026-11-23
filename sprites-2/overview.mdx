@@ -63,15 +63,18 @@ curl -sS "https://api.sprites.dev/v1/sprites" \
 | Fork depth | 8 ancestors |
 | Live forks from one checkpoint | 10,000 |
 | Concurrent exec sessions | 32 for each Sprite |
+| Suspend (saving memory) | Sprites with 16 GB of memory or less |
 | Token lifetime | 365 days at most |
 | Connector request body | 32 MB |
 | Region | Virginia (`iad`) only |
 
 Forks stay within the organization that owns the checkpoint.
 
+A Sprite with more than 16 GB of memory can stop, but it can't suspend and resume its memory.
+
 ## Pricing
 
-CPU, memory and hot storage bill while a Sprite is awake. Cold storage bills until you delete the data.
+Usage is billed per second, with no minimum. CPU, memory and hot storage bill while a Sprite is awake, so a sleeping Sprite costs only its stored data.
 
 | Resource | Rate |
 |----------|------|
@@ -80,14 +83,17 @@ CPU, memory and hot storage bill while a Sprite is awake. Cold storage bills unt
 | Hot storage, while the Sprite is awake | $0.000683 per GB-hour ($0.50 per GB-month) |
 | Cold storage, for as long as you keep it | $0.000027 per GB-hour ($0.02 per GB-month) |
 
-{/* TODO(confirm): rates copied from fly.io/pricing (Sprites section) on 23 Nov. Matt Cunningham, 23 Nov: rates are final enough to publish, and hot and cold storage are wired up for S2. Jason: S2 is "probably just pulling from our existing pricing page". Confirm S2 uses these same rates. */}
+{/* TODO(confirm with Gary before launch): rates copied from fly.io/pricing (Sprites section) on 23 Nov. Matt and Jason confirmed S2 uses them "for the time being"; rates are set in Metronome and Gary is firming them up for launch, so they might change. */}
 
 How memory is billed depends on how much a Sprite has:
 
-- **Up to 16 GB:** billed on the memory your Sprite uses.
-- **More than 16 GB, up to 32 GB:** billed on the memory you request, whether or not it's in use.
+- **Up to 16 GB:** billed on the memory the Sprite's VM uses, including its kernel.
+- **More than 16 GB, up to 32 GB:** billed on the memory you request, for every second the Sprite runs, whether or not it's in use.
 
-{/* TODO(confirm with Jason): Matt, 23 Nov: this split holds "provided we will have larger than 16GB available". Confirm Sprites over 16 GB are available for the beta. Matt asked for "upon request" wording, not "reservation", so it isn't confused with Machines reservations. */}
+{/* Matt asked for "on request" wording, not "reservation", so it isn't confused with Machines reservations. Jason confirmed 23 Nov that Sprites over 16 GB can be created, up to 32 GB. */}
+{/* TODO(confirm with Jason): his 23 Nov pricing notes say a Sprite is also billed at its full size "on a host without dynamic memory". Can that happen to beta users? If so, say so here. */}
+
+Cold storage covers everything a Sprite keeps on disk, including its checkpoints and any saved suspend image. Ephemeral disks don't count toward storage.
 
 To see the current list prices for your organization, run:
 
