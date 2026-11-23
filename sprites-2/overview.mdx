@@ -5,7 +5,7 @@ description: "Sprites 2 is the next version of Sprites, in public beta. Learn wh
 ---
 
 <Warning>
-Sprites 2 is in public beta. Features, limits and prices can change before general availability. The pages in this section apply only to Sprites 2. The rest of these docs describe Sprites 1.
+Sprites 2 is in public beta. Features and limits can change before general availability. The pages in this section apply only to Sprites 2. The rest of these docs describe Sprites 1.
 </Warning>
 
 Sprites 2 is a new version of Sprites, rebuilt on new infrastructure. A Sprite is still a persistent Linux environment that sleeps when nothing is using it and wakes when work arrives. Sprites 2 adds per-service URLs, a private network between Sprites, forking from checkpoints, custom container images and finer control over tokens and outbound traffic.
@@ -71,14 +71,29 @@ Forks stay within the organization that owns the checkpoint.
 
 ## Pricing
 
-Sprites 2 bills CPU and memory by the second while a Sprite is running. Memory is billed in two ways:
+CPU, memory and hot storage bill while a Sprite is awake. Cold storage bills until you delete the data.
+
+| Resource | Rate |
+|----------|------|
+| CPU time | $0.0385 per CPU-hour |
+| Memory | $0.021875 per GB-hour |
+| Hot storage, while the Sprite is awake | $0.000683 per GB-hour ($0.50 per GB-month) |
+| Cold storage, for as long as you keep it | $0.000027 per GB-hour ($0.02 per GB-month) |
+
+{/* TODO(confirm): rates copied from fly.io/pricing (Sprites section) on 23 Nov. Matt Cunningham, 23 Nov: rates are final enough to publish, and hot and cold storage are wired up for S2. Jason: S2 is "probably just pulling from our existing pricing page". Confirm S2 uses these same rates. */}
+
+How memory is billed depends on how much a Sprite has:
 
 - **Up to 16 GB:** billed on the memory your Sprite uses.
-- **16 GB to 32 GB:** billed on the memory you reserve, whether or not it's in use.
+- **More than 16 GB, up to 32 GB:** billed on the memory you request, whether or not it's in use.
 
-{/* TODO(confirm with Matt Cunningham): rates. Jason, 23 Nov: beta usage currently shows as comped on invoices, but don't say so in the docs; it may not stay that way. Storage and checkpoint pricing is out of scope for GA. */}
+{/* TODO(confirm with Jason): Matt, 23 Nov: this split holds "provided we will have larger than 16GB available". Confirm Sprites over 16 GB are available for the beta. Matt asked for "upon request" wording, not "reservation", so it isn't confused with Machines reservations. */}
 
-Prices can change before general availability.
+To see the current list prices for your organization, run:
+
+```bash
+ssh my-org@sprites.dev pricing
+```
 
 ## Not in the beta
 
