@@ -13,7 +13,7 @@ A connector has three pieces:
 
 1. **A credential** — an OAuth token, your own API key, or a managed provider that's part of your Sprites plan. Stored encrypted in your organization's database. The token itself is never returned by the API.
 2. **An access policy** — rules that decide which of your Sprites may use the connector, and which provider paths they may reach. **Deny-by-default**: a connector with no policy refuses every Sprite.
-3. **A gateway endpoint** — `https://api.sprites.dev/v1/gateway/<provider>/<connection_id>/<path>`. A Sprite calls this URL; Sprites authenticates the call using the requesting Sprite's identity, checks the policy, and forwards to the provider with the stored credential attached.
+3. **A gateway endpoint** — `/v1/gateway/<provider>/<connection_id>/<path>` on the Sprites gateway (the host depends on the Sprite's generation; see [Calling a connector from a Sprite](#calling-a-connector-from-a-sprite)). A Sprite calls this URL; Sprites authenticates the call using the requesting Sprite's identity, checks the policy, and forwards to the provider with the stored credential attached.
 
 The Sprite never holds the provider token. It only knows the connector ID and the gateway URL.
 
@@ -65,23 +65,24 @@ The **Gateway Playground** at the bottom lets you fire a real request from any o
 
 ## Calling a connector from a Sprite
 
-Once the policy grants access, a Sprite calls the connector by hitting the gateway URL:
+Once the policy grants access, a Sprite calls the connector by hitting the gateway URL. The host depends on which generation of Sprite is calling:
 
-```
-https://api.sprites.dev/v1/gateway/<provider>/<connection_id>/<path>
-```
+- **Current Sprites** reach the platform over a private bridge: `http://sprite.internal/v1/gateway/<provider>/<connection_id>/<path>`. That's plain HTTP on port 80 to the Sprite's own link with the platform, not the public Sprites API.
+- **Classic Sprites** call the public API directly: `https://api.sprites.dev/v1/gateway/<provider>/<connection_id>/<path>`.
 
-No `Authorization` header — the gateway identifies the calling Sprite from Fly.io's request signature. Whatever path you append after the connector ID gets forwarded to the provider with the stored credential attached.
+Either way, there's no `Authorization` header — the gateway identifies the calling Sprite from its platform identity. Whatever path you append after the connector ID gets forwarded to the provider with the stored credential attached.
 
 For example, if you set up a GitHub connector and granted access to Sprites with the `github` label:
 
 ```bash
-curl -X POST "https://api.sprites.dev/v1/gateway/github/conn_gh789abc012/repos/acme/website/issues" \
+curl -X POST "http://sprite.internal/v1/gateway/github/conn_gh789abc012/repos/acme/website/issues" \
   -H "Content-Type: application/json" \
   -d '{"title": "Flaky test in CI", "body": "Opened from a Sprite"}'
 ```
 
-The connector detail page shows the exact gateway URL for each connector — you don't need to construct it by hand.
+On a classic Sprite, swap the host for `https://api.sprites.dev`.
+
+You don't need to construct the URL by hand. The connector detail page shows the exact gateway URL for each connector, and inside the Sprite `sprite-env connectors find <service>` prints it as `gateway_base_url` (see [Using connectors with a coding agent](#using-connectors-with-a-coding-agent)).
 
 ## Endpoint allow- and block-lists
 
@@ -122,9 +123,15 @@ The detail page adds a **Usage** strip at the top showing your spend over the la
 
 ## Using connectors with a coding agent
 
-Every Sprite ships with the **`sprite-api-gateway`** skill pre-installed for Claude Code, Cursor, Codex, and Gemini. When a coding agent running inside a Sprite needs to talk to an external API, the skill kicks in automatically, so you don't have to teach it any of the URLs above.
+A coding agent running inside a Sprite doesn't have to learn any of the URLs above. Every Sprite carries guidance that points the agent at connectors first. Current Sprites ship a `sprite` skill and `/.fly/AGENTS.md`; classic Sprites ship the `sprite-api-gateway` skill under `~/.claude/skills/`, `~/.cursor/skills/`, `~/.codex/skills/`, and `~/.gemini/skills/`. Both say the same thing: before asking you for an API key, whenever a task names a third-party service, when an upstream API answers `401` or `403`, or when egress denies a host, run
 
-Ask in plain language:
+```bash
+sprite-env connectors find <service or host>
+```
+
+and never ask you to paste a credential into the Sprite.
+
+So you can ask in plain language:
 
 > "Comment 'tests are green, ready to merge' on GitHub PR #42 in acme/website."<br/><br/>
 >
@@ -132,22 +139,45 @@ Ask in plain language:
 >
 > "List my last 10 OpenRouter completions."
 
-The agent discovers what's available by calling the gateway list endpoint:
+### What `find` returns
 
-```bash
-curl -s https://api.sprites.dev/v1/gateway/list
-```
+`find` matches a name, keyword, host, or URL (`github`, `api.github.com`, `https://slack.com/api/chat.postMessage`) against every connector the Sprite can see and prints one `match` with a `next_step` the agent can act on or relay to you:
 
-The response tells the agent which providers are connected (with their `gateway_base_url` and `usage_snippet`) and which are available but not yet set up (with a `setup_url` to share with you). The agent picks the right connector, builds the call against the gateway, and never sees a raw token.
+| `match` | Meaning | What the agent does |
+| --- | --- | --- |
+| `connected` | The connector exists and this Sprite's access policy allows it | Calls `gateway_base_url` with the provider path appended, with no `Authorization` header |
+| `restricted` | The connector exists, but this Sprite's access policy denies it | Relays `manage_url` and `access_reason` so an admin can widen the policy, then waits |
+| `available` | The provider can be connected, and no connection this Sprite can use or see matched better | Relays `setup_url` and runs `find` again once you say setup is done |
+| `none` | Nothing matches | Suggests a Custom API connector, giving you the base URL and the header the credential belongs in |
 
-If the connector exists but is missing scopes the agent needs, the skill points you at a `request_scopes_url` to grant the additional scopes. If no connector exists for the provider, it points you at a `setup_url` to create one.
+Host matches win over name matches, and ties go to `connected`, then `restricted`, then `available`. A multi-word query needs quotes: `find "web search"`.
 
-The practical effect: once an organization admin has set up a GitHub connector and granted access to the right Sprites, anyone using a coding agent inside one of those Sprites can use the integration in natural language, with no API knowledge required.
+`sprite-env connectors list` prints the raw list, and `sprite-env connectors get <id>` prints one entry. On current Sprites, `sprite-env discover` also includes a connector summary under `connectors`.
+
+Every Sprite in the organization can see the `restricted` bucket. It carries names and descriptions only, never credentials, account identifiers, or gateway URLs, so a denied Sprite can tell you a connector exists without being able to use it.
+
+### The list endpoint
+
+Under the hood, `find` reads `GET /v1/gateway/list`: `http://sprite.internal/v1/gateway/list` from a current Sprite, `https://api.sprites.dev/v1/gateway/list` from a classic one. The response has three buckets:
+
+- **`connections`** — connectors this Sprite may use. Each carries the `gateway_base_url` to call, a `manage_url` for its dashboard page, and `upstream_host`, the provider host the gateway forwards to. OAuth connectors also carry a `request_scopes_url` for granting extra scopes.
+- **`restricted`** — connectors that exist in your organization but whose access policy denies this Sprite. Each carries `manage_url`, `access_reason` (why the policy denies this Sprite, for example a missing label), and `upstream_host`. There's no gateway URL to call.
+- **`available`** — every provider your organization may add, whether or not a connection to it already exists. Each carries `setup_url`, `auth_kind` (`oauth`, `api_key`, or `managed`), and `upstream_host`. `find` ranks an existing connection above its provider's catalog entry, so an `available` match means nothing usable or visible was found first.
+
+Entries in all three buckets carry `display_name`, `description`, `categories`, and `keywords`, which is what `find` matches on.
+
+### What `setup_url` does
+
+`setup_url` opens the dashboard's **Add connector** page with the provider pre-selected and the name of the Sprite that asked filled into the Sprite access field, as a name prefix. Saving the form creates the connector with an access policy that allows that Sprite, and any Sprite whose name starts the same way. The admin can edit or clear the prefix before saving. For OAuth providers, the prefix shows up as an unsaved pre-fill on the connector's page after the provider redirects back, and it's stored only when the admin clicks **Save**.
+
+The link pre-fills a form that a human submits. It doesn't grant access by itself, and no organization token is ever placed inside the Sprite, so creating connectors and changing policies stays in the dashboard.
+
+The practical effect: once an organization admin has set up a GitHub connector and granted access to the right Sprites, anyone using a coding agent inside one of those Sprites can use the integration in natural language, with no API knowledge required. When the connector isn't there yet, the agent hands you the link that creates it instead of asking for a key.
 
 <Tip>
-**Where the skill lives**
+**Which generation is this Sprite?**
 
-The skill is loaded from `~/.claude/skills/sprite-api-gateway/`, `~/.cursor/skills/sprite-api-gateway/`, `~/.codex/skills/sprite-api-gateway/`, and `~/.gemini/skills/sprite-api-gateway/` inside every Sprite. It's part of the Sprite base image, so there's nothing to install.
+`sprite-env connectors find` works on both. If `/.fly/AGENTS.md` exists, the Sprite is the current generation and talks to the gateway at `http://sprite.internal`; otherwise it's a classic Sprite calling `https://api.sprites.dev`.
 </Tip>
 
 ## Common errors
