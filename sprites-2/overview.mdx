@@ -1,0 +1,104 @@
+---
+title: Sprites 2 beta
+sidebarTitle: "Overview"
+description: "Sprites 2 is the next version of Sprites, in public beta. Learn what's new, how it differs from Sprites 1, how to get access, and the limits that apply during the beta."
+---
+
+<Warning>
+Sprites 2 is in public beta. Features, limits and prices can change before general availability. The pages in this section apply only to Sprites 2. The rest of these docs describe Sprites 1.
+</Warning>
+
+Sprites 2 is a new version of Sprites, rebuilt on new infrastructure. A Sprite is still a persistent Linux environment that sleeps when nothing is using it and wakes when work arrives. Sprites 2 adds per-service URLs, a private network between Sprites, forking from checkpoints, custom container images and finer control over tokens and outbound traffic.
+
+## What's new in Sprites 2
+
+- **Per-service URLs.** Each named service in a Sprite can get its own public or private URL. Sprites handles the port mapping, so you don't need a reverse proxy.
+- **Internal network.** Sprites can reach each other over HTTP and TCP, but only through grants you set up for each service.
+- **Forking.** Checkpoint a Sprite once, then fork that checkpoint into many independent Sprites. A fork copies the disk, not memory or running processes.
+- **Your own container image.** Create a Sprite from any public or private image URL, including images that run systemd, such as NixOS.
+- **Durable and ephemeral disks.** Keep state on a durable disk that checkpoints and forks, or use an ephemeral disk that resets on every cold start.
+- **Always-on Sprites.** Turn off auto-sleep so a Sprite keeps running until you stop it.
+- **Scheduled wake-ups.** Run a command on a schedule. A sleeping Sprite wakes for the run and goes back to sleep afterward.
+- **SSH control plane.** Manage Sprites with plain SSH, with no CLI to install, and open shells or use SCP, SFTP, rsync and Git with your existing SSH tools.
+- **Scoped tokens.** Mint narrower, shorter-lived tokens from an organization token for each agent or customer, and revoke each one on its own.
+- **Strict egress policies.** Allow or deny outbound connections for each Sprite, up to blocking all outbound traffic.
+
+## How Sprites 2 differs from Sprites 1
+
+If you already use Sprites 1, check these before you move work over:
+
+- **The API is different.** Sprites 2 has its own OpenAPI description at `https://api.sprites.dev/v1/openapi.json`. Some Sprites 1 endpoints don't exist in Sprites 2, including `fs/read` and `fs/list`.
+{/* TODO(confirm): sprites2-docs.fly.dev also lists /suspend and /resume as missing, but the ssh docs@sprites.dev reference documents POST /v1/sprites/NAME/suspend. Which is right? */}
+{/* TODO(confirm): API hostname after the AWS cutover. Keep the base URL in this one place if it changes. */}
+- **No `/proxy` endpoint.** Use per-service URLs, or forward a local port with `ssh -L` for things like login flows that expect `localhost`.
+- **Memory is billed differently.** See [Pricing](#pricing).
+- **One root disk.** Each Sprite has one durable root disk. OS updates, installed software and your data all live on it. There's no separate data disk yet.
+{/* TODO(confirm): a separate /data disk is on the boundary doc's in list, but Jason said on 9 Nov it isn't built. Does it ship for the beta? */}
+- **One region.** Sprites 2 runs in North America only, in Virginia (`iad`). You can't choose a region yet.
+- **No migration tool.** There's no automatic way to move a Sprite from Sprites 1 to Sprites 2. Create a new Sprite and copy over what you need.
+
+## Get access
+
+Sprites 2 is opt-in during the beta.
+
+To use Sprites 2 through the API, send the `Sprites-Api-Beta: 2026-12-01` header with every request:
+
+{/* TODO(confirm): Jason, 23 Nov: the header requirement "probably could be relaxed before GA". Still unanswered: does the CLI or SSH need anything, and does the org also need to opt in? */}
+
+```bash
+curl -sS "https://api.sprites.dev/v1/sprites" \
+  -H "Authorization: Bearer $SPRITES_TOKEN" \
+  -H "Sprites-Api-Beta: 2026-12-01"
+```
+
+## Limits during the beta
+
+| Limit | Value |
+|-------|-------|
+| Default size | 8 CPUs, 4 GB RAM, 100 GB disk |
+| Maximum size | 16 vCPUs, 32 GB RAM |
+| Durable root disk | Up to 1 TB |
+| Ephemeral disk | Up to 100 GB |
+| Checkpoints kept | The last 100 for each Sprite |
+| Checkpoint, restore and fork operations | 30 per minute |
+| Fork depth | 8 ancestors |
+| Live forks from one checkpoint | 10,000 |
+| Concurrent exec sessions | 32 for each Sprite |
+| Token lifetime | 365 days at most |
+| Connector request body | 32 MB |
+| Region | Virginia (`iad`) only |
+
+Forks stay within the organization that owns the checkpoint.
+
+## Pricing
+
+Sprites 2 bills CPU and memory by the second while a Sprite is running. Memory is billed in two ways:
+
+- **Up to 16 GB:** billed on the memory your Sprite uses.
+- **16 GB to 32 GB:** billed on the memory you reserve, whether or not it's in use.
+
+{/* TODO(confirm with Matt Cunningham): rates. Jason, 23 Nov: beta usage currently shows as comped on invoices, but don't say so in the docs; it may not stay that way. Storage and checkpoint pricing is out of scope for GA. */}
+
+Prices can change before general availability.
+
+## Not in the beta
+
+These aren't part of Sprites 2 yet:
+
+- EU region and choosing a region
+- Custom domains
+- A static outbound IP for each Sprite
+- Sharing checkpoints across organizations
+- A guaranteed time a Sprite stays awake
+- A setting for the maximum time a Sprite stays awake
+- Moving a Sprite from Sprites 1 to Sprites 2 automatically
+- Private connections to Fly Machines and Managed Postgres
+- Header-based routing to Sprites
+- Bring your own cloud (BYOC)
+
+## Learn more
+
+- [Sprites 2 feature guides](https://sprites2-docs.fly.dev/) walk through each feature with examples.
+- Run `ssh docs@sprites.dev` for the full Sprites 2 reference, written for people and agents. You don't need an account.
+- [Get started with Sprites 2](/sprites-2/getting-started) walks you through your first Sprite.
+{/* TODO: add where to report beta problems. */}
