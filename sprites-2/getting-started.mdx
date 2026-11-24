@@ -1,0 +1,182 @@
+---
+title: Get started with Sprites 2
+sidebarTitle: "Getting started"
+description: "Create your first Sprites 2 Sprite, run commands in it, open a shell and put a web app online, using SSH or the HTTP API."
+---
+
+<Warning>
+Sprites 2 is in public beta. This page applies only to Sprites 2. For Sprites 1, see the [Quickstart](/quickstart).
+</Warning>
+
+This guide walks you through creating a Sprite, running a command in it, opening a shell, serving a web page and cleaning up. Every step shows both ways to control Sprites 2: SSH and the HTTP API.
+
+## Before you begin
+
+You need:
+
+- A Fly.io organization with access to Sprites 2. See [Get access](/sprites-2/overview#get-access).
+- An SSH client, for the SSH examples.
+- An organization token, for the HTTP API examples. Create one in the Fly.io dashboard at `fly.io/dashboard/ORG/sprites`.
+
+{/* TODO(confirm): Jason said the `sprite` CLI works with Sprites 2 if you log in to the Sprites 2 org (19 Nov). Document it for the beta, or keep this page to SSH and the API like the Sprites 2 reference does? */}
+
+The examples use `my-org` as the organization slug. Replace it with your own.
+
+## Two ways to control Sprites
+
+**SSH.** Send commands to your organization's control plane at `my-org@sprites.dev`. There's nothing to install:
+
+```bash
+ssh my-org@sprites.dev sprite list
+```
+
+The first time you connect with a new SSH key, you're asked to approve it. An approved key can act for your whole organization.
+
+{/* TODO(confirm): Jason, 23 Nov: "the ssh key is just setup for them". The ssh docs@sprites.dev reference mentions first-time approval for an unapproved key. Reword the sentence above once we know what users actually see. */}
+
+There are two SSH addresses:
+
+| Address | Connects to |
+|---------|-------------|
+| `my-org@sprites.dev` | The control plane, for commands that manage Sprites |
+| `NAME--CLUSTER--my-org@sprites.dev` | The inside of one Sprite, for a shell, SCP, SFTP or Git |
+
+**HTTP API.** For apps and scripts, use the JSON API. Set these variables once, and the examples on this page use them:
+
+```bash
+export SPRITES_TOKEN=...   # your organization token
+API=https://api.sprites.dev/v1
+AUTH="Authorization: Bearer $SPRITES_TOKEN"
+BETA="Sprites-Api-Beta: 2026-12-01"
+JSON="Content-Type: application/json"
+```
+
+{/* TODO(confirm): API base URL after the AWS cutover. Change it here and in the overview page only. */}
+
+The full API is described in OpenAPI at `https://api.sprites.dev/v1/openapi.json`.
+
+<Warning>
+The Sprites 1 OpenAPI document at `https://api.sprites.dev/openapi.json` describes a different API. Use the `/v1/openapi.json` document for Sprites 2.
+</Warning>
+
+## Create and use a Sprite
+
+<Steps>
+  <Step title="Create a Sprite">
+    <CodeGroup>
+    ```bash SSH
+    ssh my-org@sprites.dev sprite create dev
+    ```
+
+    ```bash HTTP API
+    curl -sS -X POST "$API/sprites" -H "$AUTH" -H "$BETA" -H "$JSON" \
+      -d '{"name":"dev"}'
+    ```
+    </CodeGroup>
+
+    The command returns once the Sprite is running. It starts from the Sprites base image: Ubuntu with a `sprite` user, `sudo` and common tools.
+  </Step>
+
+  <Step title="Run a command">
+    <CodeGroup>
+    ```bash SSH
+    ssh my-org@sprites.dev sprite exec dev 'uname -a && pwd'
+    ```
+
+    ```bash HTTP API
+    curl -sS -X POST "$API/sprites/dev/exec" -H "$AUTH" -H "$BETA" -H "$JSON" \
+      -d '{"argv":["/bin/sh","-lc","uname -a && pwd"]}'
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Open a shell">
+    Connect straight to the Sprite. `default` is the name of the cluster the Sprite was created in.
+
+    ```bash
+    ssh dev--default--my-org@sprites.dev
+    ```
+
+    SCP and SFTP work at the same address:
+
+    ```bash
+    scp ./app.tar dev--default--my-org@sprites.dev:/tmp/app.tar
+    ```
+  </Step>
+
+  <Step title="Put a web page online">
+    In the Sprite's shell, register a service on port 8080. A service named `http` is the Sprite's main web server:
+
+    ```bash
+    sprite-env service register http --port 8080 --protocol http -- python3 -m http.server 8080
+    ```
+
+    The Sprite's URL is `https://dev-ORGCODE.sprites.app/`. Run `sprite get dev` to see the exact URL. The URL is private, so only your organization can open it: a browser signed in to Fly.io, or a request with your token.
+
+    To make it public:
+
+    ```bash
+    ssh my-org@sprites.dev sprite update dev --public
+    ```
+
+    Every other service you register gets its own URL in the form `https://SERVICE--SPRITE--CLUSTER--ORG.sprites.app/`, and you make each one public separately.
+  </Step>
+
+  <Step title="Check its status">
+    <CodeGroup>
+    ```bash SSH
+    ssh my-org@sprites.dev sprite get dev
+    ```
+
+    ```bash HTTP API
+    curl -sS "$API/sprites/dev" -H "$AUTH" -H "$BETA"
+    ```
+    </CodeGroup>
+
+    The response shows the Sprite's status, URL and configuration. When nothing has used it for a while, the Sprite goes to sleep, and the next request or command wakes it.
+
+    | State | SSH | HTTP API |
+    |-------|-----|----------|
+    | Running | `running` | `running` |
+    | Stopped, quick to wake | `warm_stopped` | `warm` |
+    | Stopped, disk only | `stopped` | `cold` |
+  </Step>
+
+  <Step title="Delete it">
+    <CodeGroup>
+    ```bash SSH
+    ssh my-org@sprites.dev sprite delete dev
+    ```
+
+    ```bash HTTP API
+    curl -sS -X DELETE "$API/sprites/dev" -H "$AUTH" -H "$BETA"
+    ```
+    </CodeGroup>
+
+    <Warning>
+    Deleting a Sprite is permanent. Take a checkpoint before anything risky.
+    </Warning>
+  </Step>
+</Steps>
+
+## Check responses for errors
+
+Commands that change a Sprite, such as create, start, stop, exec, checkpoint and fork, stream their results as one JSON object per line. They return HTTP 200 even when they fail, so an error can arrive inside the stream:
+
+```json
+{"type":"error","error":{"code":"exec_timeout","message":"Command timed out.","request_id":"GN4c..."}}
+```
+
+Read to the last line and check for `"type":"error"`. When an error includes a `request_id`, include it when you report a problem.
+
+Errors that happen before the stream starts use normal HTTP status codes, such as `401` for a bad or expired token, `404` for an unknown Sprite and `429` when you're rate limited.
+
+<Tip>
+When you pipe SSH control plane output into `jq`, use `ssh -T`. Forcing a terminal with `ssh -t` can garble the output.
+</Tip>
+
+## Next steps
+
+- Read the [Sprites 2 overview](/sprites-2/overview) for limits and what's not in the beta yet.
+- Try the [Sprites 2 feature guides](https://sprites2-docs.fly.dev/) for forking, private networking, egress policies, scoped tokens and more.
+- Run `ssh docs@sprites.dev` for the complete Sprites 2 reference. You don't need an account.

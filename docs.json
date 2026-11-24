@@ -43,6 +43,13 @@
             ]
           },
           {
+            "group": "Sprites 2 (beta)",
+            "pages": [
+              "sprites-2/overview",
+              "sprites-2/getting-started"
+            ]
+          },
+          {
             "group": "Concepts",
             "pages": [
               "concepts/checkpoints",
