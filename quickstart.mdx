@@ -91,7 +91,7 @@ sprite exec -- bash -c "node --version && python3 --version && go version"
 Install dependencies just like you would locally—they'll stick around:
 
 ```bash
-sprite exec -- pip install requests
+sprite exec -- pip install cowsay
 ```
 
 ### Create and read files
@@ -105,7 +105,7 @@ sprite exec -- bash -c "echo 'Hello from my persistent Sprite!' > /home/sprite/g
 # Disconnect, get coffee, come back later...
 # Everything is still there!
 sprite exec -- cat /home/sprite/greeting.txt
-sprite exec -- python -c "import requests; print(requests.__version__)"
+sprite exec -- python -c "import cowsay; cowsay.cow('Still here!')"
 ```
 
 Unlike containers that reset on each run, your Sprite keeps your installed packages, files, and entire filesystem intact.
