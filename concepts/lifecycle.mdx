@@ -40,6 +40,20 @@ Two things bring processes back:
 - [Services](/concepts/services) are processes the runtime owns. It starts them at boot, restarts them on crash, and brings them back after a cold wake. This is how you run a server that needs to answer the request that woke the Sprite.
 - The [Tasks API](/keeping-sprites-running) holds the Sprite active so the current run finishes before it pauses at all.
 
+### Temporary files
+
+`/tmp` is local scratch space. It isn't included in checkpoints, it may be cleared when the Sprite restarts, and it may be size-limited to much less than the rest of the disk. Run `df -h /tmp` to see how much room it has.
+
+For large temporary files, such as downloads, datasets, archives and big builds, use `/var/tmp` or a directory in your home directory. Most tools honor `TMPDIR`, so you can redirect one command without changing it:
+
+```bash
+TMPDIR=/var/tmp pip install -r requirements.txt
+```
+
+`/var/tmp` and your home directory are on the Sprite's persistent disk. Files there survive restarts, are included in checkpoints and count toward storage, so delete them when you're done.
+
+If a write fails with "No space left on device" while `df -h /` shows free space, `/tmp` is full.
+
 ## How persistence works
 
 Every Sprite has an ext4 filesystem. It behaves like real local disk, because it is one: SQLite works in every mode, shared-memory files work, and tools that expect Linux filesystem semantics don't hit surprises. It is not an object-storage shim or a network filesystem.
